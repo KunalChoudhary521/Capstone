@@ -1,0 +1,32 @@
+﻿<Window x:Class="SleepApneaDiagnoser.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SleepApneaDiagnoser"
+        xmlns:oxy="http://oxyplot.org/wpf"
+        mc:Ignorable="d"
+        Title="Sleep Apnea Diagnoser" Height="768" Width="1366">
+    <Grid>
+        
+        <Menu x:Name="menu" Height="20" VerticalAlignment="Top" Grid.ColumnSpan="2">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Open" Click="MenuItem_File_Open_Click"/>
+                <MenuItem Header="_Close" Click="MenuItem_File_Close_Click"/>
+                <MenuItem Header="_Exit" Click="MenuItem_File_Exit_Click"/>
+            </MenuItem>
+        </Menu>
+
+        <Label x:Name="label" Content="Signals" HorizontalAlignment="Left" Margin="10,44,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="47"/>
+        <ListBox x:Name="listBox_edfSignals" HorizontalAlignment="Left" Margin="10,75,0,30" Width="250" SelectionChanged="listBox_edfSignals_SelectionChanged"/>
+
+        <Label x:Name="label2" Content="Plot" HorizontalAlignment="Left" Margin="265,44,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="47"/>
+        <oxy:PlotView Name="PlotView_signalPlot" HorizontalAlignment="Right" Width="1083" Margin="0,75,10,30"> </oxy:PlotView>
+        
+        <StatusBar Height="25" VerticalAlignment="Bottom" Grid.ColumnSpan="2">
+            <TextBlock Name="TextBlock_Status" Text="Waiting">
+            </TextBlock>
+        </StatusBar>
+        
+    </Grid>
+</Window>
