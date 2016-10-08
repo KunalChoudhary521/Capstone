@@ -28,7 +28,6 @@ namespace SleepApneaDiagnoser
     public partial class MainWindow : Window
     {
         public EDFFile edfFile = null;
-        public PlotModel signalPlot = null;
 
         public void BW_LoadEDFFile(object sender, DoWorkEventArgs e)
         {
@@ -46,7 +45,7 @@ namespace SleepApneaDiagnoser
                 listBox_edfSignals.Items.Add(signal);
             }
 
-            signalPlot = null;
+            PlotView_signalPlot.Model = null;
         }
 
         public MainWindow()
@@ -77,7 +76,7 @@ namespace SleepApneaDiagnoser
         {
             edfFile = null;
             listBox_edfSignals.Items.Clear();
-            signalPlot = null;
+            PlotView_signalPlot.Model = null;
         }
         private void MenuItem_File_Exit_Click(object sender, RoutedEventArgs e)
         {
@@ -86,29 +85,31 @@ namespace SleepApneaDiagnoser
 
         private void listBox_edfSignals_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            LineSeries series = new LineSeries();
-            
-            EDFSignal edfsignal = edfFile.Header.Signals.Find(temp => temp.ToString() == listBox_edfSignals.SelectedItem.ToString());
-            if (edfsignal != null)
+            if (listBox_edfSignals.SelectedItem != null)
             {
-                float sample_period = 1;
-                sample_period = edfsignal.SamplePeriodWithinDataRecord;
-                if (sample_period == 0)
-                    sample_period = 1;
+                LineSeries series = new LineSeries();
 
-                List<float> values = edfFile.retrieveSignalSampleValues(edfsignal);
-
-                for (int x = 0; x < Math.Min(100, values.Count); x++)
+                EDFSignal edfsignal = edfFile.Header.Signals.Find(temp => temp.ToString() == listBox_edfSignals.SelectedItem.ToString());
+                if (edfsignal != null)
                 {
-                    series.Points.Add(new DataPoint(sample_period * x, values[x]));
+                    float sample_period = 1;
+                    sample_period = edfsignal.SamplePeriodWithinDataRecord;
+                    if (sample_period == 0)
+                        sample_period = 1;
+
+                    List<float> values = edfFile.retrieveSignalSampleValues(edfsignal);
+
+                    for (int x = 0; x < Math.Min(100, values.Count); x++)
+                    {
+                        series.Points.Add(new DataPoint(sample_period * x, values[x]));
+                    }
                 }
+
+                PlotModel signalPlot = new PlotModel { Title = listBox_edfSignals.SelectedItem.ToString() };
+                signalPlot.Series.Clear();
+                signalPlot.Series.Add(series);
+                PlotView_signalPlot.Model = signalPlot;
             }
-
-            signalPlot = new PlotModel { Title = listBox_edfSignals.SelectedItem.ToString() };
-            signalPlot.Series.Clear();
-            signalPlot.Series.Add(series);
-
-            PlotView_signalPlot.Model = signalPlot;
         }
     }
 }
