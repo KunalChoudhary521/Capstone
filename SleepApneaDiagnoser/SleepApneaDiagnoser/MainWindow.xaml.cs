@@ -14,6 +14,8 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 
 using System.ComponentModel;
+using System.Collections.ObjectModel;
+using System.Reflection;
 using Microsoft.Win32;
 
 using EDF;
@@ -29,8 +31,74 @@ namespace SleepApneaDiagnoser
     public partial class MainWindow : Window
     {
         public EDFFile edfFile = null;
-        string fileName = null;
+        public string fileName = null;
 
+        public PlotModel signalPlot = null;
+
+        public DateTime StudyStartTime
+        {
+            get
+            {
+                DateTime value = new DateTime();
+                Dispatcher.Invoke(
+                    new Action(() => { value = edfFile.Header.StartDateTime; }
+                ));
+                return value;
+            }
+        }
+        public DateTime StudyEndTime
+        {
+            get
+            {
+                DateTime value = new DateTime();
+                Dispatcher.Invoke(
+                    new Action(() => { value = edfFile.Header.StartDateTime + new TimeSpan(0, 0, edfFile.Header.NumberOfDataRecords * edfFile.Header.DurationOfDataRecordInSeconds); }
+                ));
+                return value;
+            }
+        }
+        public DateTime ViewStartTime
+        {
+            get
+            {
+                DateTime value = new DateTime();
+                Dispatcher.Invoke(
+                            new Action(() => { value = (DateTime) timePicker_From.Value; }
+                        ));
+                return value;
+            }
+        }
+        public DateTime ViewEndTime
+        {
+            get
+            {
+                DateTime value = new DateTime();
+                Dispatcher.Invoke(
+                            new Action(() => { value = (DateTime)timePicker_To.Value; }
+                        ));
+                return value;
+            }
+        }
+
+        public ReadOnlyCollection<string> SelectedSignals
+        {
+            get
+            {
+                string[] value = null; 
+
+                Dispatcher.Invoke(
+                    new Action(() =>
+                    {
+                        value = new string[listBox_edfSignals.SelectedItems.Count];
+                        for (int x = 0; x < listBox_edfSignals.SelectedItems.Count; x++)
+                            value[x] = listBox_edfSignals.SelectedItems[x].ToString();
+                    }
+                ));
+
+                return Array.AsReadOnly(value);
+            }
+        }
+    
         public void BW_LoadEDFFile(object sender, DoWorkEventArgs e)
         {
             edfFile = new EDFFile();
@@ -43,8 +111,8 @@ namespace SleepApneaDiagnoser
 
             textBox_FileName.Text = fileName.Split('\\')[fileName.Split('\\').Length - 1];
             textBox_NumSignals.Text = edfFile.Header.Signals.Count.ToString();
-            textBox_StartTime.Text = edfFile.Header.StartDateTime.ToString();
-            textBox_EndTime.Text = (edfFile.Header.StartDateTime + new TimeSpan(0, 0, edfFile.Header.NumberOfDataRecords * edfFile.Header.DurationOfDataRecordInSeconds)).ToString();
+            textBox_StartTime.Text = StudyStartTime.ToString();
+            textBox_EndTime.Text = StudyEndTime.ToString();
 
             textBox_PI_Name.Text = edfFile.Header.PatientIdentification.PatientName;
             textBox_PI_Sex.Text = edfFile.Header.PatientIdentification.PatientSex;
@@ -65,6 +133,69 @@ namespace SleepApneaDiagnoser
             }
 
             PlotView_signalPlot.Model = null;
+        }
+        public void BW_CreateChart(object sender, DoWorkEventArgs e)
+        {
+            signalPlot = new PlotModel();
+            signalPlot.Series.Clear();
+            signalPlot.Axes.Clear();
+
+            if (SelectedSignals.Count > 0)
+            {
+                DateTimeAxis xAxis = new DateTimeAxis();
+                xAxis.Key = "DateTime";
+                xAxis.Minimum = DateTimeAxis.ToDouble(ViewStartTime);
+                xAxis.Maximum = DateTimeAxis.ToDouble(ViewEndTime);
+                signalPlot.Axes.Add(xAxis);
+
+                for (int x = 0; x < SelectedSignals.Count; x++)
+                {
+                    EDFSignal edfsignal = edfFile.Header.Signals.Find(temp => temp.ToString() == SelectedSignals[x]);
+                    float sample_period = (float)edfFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
+
+                    List<float> values = edfFile.retrieveSignalSampleValues(edfsignal);
+                    TimeSpan startPoint = ViewStartTime - StudyStartTime;
+                    int startIndex = (int)(startPoint.TotalSeconds / sample_period);
+                    TimeSpan duration = ViewEndTime - ViewStartTime;
+                    int indexCount = (int)(duration.TotalSeconds / sample_period);
+
+                    LineSeries series = new LineSeries();
+                    for (int y = startIndex; y < indexCount + startIndex; y++)
+                    {
+                        series.Points.Add(
+                            new DataPoint(
+                                DateTimeAxis.ToDouble(
+                                    edfFile.Header.StartDateTime + new TimeSpan(
+                                        0,
+                                        0,
+                                        0,
+                                        0,
+                                        (int)(sample_period * (float)y * 1000)
+                                    )
+                                ),
+                                values[y]
+                            )
+                        );
+                    }
+                    series.YAxisKey = SelectedSignals[x];
+                    series.XAxisKey = "DateTime";
+
+                    LinearAxis yAxis = new LinearAxis();
+                    yAxis.MajorGridlineStyle = LineStyle.Solid;
+                    yAxis.MinorGridlineStyle = LineStyle.Dot;
+                    yAxis.Title = SelectedSignals[x];
+                    yAxis.Key = SelectedSignals[x];
+                    yAxis.EndPosition = (double)1 - (double)x * ((double)1 / (double)SelectedSignals.Count);
+                    yAxis.StartPosition = (double)1 - (double)(x + 1) * ((double)1 / (double)SelectedSignals.Count);
+
+                    signalPlot.Axes.Add(yAxis);
+                    signalPlot.Series.Add(series);
+                }
+            }
+        }
+        public void BW_FinishChart(object sender, RunWorkerCompletedEventArgs e)
+        {
+            PlotView_signalPlot.Model = signalPlot;
         }
 
         public MainWindow()
@@ -118,85 +249,20 @@ namespace SleepApneaDiagnoser
         {
             Application.Current.Shutdown();
         }
-
-        private void updateChart()
-        {
-            PlotModel signalPlot = new PlotModel();
-            signalPlot.Series.Clear();
-            signalPlot.Axes.Clear();
-
-            if (listBox_edfSignals.SelectedItems.Count > 0)
-            {
-                DateTimeAxis xAxis = new DateTimeAxis();
-                xAxis.Key = "DateTime";
-                xAxis.Minimum = DateTimeAxis.ToDouble((DateTime)timePicker_From.Value);
-                xAxis.Maximum = DateTimeAxis.ToDouble((DateTime)timePicker_To.Value);
-                signalPlot.Axes.Add(xAxis);
-
-                for (int x = 0; x < listBox_edfSignals.SelectedItems.Count; x++)
-                {
-                    EDFSignal edfsignal = edfFile.Header.Signals.Find(temp => temp.ToString() == listBox_edfSignals.SelectedItems[x].ToString());
-                    if (edfsignal != null)
-                    {
-                        float sample_period = (float)edfFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
-
-                        List<float> values = edfFile.retrieveSignalSampleValues(edfsignal);
-                        TimeSpan startPoint = (DateTime)timePicker_From.Value - edfFile.Header.StartDateTime;
-                        int startIndex = (int)(startPoint.TotalSeconds / sample_period);
-                        TimeSpan duration = (DateTime)timePicker_To.Value - (DateTime)timePicker_From.Value;
-                        int indexCount = (int)(duration.TotalSeconds / sample_period);
-
-                        LineSeries series = new LineSeries();
-                        for (int y = startIndex; y < indexCount + startIndex; y++)
-                        {
-                            series.Points.Add(
-                                new DataPoint(
-                                    DateTimeAxis.ToDouble(
-                                        edfFile.Header.StartDateTime + new TimeSpan(
-                                            0, 
-                                            0, 
-                                            0, 
-                                            0, 
-                                            (int)(sample_period * (float)y * 1000)
-                                        )
-                                    ), 
-                                    values[y]
-                                )
-                            );
-                        }
-                        series.YAxisKey = listBox_edfSignals.SelectedItems[x].ToString();
-                        series.XAxisKey = "DateTime";
-
-                        LinearAxis yAxis = new LinearAxis();
-                        yAxis.MajorGridlineStyle = LineStyle.Solid;
-                        yAxis.MinorGridlineStyle = LineStyle.Dot;
-                        yAxis.Title = listBox_edfSignals.SelectedItems[x].ToString();
-                        yAxis.Key = listBox_edfSignals.SelectedItems[x].ToString();
-                        yAxis.EndPosition = (double)1 - (double)x * ((double)1 / (double)listBox_edfSignals.SelectedItems.Count);
-                        yAxis.StartPosition = (double)1 - (double)(x + 1) * ((double)1 / (double)listBox_edfSignals.SelectedItems.Count);
-
-                        signalPlot.Axes.Add(yAxis);
-                        signalPlot.Series.Add(series);
-                    }
-                }
-
-            }
-
-            PlotView_signalPlot.Model = signalPlot;
-        }
-
+        
         private void listBox_edfSignals_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            updateChart();   
+            BackgroundWorker bw = new BackgroundWorker();
+            bw.DoWork += BW_CreateChart;
+            bw.RunWorkerCompleted += BW_FinishChart;
+            bw.RunWorkerAsync();
         }
         private void timePicker_From_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
             if (edfFile != null)
             {
-                DateTime EndDate = edfFile.Header.StartDateTime + new TimeSpan(0, 0, edfFile.Header.NumberOfDataRecords * edfFile.Header.DurationOfDataRecordInSeconds);
-
                 timePicker_To.Minimum = timePicker_From.Value;
-                timePicker_To.Maximum = EndDate < timePicker_From.Value + new TimeSpan(2, 0, 0) ? EndDate : timePicker_From.Value + new TimeSpan(2, 0, 0);
+                timePicker_To.Maximum = StudyEndTime < timePicker_From.Value + new TimeSpan(2, 0, 0) ? StudyEndTime : timePicker_From.Value + new TimeSpan(2, 0, 0);
             }
             else
             {
@@ -204,13 +270,16 @@ namespace SleepApneaDiagnoser
                 timePicker_To.Maximum = new DateTime();
             }
 
-            updateChart();
+            BackgroundWorker bw = new BackgroundWorker();
+            bw.DoWork += BW_CreateChart;
+            bw.RunWorkerCompleted += BW_FinishChart;
+            bw.RunWorkerAsync();
         }
         private void timePicker_To_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
             if (edfFile != null)
             {
-                timePicker_From.Minimum = (edfFile.Header.StartDateTime > timePicker_To.Value - new TimeSpan(2, 0, 0)) ? edfFile.Header.StartDateTime : timePicker_To.Value - new TimeSpan(2, 0, 0);
+                timePicker_From.Minimum = StudyStartTime > timePicker_To.Value - new TimeSpan(2, 0, 0) ? StudyStartTime : timePicker_To.Value - new TimeSpan(2, 0, 0);
                 timePicker_From.Maximum = timePicker_To.Value;
             }
             else
@@ -219,7 +288,10 @@ namespace SleepApneaDiagnoser
                 timePicker_From.Maximum = new DateTime();
             }
 
-            updateChart();
+            BackgroundWorker bw = new BackgroundWorker();
+            bw.DoWork += BW_CreateChart;
+            bw.RunWorkerCompleted += BW_FinishChart;
+            bw.RunWorkerAsync();
         }
     }
 }
