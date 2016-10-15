@@ -19,6 +19,7 @@ using Microsoft.Win32;
 using EDF;
 using OxyPlot;
 using OxyPlot.Series;
+using OxyPlot.Axes;
 
 namespace SleepApneaDiagnoser
 {
@@ -85,31 +86,40 @@ namespace SleepApneaDiagnoser
 
         private void listBox_edfSignals_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (listBox_edfSignals.SelectedItem != null)
-            {
-                LineSeries series = new LineSeries();
+            PlotModel signalPlot = new PlotModel();
+            signalPlot.Series.Clear();
 
-                EDFSignal edfsignal = edfFile.Header.Signals.Find(temp => temp.ToString() == listBox_edfSignals.SelectedItem.ToString());
+            for (int x = 0; x < listBox_edfSignals.SelectedItems.Count; x++)
+            {
+                EDFSignal edfsignal = edfFile.Header.Signals.Find(temp => temp.ToString() == listBox_edfSignals.SelectedItems[x].ToString());
                 if (edfsignal != null)
                 {
-                    float sample_period = 1;
-                    sample_period = edfsignal.SamplePeriodWithinDataRecord;
-                    if (sample_period == 0)
-                        sample_period = 1;
+                    float sample_period = edfFile.Header.DurationOfDataRecordInSeconds / edfsignal.NumberOfSamplesPerDataRecord;
 
                     List<float> values = edfFile.retrieveSignalSampleValues(edfsignal);
 
-                    for (int x = 0; x < Math.Min(100, values.Count); x++)
+                    LineSeries series = new LineSeries();
+                    for (int y = 0; y < Math.Min(100, values.Count); y++)
                     {
-                        series.Points.Add(new DataPoint(sample_period * x, values[x]));
+                        series.Points.Add(new DataPoint(sample_period * y, values[y]));
                     }
-                }
+                    series.YAxisKey = listBox_edfSignals.SelectedItems[x].ToString();
 
-                PlotModel signalPlot = new PlotModel { Title = listBox_edfSignals.SelectedItem.ToString() };
-                signalPlot.Series.Clear();
-                signalPlot.Series.Add(series);
-                PlotView_signalPlot.Model = signalPlot;
+                    
+                    LinearAxis axis = new LinearAxis();
+                    axis.MajorGridlineStyle = LineStyle.Solid;
+                    axis.MinorGridlineStyle = LineStyle.Dot;
+                    axis.Title = listBox_edfSignals.SelectedItems[x].ToString();
+                    axis.Key = listBox_edfSignals.SelectedItems[x].ToString();
+                    axis.EndPosition = (double)1 - (double)x * ((double)1 /(double)listBox_edfSignals.SelectedItems.Count);
+                    axis.StartPosition = (double)1 - (double)(x + 1) * ((double)1/(double)listBox_edfSignals.SelectedItems.Count);
+
+                    signalPlot.Axes.Add(axis);
+                    signalPlot.Series.Add(series);
+                }
             }
+
+            PlotView_signalPlot.Model = signalPlot;
         }
     }
 }
