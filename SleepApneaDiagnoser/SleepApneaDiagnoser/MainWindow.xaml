@@ -18,60 +18,80 @@
             </MenuItem>
         </Menu>
 
-        <Label x:Name="label" Content="Signals" HorizontalAlignment="Left" Margin="10,44,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="47"/>
-        <ListBox x:Name="listBox_edfSignals" HorizontalAlignment="Left" Margin="10,75,0,30" Width="250" SelectionChanged="listBox_edfSignals_SelectionChanged" SelectionMode="Multiple"/>
+        <TabControl Margin="10,30" TabStripPlacement="Left">
+            <TabItem Header="Home">
+                <Grid>
+                    <Image Source="double_bed_set.jpg" Margin="304,0,0,0"/>
+                    <Grid HorizontalAlignment="Left" Width="299" Background="White" Margin="0,0">
+                        <TextBlock Text="Sleep Apnea Diagnoser" FontSize="25" FontWeight="Bold" Margin="10,10,0,604" HorizontalAlignment="Left" Width="277"/>
+                        <TextBlock Text="Start" Height="34" Width="94" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="18"  Margin="10,102,0,0"/>
+                        <TextBlock x:Name="TextBlock_OpenEDF" TextDecorations="Underline" Height="34" Width="94" VerticalAlignment="Top" HorizontalAlignment="Left" Foreground="Blue" Margin="10,136,0,0" ><Hyperlink Click="TextBlock_OpenEDF_Click"  TextDecorations="None" Foreground="Blue" FontSize="12"><Run Text="Open EDF..."/></Hyperlink></TextBlock>
+                        <TextBlock Text="Recent" Height="34" Width="94" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="18" Margin="10,223,0,0"/>
+                        <ListBox BorderBrush="Transparent" Margin="10,262,10,10"/>
+                    </Grid>
+                </Grid>
+            </TabItem>
 
-        <Label x:Name="label2" Content="Plot" HorizontalAlignment="Left" Margin="265,44,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="47"/>
-        <oxy:PlotView Name="PlotView_signalPlot" Margin="265,118,373,30"/>
+            <TabItem Header="Preview" Height="22" VerticalAlignment="Top">
+                <Grid>
+                    <Label x:Name="label" Content="Signals" HorizontalAlignment="Left" Margin="10,44,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="47"/>
+                    <ListBox x:Name="listBox_edfSignals" HorizontalAlignment="Left" Margin="10,75,0,30" Width="250" SelectionChanged="listBox_edfSignals_SelectionChanged" SelectionMode="Multiple"/>
+
+                    <Label x:Name="label2" Content="Plot" HorizontalAlignment="Left" Margin="265,44,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="47"/>
+                    <oxy:PlotView Name="PlotView_signalPlot" Margin="265,118,373,30"/>
+
+                    <Label x:Name="label3" Content="Control Panel" Margin="0,44,288,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" HorizontalAlignment="Right" Width="80"/>
+                    <Grid Margin="0,75,10,30" HorizontalAlignment="Right" Width="358">
+
+                        <Label x:Name="label4" Content="Loaded File" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="80"/>
+                        <TextBox x:Name="textBox_FileName" Height="23" Margin="10,41,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True"/>
+
+                        <Label x:Name="label5" Content="Patient Information" HorizontalAlignment="Left" Margin="10,70,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="127"/>
+                        <Grid Height="135" Margin="10,101,10,0" VerticalAlignment="Top">
+                            <Label Content="Name" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
+                            <Label Content="Sex" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
+                            <Label Content="Code" HorizontalAlignment="Left" Margin="10,72,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
+                            <Label Content="Birthdate" HorizontalAlignment="Left" Margin="10,103,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
+                            <TextBox x:Name="textBox_PI_Name" Height="23" Margin="75,13,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
+                            <TextBox x:Name="textBox_PI_Sex" Height="23" Margin="75,45,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
+                            <TextBox x:Name="textBox_PI_Code" Height="23" Margin="75,76,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
+                            <TextBox x:Name="textBox_PI_Birthdate" Height="23" Margin="75,107,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
+                        </Grid>
+
+                        <Label x:Name="label6" Content="Recording Information" HorizontalAlignment="Left" Margin="10,241,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="136"/>
+                        <Grid Height="108" Margin="10,272,10,0" VerticalAlignment="Top">
+                            <Label Content="Equip." HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="65"/>
+                            <Label Content="Code" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
+                            <Label Content="Tech." HorizontalAlignment="Left" Margin="10,72,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
+                            <TextBox x:Name="textBox_RI_Equipment" Height="23" Margin="75,13,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
+                            <TextBox x:Name="textBox_RI_Code" Height="23" Margin="75,45,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
+                            <TextBox x:Name="textBox_RI_Technician" Height="23" Margin="75,76,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
+                        </Grid>
+
+                        <Label Content="Number of Signals" HorizontalAlignment="Left" Margin="10,385,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="108"/>
+                        <TextBox x:Name="textBox_NumSignals" Height="23" Margin="10,416,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True"/>
+                        <Label Content="Start Date and Time" HorizontalAlignment="Left" Margin="10,444,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="127"/>
+                        <TextBox x:Name="textBox_StartTime" Height="23" Margin="10,475,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True"/>
+                        <Label Content="End Date and Time" HorizontalAlignment="Left" Margin="10,503,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="127"/>
+                        <TextBox x:Name="textBox_EndTime" Height="23" Margin="10,534,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True"/>
+
+                    </Grid>
+
+                    <Grid Height="38" Margin="265,75,373,0" VerticalAlignment="Top">
+                        <Label Content="From" HorizontalAlignment="Left" Margin="5,0,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="28" Width="47"/>
+                        <xctk:DateTimeUpDown Name="timePicker_From" Margin="57,0,0,10" HorizontalAlignment="Left" Width="150" AllowTextInput="False" TextAlignment="Center" ValueChanged="timePicker_From_ValueChanged"/>
+                        <Label Content="To" Margin="427,0,165,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="28"/>
+                        <xctk:DateTimeUpDown Name="timePicker_To" Margin="0,0,10,10" HorizontalAlignment="Right" Width="150" AllowTextInput="False" TextAlignment="Center" ValueChanged="timePicker_To_ValueChanged"/>
+                    </Grid>
+
+                </Grid>
+            </TabItem>
+        </TabControl>
 
         <StatusBar Height="25" VerticalAlignment="Bottom" Grid.ColumnSpan="2">
             <TextBlock Name="TextBlock_Status" Text="Waiting">
             </TextBlock>
         </StatusBar>
-
-        <Label x:Name="label3" Content="Control Panel" Margin="0,44,288,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" HorizontalAlignment="Right" Width="80"/>
-        <Grid Margin="0,75,10,30" HorizontalAlignment="Right" Width="358">
-
-            <Label x:Name="label4" Content="Loaded File" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="80"/>
-            <TextBox x:Name="textBox_FileName" Height="23" Margin="10,41,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True"/>
-
-            <Label x:Name="label5" Content="Patient Information" HorizontalAlignment="Left" Margin="10,70,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="127"/>
-            <Grid Height="135" Margin="10,101,10,0" VerticalAlignment="Top">
-                <Label Content="Name" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
-                <Label Content="Sex" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
-                <Label Content="Code" HorizontalAlignment="Left" Margin="10,72,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
-                <Label Content="Birthdate" HorizontalAlignment="Left" Margin="10,103,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
-                <TextBox x:Name="textBox_PI_Name" Height="23" Margin="75,13,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
-                <TextBox x:Name="textBox_PI_Sex" Height="23" Margin="75,45,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
-                <TextBox x:Name="textBox_PI_Code" Height="23" Margin="75,76,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
-                <TextBox x:Name="textBox_PI_Birthdate" Height="23" Margin="75,107,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
-            </Grid>
-
-            <Label x:Name="label6" Content="Recording Information" HorizontalAlignment="Left" Margin="10,241,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="136"/>
-            <Grid Height="108" Margin="10,272,10,0" VerticalAlignment="Top">
-                <Label Content="Equip." HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="65"/>
-                <Label Content="Code" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
-                <Label Content="Tech." HorizontalAlignment="Left" Margin="10,72,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
-                <TextBox x:Name="textBox_RI_Equipment" Height="23" Margin="75,13,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
-                <TextBox x:Name="textBox_RI_Code" Height="23" Margin="75,45,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
-                <TextBox x:Name="textBox_RI_Technician" Height="23" Margin="75,76,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
-            </Grid>
-
-            <Label Content="Number of Signals" HorizontalAlignment="Left" Margin="10,385,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="108"/>
-            <TextBox x:Name="textBox_NumSignals" Height="23" Margin="10,416,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True"/>
-            <Label Content="Start Date and Time" HorizontalAlignment="Left" Margin="10,444,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="127"/>
-            <TextBox x:Name="textBox_StartTime" Height="23" Margin="10,475,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True"/>
-            <Label Content="End Date and Time" HorizontalAlignment="Left" Margin="10,503,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="127"/>
-            <TextBox x:Name="textBox_EndTime" Height="23" Margin="10,534,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True"/>
-
-        </Grid>
-
-        <Grid HorizontalAlignment="Left" Height="38" Margin="265,75,0,0" VerticalAlignment="Top" Width="720">
-            <Label Content="From" HorizontalAlignment="Left" Margin="5,0,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="28" Width="47"/>
-            <xctk:DateTimeUpDown Name="timePicker_From" Margin="57,0,0,10" HorizontalAlignment="Left" Width="260" AllowTextInput="False" TextAlignment="Center" ValueChanged="timePicker_From_ValueChanged"/>
-            <Label Content="To" HorizontalAlignment="Left" Margin="398,0,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="28" Width="47"/>
-            <xctk:DateTimeUpDown Name="timePicker_To" Margin="0,0,10,10" HorizontalAlignment="Right" Width="260" AllowTextInput="False" TextAlignment="Center" ValueChanged="timePicker_To_ValueChanged"/>
-        </Grid>
 
     </Grid>
 </Window>

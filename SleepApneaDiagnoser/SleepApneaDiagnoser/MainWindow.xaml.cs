@@ -98,7 +98,13 @@ namespace SleepApneaDiagnoser
                 return Array.AsReadOnly(value);
             }
         }
-    
+
+        public MainWindow()
+        {
+            InitializeComponent();
+        }
+
+        #region Helper Functions
         public void BW_LoadEDFFile(object sender, DoWorkEventArgs e)
         {
             edfFile = new EDFFile();
@@ -197,12 +203,9 @@ namespace SleepApneaDiagnoser
         {
             PlotView_signalPlot.Model = signalPlot;
         }
+        #endregion
 
-        public MainWindow()
-        {
-            InitializeComponent();
-        }
-
+        #region Menu Bar Events
         private void MenuItem_File_Open_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog dialog = new OpenFileDialog();
@@ -249,7 +252,30 @@ namespace SleepApneaDiagnoser
         {
             Application.Current.Shutdown();
         }
-        
+        #endregion
+
+        #region Home Tab Events
+        private void TextBlock_OpenEDF_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog dialog = new OpenFileDialog();
+            dialog.Filter = "EDF files (*.edf)|*.edf";
+            dialog.Title = "Select an EDF file";
+
+            if (dialog.ShowDialog() == true)
+            {
+                fileName = dialog.FileName;
+                TextBlock_Status.Text = "Loading EDF File";
+                this.IsEnabled = false;
+
+                BackgroundWorker bw = new BackgroundWorker();
+                bw.DoWork += BW_LoadEDFFile;
+                bw.RunWorkerCompleted += BW_FinishLoad;
+                bw.RunWorkerAsync(fileName);
+            }
+        }
+        #endregion
+                
+        #region Preview Tab Events
         private void listBox_edfSignals_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             BackgroundWorker bw = new BackgroundWorker();
@@ -293,5 +319,6 @@ namespace SleepApneaDiagnoser
             bw.RunWorkerCompleted += BW_FinishChart;
             bw.RunWorkerAsync();
         }
+        #endregion 
     }
 }
