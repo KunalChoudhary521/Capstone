@@ -15,6 +15,7 @@ using System.Windows.Shapes;
 
 using System.ComponentModel;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Reflection;
 using Microsoft.Win32;
 
@@ -89,9 +90,9 @@ namespace SleepApneaDiagnoser
                 Dispatcher.Invoke(
                     new Action(() =>
                     {
-                        value = new string[listBox_edfSignals.SelectedItems.Count];
-                        for (int x = 0; x < listBox_edfSignals.SelectedItems.Count; x++)
-                            value[x] = listBox_edfSignals.SelectedItems[x].ToString();
+                        value = new string[listBox_SignalSelect.SelectedItems.Count];
+                        for (int x = 0; x < listBox_SignalSelect.SelectedItems.Count; x++)
+                            value[x] = listBox_SignalSelect.SelectedItems[x].ToString();
                     }
                 ));
 
@@ -99,12 +100,84 @@ namespace SleepApneaDiagnoser
             }
         }
 
+        public ReadOnlyCollection<string> RecentFiles
+        {
+            get
+            {
+                string[] value = null;
+
+                Dispatcher.Invoke(
+                    new Action(() =>
+                    {
+                        if (File.Exists("recent.txt"))
+                        {
+                            StreamReader sr = new StreamReader("recent.txt");
+                            string[] text = sr.ReadToEnd().Split('\n');
+                            List<string> values = new List<string>();
+                            for (int x = 0; x < text.Length; x++)
+                                if (File.Exists(text[x].Trim()))
+                                    values.Add(text[x].Trim());
+                            sr.Close();
+
+                            value = values.ToArray();
+                        }
+                        else
+                        {
+                            value = new string[0];
+                        }
+                    }
+                ));
+
+                return Array.AsReadOnly(value);
+            }
+        }
+        public void addRecentFile(string path)
+        {
+            List<string> array = RecentFiles.ToArray().ToList();
+            array.Insert(0, path);
+            array = array.Distinct().ToList();
+
+            StreamWriter sw = new StreamWriter("recent.txt");
+            for (int x = 0; x < array.Count; x++)
+            {
+                sw.WriteLine(array[x]);
+            }
+            sw.Close();
+
+            LoadRecent();
+        }
+        public void removeRecentFile(string path)
+        {
+            List<string> array = RecentFiles.ToArray().ToList();
+            array.Remove(path);
+            array = array.Distinct().ToList();
+
+            StreamWriter sw = new StreamWriter("recent.txt");
+            for (int x = 0; x < array.Count; x++)
+            {
+                sw.WriteLine(array[x]);
+            }
+            sw.Close();
+
+            LoadRecent();
+        }
+
         public MainWindow()
         {
             InitializeComponent();
+            LoadRecent();
         }
 
         #region Helper Functions
+        public void LoadRecent()
+        {
+            List<string> array = RecentFiles.ToArray().ToList();
+
+            itemControl_RecentEDF.Items.Clear();
+            for (int x = 0; x < array.Count; x++)
+                if (!itemControl_RecentEDF.Items.Contains(array[x].Split('\\')[array[x].Split('\\').Length - 1]))
+                    itemControl_RecentEDF.Items.Add(array[x].Split('\\')[array[x].Split('\\').Length - 1]);
+        }
         public void BW_LoadEDFFile(object sender, DoWorkEventArgs e)
         {
             edfFile = new EDFFile();
@@ -112,12 +185,13 @@ namespace SleepApneaDiagnoser
         }
         public void BW_FinishLoad(object sender, RunWorkerCompletedEventArgs e)
         {
+            addRecentFile(fileName);
+
             TextBlock_Status.Text = "Waiting";
             this.IsEnabled = true;
             
-            textBox_NumSignals.Text = edfFile.Header.Signals.Count.ToString();
-            textBox_StartTime.Text = StudyStartTime.ToString();
-            textBox_EndTime.Text = StudyEndTime.ToString();
+            textBox_StartTime.Text = "";
+            textBox_EndTime.Text = "";
 
             textBox_PI_Name.Text = edfFile.Header.PatientIdentification.PatientName;
             textBox_PI_Sex.Text = edfFile.Header.PatientIdentification.PatientSex;
@@ -131,10 +205,12 @@ namespace SleepApneaDiagnoser
             timePicker_From.Value = edfFile.Header.StartDateTime;
             timePicker_To.Value = edfFile.Header.StartDateTime + new TimeSpan(0, 30, 0);
 
-            listBox_edfSignals.Items.Clear();
+            listBox_SignalSelect.Items.Clear();
+            comboBox_SignalSelect.Items.Clear();
             foreach (EDFSignal signal in edfFile.Header.Signals)
             {
-                listBox_edfSignals.Items.Add(signal);
+                listBox_SignalSelect.Items.Add(signal);
+                comboBox_SignalSelect.Items.Add(signal);
             }
 
             PlotView_signalPlot.Model = null;
@@ -227,7 +303,6 @@ namespace SleepApneaDiagnoser
         {
             edfFile = null;
             
-            textBox_NumSignals.Text = "";
             textBox_StartTime.Text = "";
             textBox_EndTime.Text = "";
 
@@ -243,7 +318,8 @@ namespace SleepApneaDiagnoser
             timePicker_From.Value = null;
             timePicker_To.Value = null;
 
-            listBox_edfSignals.Items.Clear();
+            comboBox_SignalSelect.Items.Clear();
+            listBox_SignalSelect.Items.Clear();
             PlotView_signalPlot.Model = null;
         }
         private void MenuItem_File_Exit_Click(object sender, RoutedEventArgs e)
@@ -271,15 +347,62 @@ namespace SleepApneaDiagnoser
                 bw.RunWorkerAsync(fileName);
             }
         }
+        private void TextBlock_Recent_Click(object sender, RoutedEventArgs e)
+        {
+            List<string> array = RecentFiles.ToArray().ToList();
+            List<string> selected = array.Where(temp => temp.Split('\\')[temp.Split('\\').Length - 1] == ((Hyperlink)sender).Inlines.FirstInline.DataContext.ToString()).ToList();
+            
+            if (selected.Count == 0)
+            {
+                MessageBox.Show("Error");
+            }
+            else
+            {
+                for (int x = 0; x < selected.Count; x++)
+                {
+                    if (File.Exists(selected[x]))
+                    {
+                        TextBlock_Status.Text = "Loading EDF File";
+                        this.IsEnabled = false;
+
+                        BackgroundWorker bw = new BackgroundWorker();
+                        bw.DoWork += BW_LoadEDFFile;
+                        bw.RunWorkerCompleted += BW_FinishLoad;
+                        bw.RunWorkerAsync(selected[x]);
+                        break;
+                    }
+                }
+            }
+        }
         #endregion
                 
         #region Preview Tab Events
-        private void listBox_edfSignals_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void listBox_SignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             BackgroundWorker bw = new BackgroundWorker();
             bw.DoWork += BW_CreateChart;
             bw.RunWorkerCompleted += BW_FinishChart;
             bw.RunWorkerAsync();
+        }
+        private void comboBox_SignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (comboBox_SignalSelect.SelectedValue != null)
+            {
+                EDFSignal edfsignal = edfFile.Header.Signals.Find(temp => temp.ToString() == comboBox_SignalSelect.SelectedValue.ToString());
+                textBox_StartTime.Text = StudyStartTime.ToString();
+                textBox_EndTime.Text = StudyEndTime.ToString();
+                textBox_TimeRecord.Text = edfFile.Header.DurationOfDataRecordInSeconds.ToString();
+                textBox_SampRecord.Text = edfsignal.NumberOfSamplesPerDataRecord.ToString();
+                textBox_NumRecords.Text = edfFile.Header.NumberOfDataRecords.ToString();
+            }
+            else
+            {
+                textBox_StartTime.Text = "";
+                textBox_EndTime.Text = "";
+                textBox_TimeRecord.Text = "";
+                textBox_SampRecord.Text = "";
+                textBox_NumRecords.Text = "";
+            }
         }
         private void timePicker_From_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
@@ -317,6 +440,6 @@ namespace SleepApneaDiagnoser
             bw.RunWorkerCompleted += BW_FinishChart;
             bw.RunWorkerAsync();
         }
-        #endregion 
+        #endregion
     }
 }
