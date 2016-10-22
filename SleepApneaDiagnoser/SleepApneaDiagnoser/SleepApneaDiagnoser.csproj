@@ -134,10 +134,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Resources\double_bed_set.jpg" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="double_bed_set.jpg" />
+    <Resource Include="double_bed_set.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
