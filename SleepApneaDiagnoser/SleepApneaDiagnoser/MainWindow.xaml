@@ -6,9 +6,11 @@
         xmlns:local="clr-namespace:SleepApneaDiagnoser"
         xmlns:oxy="http://oxyplot.org/wpf"
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+        xmlns:mwt="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero"
         mc:Ignorable="d"
         Title="Sleep Apnea Diagnoser" Height="768" Width="1366">
     <Grid>
+        <oxy:PlotView x:Name="PlotView_signalPlot" Margin="265,118,373,30"/>
 
         <Menu x:Name="menu" Height="20" VerticalAlignment="Top" Grid.ColumnSpan="2">
             <MenuItem Header="_File">

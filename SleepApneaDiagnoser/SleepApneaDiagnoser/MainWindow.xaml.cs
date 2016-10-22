@@ -114,8 +114,7 @@ namespace SleepApneaDiagnoser
         {
             TextBlock_Status.Text = "Waiting";
             this.IsEnabled = true;
-
-            textBox_FileName.Text = fileName.Split('\\')[fileName.Split('\\').Length - 1];
+            
             textBox_NumSignals.Text = edfFile.Header.Signals.Count.ToString();
             textBox_StartTime.Text = StudyStartTime.ToString();
             textBox_EndTime.Text = StudyEndTime.ToString();
@@ -227,8 +226,7 @@ namespace SleepApneaDiagnoser
         private void MenuItem_File_Close_Click(object sender, RoutedEventArgs e)
         {
             edfFile = null;
-
-            textBox_FileName.Text = "";
+            
             textBox_NumSignals.Text = "";
             textBox_StartTime.Text = "";
             textBox_EndTime.Text = "";
