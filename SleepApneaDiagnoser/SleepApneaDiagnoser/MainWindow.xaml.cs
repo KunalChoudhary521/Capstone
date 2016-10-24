@@ -75,7 +75,7 @@ namespace SleepApneaDiagnoser
             {
                 DateTime value = new DateTime();
                 Dispatcher.Invoke(
-                            new Action(() => { value = (DateTime)timePicker_To.Value; }
+                            new Action(() => { value = (DateTime)timePicker_From.Value + new TimeSpan(0, 0, (int)(timePicker_Period.Value ?? 1)); }
                         ));
                 return value;
             }
@@ -203,7 +203,7 @@ namespace SleepApneaDiagnoser
             textBox_RI_Technician.Text = edfFile.Header.RecordingIdentification.RecordingTechnician;
 
             timePicker_From.Value = edfFile.Header.StartDateTime;
-            timePicker_To.Value = edfFile.Header.StartDateTime + new TimeSpan(0, 30, 0);
+            timePicker_Period.Value = 60 * 5;
 
             listBox_SignalSelect.Items.Clear();
             comboBox_SignalSelect.Items.Clear();
@@ -316,7 +316,7 @@ namespace SleepApneaDiagnoser
             textBox_RI_Technician.Text = "";
 
             timePicker_From.Value = null;
-            timePicker_To.Value = null;
+            timePicker_Period.Value = null;
 
             comboBox_SignalSelect.Items.Clear();
             listBox_SignalSelect.Items.Clear();
@@ -408,13 +408,13 @@ namespace SleepApneaDiagnoser
         {
             if (edfFile != null)
             {
-                timePicker_To.Minimum = timePicker_From.Value;
-                timePicker_To.Maximum = StudyEndTime < timePicker_From.Value + new TimeSpan(2, 0, 0) ? StudyEndTime : timePicker_From.Value + new TimeSpan(2, 0, 0);
+                timePicker_Period.Minimum = 1;
+                timePicker_Period.Maximum = Math.Min(2 * 60 * 60, (int)(StudyEndTime - (DateTime)timePicker_From.Value).TotalSeconds);
             }
             else
             {
-                timePicker_To.Minimum = new DateTime();
-                timePicker_To.Maximum = new DateTime();
+                timePicker_Period.Minimum = 0;
+                timePicker_Period.Maximum = 0;
             }
 
             BackgroundWorker bw = new BackgroundWorker();
@@ -422,12 +422,12 @@ namespace SleepApneaDiagnoser
             bw.RunWorkerCompleted += BW_FinishChart;
             bw.RunWorkerAsync();
         }
-        private void timePicker_To_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        private void timePicker_Period_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
             if (edfFile != null)
             {
-                timePicker_From.Minimum = StudyStartTime > timePicker_To.Value - new TimeSpan(2, 0, 0) ? StudyStartTime : timePicker_To.Value - new TimeSpan(2, 0, 0);
-                timePicker_From.Maximum = timePicker_To.Value;
+                timePicker_From.Minimum = StudyStartTime;
+                timePicker_From.Maximum = StudyEndTime - new TimeSpan(0,0,timePicker_Period.Value ?? 1);
             }
             else
             {
