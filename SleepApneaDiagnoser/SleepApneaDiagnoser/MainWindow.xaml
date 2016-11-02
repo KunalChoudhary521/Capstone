@@ -48,8 +48,20 @@
                 <Grid>
                     <ScrollViewer>
                         <Grid HorizontalAlignment="Right" Width="336">
-                            <Label x:Name="label5" Content="Patient Information" HorizontalAlignment="Left" Margin="10,13,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="127"/>
-                            <Grid Height="135" Margin="10,39,10,0" VerticalAlignment="Top">
+                            <Label x:Name="label5" Content="General Information" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="127"/>
+                            <Grid Margin="10,41,10,0" Height="135" VerticalAlignment="Top">
+                                <Label Content="Start" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
+                                <Label Content="End" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
+                                <Label Content="Rec. Time" HorizontalAlignment="Left" Margin="10,72,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
+                                <Label Content="Num Rec." HorizontalAlignment="Left" Margin="10,103,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
+                                <TextBox x:Name="textBox_StartTime" Height="23" Margin="75,13,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True"/>
+                                <TextBox x:Name="textBox_EndTime" Height="23" Margin="75,44,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True"/>
+                                <TextBox x:Name="textBox_TimeRecord" Height="23" Margin="75,75,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True"/>
+                                <TextBox x:Name="textBox_NumRecords" Height="23" Margin="75,106,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True"/>
+                            </Grid>
+
+                            <Label Content="Patient Information" HorizontalAlignment="Left" Margin="10,181,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="127"/>
+                            <Grid Height="135" Margin="10,212,10,0" VerticalAlignment="Top">
                                 <Label Content="Name" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
                                 <Label Content="Sex" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
                                 <Label Content="Code" HorizontalAlignment="Left" Margin="10,72,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
@@ -60,8 +72,8 @@
                                 <TextBox x:Name="textBox_PI_Birthdate" Height="23" Margin="75,107,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" IsReadOnly="True"/>
                             </Grid>
 
-                            <Label x:Name="label6" Content="Recording Information" HorizontalAlignment="Left" Margin="10,179,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="136"/>
-                            <Grid Height="108" Margin="10,205,10,0" VerticalAlignment="Top">
+                            <Label x:Name="label6" Content="Recording Information" HorizontalAlignment="Left" Margin="10,352,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="136"/>
+                            <Grid Height="108" Margin="10,383,10,0" VerticalAlignment="Top">
                                 <Label Content="Equip." HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="65"/>
                                 <Label Content="Code" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
                                 <Label Content="Tech." HorizontalAlignment="Left" Margin="10,72,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
@@ -70,20 +82,11 @@
                                 <TextBox x:Name="textBox_RI_Technician" Height="23" Margin="75,76,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" IsReadOnly="True"/>
                             </Grid>
 
-                            <Label Content="Signal Information" HorizontalAlignment="Left" Margin="10,318,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="108"/>
-                            <Grid Margin="10,349,10,42">
-                                <Label Content="Start" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
-                                <Label Content="End" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
-                                <Label Content="Rec. Time" HorizontalAlignment="Left" Margin="10,72,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
-                                <Label Content="Rec. Smp." HorizontalAlignment="Left" Margin="10,103,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
-                                <Label Content="Num Rec." HorizontalAlignment="Left" Margin="10,134,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
-                                <TextBox x:Name="textBox_StartTime" Height="23" Margin="75,13,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True"/>
-                                <TextBox x:Name="textBox_EndTime" Height="23" Margin="75,44,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True"/>
-                                <TextBox x:Name="textBox_TimeRecord" Height="23" Margin="75,75,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True"/>
-                                <TextBox x:Name="textBox_SampRecord" Height="23" Margin="75,106,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True"/>
-                                <TextBox x:Name="textBox_NumRecords" Height="23" Margin="75,137,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True"/>
-                            </Grid>
-                            <ComboBox x:Name="comboBox_SignalSelect" Height="23" VerticalAlignment="Top" Margin="123,321,21,0" SelectionChanged="comboBox_SignalSelect_SelectionChanged"/>
+                            <Label Content="Signal Information" HorizontalAlignment="Left" Margin="10,497,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="108"/>
+                            
+                            <ComboBox x:Name="comboBox_SignalSelect" Height="23" VerticalAlignment="Top" Margin="123,500,21,0" SelectionChanged="comboBox_SignalSelect_SelectionChanged"/>
+                            <Label Content="Rec. Smp." HorizontalAlignment="Left" Margin="10,528,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="60"/>
+                            <TextBox x:Name="textBox_SampRecord" Height="23" Margin="84,531,21,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True"/>
 
                         </Grid>
                     </ScrollViewer>
@@ -96,9 +99,11 @@
 
                     <Grid Height="38" Margin="265,75,373,0" VerticalAlignment="Top">
                         <Label Content="From" HorizontalAlignment="Left" Margin="5,0,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="28" Width="47" HorizontalContentAlignment="Center"/>
-                        <xctk:DateTimeUpDown x:Name="timePicker_From" Margin="57,0,0,10" HorizontalAlignment="Left" Width="200" AllowTextInput="False" TextAlignment="Center" ValueChanged="timePicker_From_ValueChanged"/>
-                        <Label Content="Length (s)" Margin="262,0,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="28" HorizontalAlignment="Left" Width="62" HorizontalContentAlignment="Center"/>
+                        <xctk:DateTimeUpDown x:Name="timePicker_From_Abs" Margin="57,0,0,10" HorizontalAlignment="Left" Width="200" AllowTextInput="False" TextAlignment="Center" ValueChanged="timePicker_From_ValueChanged"/>
+                        <xctk:IntegerUpDown x:Name="timePicker_From_Eph" Margin="57,0,0,10" HorizontalAlignment="Left" Width="200" AllowTextInput="True" TextAlignment="Center" ValueChanged="timePicker_From_ValueChanged"/>
+                        <Label Content="Length" Margin="262,0,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="28" HorizontalAlignment="Left" Width="62" HorizontalContentAlignment="Center"/>
                         <xctk:IntegerUpDown x:Name="timePicker_Period" Margin="329,0,0,10" HorizontalAlignment="Left" Width="120" AllowTextInput="True" TextAlignment="Center" ValueChanged="timePicker_Period_ValueChanged"/>
+                        <ToggleButton x:Name="toggleButton_UseAbsoluteTime" Content="Use Absolute Time" VerticalAlignment="Top" HorizontalAlignment="Right" Width="112" Height="28" Checked="toggleButton_UseAbsoluteTime_Checked" Unchecked="toggleButton_UseAbsoluteTime_Unchecked"/>
                     </Grid>
                 </Grid>
             </TabItem>
