@@ -111,7 +111,7 @@ namespace SleepApneaDiagnoser
             {
                 DateTime value = new DateTime();
                 Dispatcher.Invoke(
-                            new Action(() => { value = (DateTime) timePicker_From_Abs.Value; }
+                            new Action(() => { value = timePicker_From_Abs.Value ?? StudyStartTime; }
                         ));
                 return value;
             }

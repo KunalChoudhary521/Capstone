@@ -91,18 +91,18 @@
                         </Grid>
                     </ScrollViewer>
 
-                    <Label x:Name="label" Content="Signals" HorizontalAlignment="Left" Margin="10,44,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="47"/>
-                    <ListBox x:Name="listBox_SignalSelect"  HorizontalAlignment="Left" Margin="10,75,0,9.667" Width="250" SelectionMode="Multiple" SelectionChanged="listBox_SignalSelect_SelectionChanged"/>
+                    <Label x:Name="label" Content="Signals" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="47"/>
+                    <ListBox x:Name="listBox_SignalSelect"  HorizontalAlignment="Left" Margin="10,41,0,9.667" Width="250" SelectionMode="Multiple" SelectionChanged="listBox_SignalSelect_SelectionChanged"/>
 
-                    <Label x:Name="label2" Content="Plot" HorizontalAlignment="Left" Margin="265,44,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="47"/>
-                    <oxy:PlotView x:Name="PlotView_signalPlot" Margin="265,118,373,30"/>
+                    <Label x:Name="label2" Content="Plot" HorizontalAlignment="Left" Margin="265,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="47"/>
+                    <oxy:PlotView x:Name="PlotView_signalPlot" Margin="265,84,372.667,29.667"/>
 
-                    <Grid Height="38" Margin="265,75,373,0" VerticalAlignment="Top">
+                    <Grid Height="38" Margin="265,41,372.667,0" VerticalAlignment="Top">
                         <Label Content="From" HorizontalAlignment="Left" Margin="5,0,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="28" Width="47" HorizontalContentAlignment="Center"/>
                         <xctk:DateTimeUpDown x:Name="timePicker_From_Abs" Margin="57,0,0,10" HorizontalAlignment="Left" Width="200" AllowTextInput="False" TextAlignment="Center" ValueChanged="timePicker_From_ValueChanged"/>
                         <xctk:IntegerUpDown x:Name="timePicker_From_Eph" Margin="57,0,0,10" HorizontalAlignment="Left" Width="200" AllowTextInput="True" TextAlignment="Center" ValueChanged="timePicker_From_ValueChanged"/>
                         <Label Content="Length" Margin="262,0,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="28" HorizontalAlignment="Left" Width="62" HorizontalContentAlignment="Center"/>
-                        <xctk:IntegerUpDown x:Name="timePicker_Period" Margin="329,0,0,10" HorizontalAlignment="Left" Width="120" AllowTextInput="True" TextAlignment="Center" ValueChanged="timePicker_Period_ValueChanged"/>
+                        <xctk:IntegerUpDown x:Name="timePicker_Period" Margin="329,0,0,10" HorizontalAlignment="Left" Width="85" AllowTextInput="True" TextAlignment="Center" ValueChanged="timePicker_Period_ValueChanged"/>
                         <ToggleButton x:Name="toggleButton_UseAbsoluteTime" Content="Use Absolute Time" VerticalAlignment="Top" HorizontalAlignment="Right" Width="112" Height="28" Checked="toggleButton_UseAbsoluteTime_Checked" Unchecked="toggleButton_UseAbsoluteTime_Unchecked"/>
                     </Grid>
                 </Grid>
