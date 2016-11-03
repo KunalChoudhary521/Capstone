@@ -122,7 +122,7 @@ namespace SleepApneaDiagnoser
             {
                 DateTime value = new DateTime();
                 Dispatcher.Invoke(
-                            new Action(() => { value = (DateTime)timePicker_From_Abs.Value + new TimeSpan(0, 0, (int)(timePicker_Period.Value ?? 0)); }
+                            new Action(() => { value = (timePicker_From_Abs.Value ?? StudyStartTime) + new TimeSpan(0, 0, (int)(timePicker_Period.Value ?? 0)); }
                         ));
                 return value;
             }
@@ -205,7 +205,7 @@ namespace SleepApneaDiagnoser
             LoadRecent();
         }
         
-        // Home Page
+        // Home Page Helper Functions
         public void addRecentFile(string path)
         {
             List<string> array = RecentFiles.ToArray().ToList();
@@ -246,7 +246,7 @@ namespace SleepApneaDiagnoser
                     itemControl_RecentEDF.Items.Add(array[x].Split('\\')[array[x].Split('\\').Length - 1]);
         }
 
-        // Loading EDF Files
+        // Loading EDF Files Helper Functions
         public void BW_LoadEDFFile(object sender, DoWorkEventArgs e)
         {
             edfFile = new EDFFile();
@@ -290,7 +290,7 @@ namespace SleepApneaDiagnoser
             PlotView_signalPlot.Model = null;
         }
 
-        // Preview
+        // Preview Helper Functions
         public void BW_CreateChart(object sender, DoWorkEventArgs e)
         {
             signalPlot = new PlotModel();
