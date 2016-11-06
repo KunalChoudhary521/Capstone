@@ -29,67 +29,24 @@ namespace SleepApneaDiagnoser
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow
     {
-        public Model model;
-        
-        public MainWindow()
-        {
-            InitializeComponent();
+        private Model model;
 
-            model = new Model();
-            model.EDF_Loaded += EDFLoaded;
-            model.Preview_Chart_Drawn += PreviewChartDrawn;
-
-            LoadRecent();
-        }
-        
-        // Model Events
-        public void EDFLoaded()
+        /// <summary>
+        /// Function called after new EDF file is loaded to populate right pane of Preview tab.
+        /// </summary>
+        private void EDFLoaded()
         {
             LoadRecent();
-
-            TextBlock_Status.Text = "Waiting";
+            TextBlock_Status.Text = "File: " + model.FileName;
             this.IsEnabled = true;
-
-            textBox_StartTime.Text = model.StudyStartTime.ToString();
-            textBox_EndTime.Text = model.StudyEndTime.ToString();
-            textBox_TimeRecord.Text = model.edfFile.Header.DurationOfDataRecordInSeconds.ToString();
-            textBox_NumRecords.Text = model.edfFile.Header.NumberOfDataRecords.ToString();
-
-            textBox_PI_Name.Text = model.edfFile.Header.PatientIdentification.PatientName;
-            textBox_PI_Sex.Text = model.edfFile.Header.PatientIdentification.PatientSex;
-            textBox_PI_Code.Text = model.edfFile.Header.PatientIdentification.PatientCode;
-            textBox_PI_Birthdate.Text = model.edfFile.Header.PatientIdentification.PatientBirthDate.ToString();
-
-            textBox_RI_Equipment.Text = model.edfFile.Header.RecordingIdentification.RecordingEquipment;
-            textBox_RI_Code.Text = model.edfFile.Header.RecordingIdentification.RecordingCode;
-            textBox_RI_Technician.Text = model.edfFile.Header.RecordingIdentification.RecordingTechnician;
-
-            toggleButton_UseAbsoluteTime.IsChecked = false;
-
-            timePicker_From_Abs.Value = model.StudyStartTime;
-            timePicker_From_Eph.Value = HelperFunctions.DateTimetoEpoch(model.StudyStartTime, model.edfFile);
-            timePicker_Period.Value = 5;
-
-            listBox_SignalSelect.Items.Clear();
-            comboBox_SignalSelect.Items.Clear();
-            foreach (EDFSignal signal in model.edfFile.Header.Signals)
-            {
-                listBox_SignalSelect.Items.Add(signal);
-                comboBox_SignalSelect.Items.Add(signal);
-            }
-
-            PlotView_signalPlot.Model = null;
+            PopulateEDFInformation();
         }
-        public void PreviewChartDrawn()
-        {
-            PlotView_signalPlot.Model = model.signalPlot;
-            EnableNavigation();
-        }
-
-        // Home Page Helper Functions
-        public void LoadRecent()
+        /// <summary>
+        /// Function called to populate recent files list. Called when application is first loaded and if the recent files list changes.
+        /// </summary>
+        private void LoadRecent()
         {
             List<string> array = model.RecentFiles.ToArray().ToList();
 
@@ -98,24 +55,141 @@ namespace SleepApneaDiagnoser
                 if (!itemControl_RecentEDF.Items.Contains(array[x].Split('\\')[array[x].Split('\\').Length - 1]))
                     itemControl_RecentEDF.Items.Add(array[x].Split('\\')[array[x].Split('\\').Length - 1]);
         }
+        /// <summary>
+        /// Function to populate right pane of Preview tab.
+        /// </summary>
+        private void PopulateEDFInformation()
+        {
+            if (model.edfFile != null)
+            {
+                textBox_StartTime.Text = model.edfFile.Header.StartDateTime.ToString();
+                textBox_EndTime.Text = (model.edfFile.Header.StartDateTime + new TimeSpan(0, 0, model.edfFile.Header.DurationOfDataRecordInSeconds * model.edfFile.Header.NumberOfDataRecords)).ToString();
+                textBox_TimeRecord.Text = model.edfFile.Header.DurationOfDataRecordInSeconds.ToString();
+                textBox_NumRecords.Text = model.edfFile.Header.NumberOfDataRecords.ToString();
+
+                textBox_PI_Name.Text = model.edfFile.Header.PatientIdentification.PatientName;
+                textBox_PI_Sex.Text = model.edfFile.Header.PatientIdentification.PatientSex;
+                textBox_PI_Code.Text = model.edfFile.Header.PatientIdentification.PatientCode;
+                textBox_PI_Birthdate.Text = model.edfFile.Header.PatientIdentification.PatientBirthDate.ToString();
+
+                textBox_RI_Equipment.Text = model.edfFile.Header.RecordingIdentification.RecordingEquipment;
+                textBox_RI_Code.Text = model.edfFile.Header.RecordingIdentification.RecordingCode;
+                textBox_RI_Technician.Text = model.edfFile.Header.RecordingIdentification.RecordingTechnician;
+
+                toggleButton_UseAbsoluteTime.IsChecked = false;
+
+                timePicker_From_Abs.Value = model.edfFile.Header.StartDateTime;
+                timePicker_From_Eph.Value = 0;
+                timePicker_Period.Value = 5;
+
+                listBox_SignalSelect.Items.Clear();
+                comboBox_SignalSelect.Items.Clear();
+                foreach (EDFSignal signal in model.edfFile.Header.Signals)
+                {
+                    listBox_SignalSelect.Items.Add(signal);
+                    comboBox_SignalSelect.Items.Add(signal);
+                }
+
+                PlotView_signalPlot.Model = null;
+            }
+            else
+            {
+                textBox_StartTime.Text = "";
+                textBox_EndTime.Text = "";
+                textBox_TimeRecord.Text = "";
+                textBox_NumRecords.Text = "";
+
+                textBox_PI_Name.Text = "";
+                textBox_PI_Sex.Text = "";
+                textBox_PI_Code.Text = "";
+                textBox_PI_Birthdate.Text = "";
+
+                textBox_RI_Equipment.Text = "";
+                textBox_RI_Code.Text = "";
+                textBox_RI_Technician.Text = "";
+
+                toggleButton_UseAbsoluteTime.IsChecked = false;
+
+                timePicker_From_Abs.Value = null;
+                timePicker_From_Eph.Value = null;
+                timePicker_Period.Value = null;
+
+                comboBox_SignalSelect.Items.Clear();
+                listBox_SignalSelect.Items.Clear();
+
+                PlotView_signalPlot.Model = null;
+            }
+        }
         
-        // Preview Helper Functions
-        public void DisableNavigation()
+        /// <summary>
+        /// Disables the time picker controls while the chart is being drawn. Called before drawing the chart.
+        /// </summary>
+        private void DisableNavigation()
         {
             timePicker_From_Abs.IsEnabled = false;
             timePicker_From_Eph.IsEnabled = false;
             timePicker_Period.IsEnabled = false;
             listBox_SignalSelect.IsEnabled = false;
         }
-        public void EnableNavigation()
+        /// <summary>
+        /// Enables the time picker controls after the chart is drawn. Called in PreviewChartDrawn.
+        /// </summary>
+        private void EnableNavigation()
         {
             timePicker_From_Abs.IsEnabled = true;
             timePicker_From_Eph.IsEnabled = true;
             timePicker_Period.IsEnabled = true;
             listBox_SignalSelect.IsEnabled = true;
         }
-       
-        #region Menu Bar Events
+        /// <summary>
+        /// Updates GUI time picker controls from the model.
+        /// </summary>
+        private void GetTimePickerValues()
+        {
+            timePicker_From_Abs.ValueChanged -= timePicker_RangeChanged;
+            timePicker_From_Eph.ValueChanged -= timePicker_RangeChanged;
+            timePicker_Period.ValueChanged -= timePicker_RangeChanged;
+
+            timePicker_From_Abs.Value = model.GetViewStartTime();
+            timePicker_From_Eph.Value = model.GetViewStartEpoch();
+            timePicker_Period.Value = model.GetViewPeriod();
+
+            timePicker_From_Abs.ValueChanged += timePicker_RangeChanged;
+            timePicker_From_Eph.ValueChanged += timePicker_RangeChanged;
+            timePicker_Period.ValueChanged += timePicker_RangeChanged;
+
+            timePicker_Period.Minimum = model.GetViewPeriodMin();
+            timePicker_Period.Maximum = model.GetViewPeriodMax();
+            timePicker_From_Abs.Minimum = model.GetViewStartPickerAbsMin();
+            timePicker_From_Abs.Maximum = model.GetViewStartPickerAbsMax();
+            timePicker_From_Eph.Minimum = model.GetViewStartPickerEphMin();
+            timePicker_From_Eph.Maximum = model.GetViewStartPickerEphMax();
+        }
+        /// <summary>
+        /// Function called after chart in preview tab is drawn to add drawing to Preview tab.
+        /// </summary>
+        private void PreviewChartDrawn()
+        {
+            PlotView_signalPlot.Model = model.SignalPlot;
+            EnableNavigation();
+        }
+
+        /// <summary>
+        /// Constructor for GUI class.
+        /// </summary>
+        public MainWindow()
+        {
+            InitializeComponent();
+
+            model = new Model();
+            model.EDFLoaded += EDFLoaded;
+            model.PreviewChartDrawn += PreviewChartDrawn;
+            model.RecentFilesChanged += LoadRecent;
+
+            LoadRecent();
+        }
+
+        // Menu Bar Events
         private void MenuItem_File_Open_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog dialog = new OpenFileDialog();
@@ -132,38 +206,15 @@ namespace SleepApneaDiagnoser
         private void MenuItem_File_Close_Click(object sender, RoutedEventArgs e)
         {
             model.edfFile = null;
-
-            textBox_StartTime.Text = "";
-            textBox_EndTime.Text = "";
-            textBox_TimeRecord.Text = "";
-            textBox_NumRecords.Text = "";
-
-            textBox_StartTime.Text = "";
-            textBox_EndTime.Text = "";
-
-            textBox_PI_Name.Text = "";
-            textBox_PI_Sex.Text = "";
-            textBox_PI_Code.Text = "";
-            textBox_PI_Birthdate.Text = "";
-
-            textBox_RI_Equipment.Text = "";
-            textBox_RI_Code.Text = "";
-            textBox_RI_Technician.Text = "";
-
-            timePicker_From_Abs.Value = null;
-            timePicker_Period.Value = null;
-
-            comboBox_SignalSelect.Items.Clear();
-            listBox_SignalSelect.Items.Clear();
-            PlotView_signalPlot.Model = null;
+            TextBlock_Status.Text = "Waiting";
+            PopulateEDFInformation();
         }
         private void MenuItem_File_Exit_Click(object sender, RoutedEventArgs e)
         {
             Application.Current.Shutdown();
         }
-        #endregion
 
-        #region Home Tab Events
+        // Home Tab Events
         private void TextBlock_OpenEDF_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog dialog = new OpenFileDialog();
@@ -201,19 +252,15 @@ namespace SleepApneaDiagnoser
                     {
                         MessageBox.Show("File not Found");
                         model.RecentFiles_Remove(selected[x]);
-                        LoadRecent();
                     }
                 }
             }
         }
-        #endregion
-                
-        #region Preview Tab Events
+             
+        // Preview Tab Events   
         private void listBox_SignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            model.SelectedSignals.Clear();
-            for (int x = 0; x < listBox_SignalSelect.SelectedItems.Count; x++)
-                model.SelectedSignals.Add(listBox_SignalSelect.SelectedItems[x].ToString());
+            model.SetSelectedSignals(listBox_SignalSelect.SelectedItems);
 
             DisableNavigation();
             model.DrawChart();
@@ -230,135 +277,62 @@ namespace SleepApneaDiagnoser
                 textBox_SampRecord.Text = "";
             }
         }
-
-        private void timePicker_From_Abs_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        private void timePicker_RangeChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
             if (e.NewValue == null)
                 ((Xceed.Wpf.Toolkit.DateTimeUpDown)sender).Value = (DateTime)e.OldValue;
             
-            if (model.UseAbsoluteTime)
-            {
-                model.SetViewStartTime(timePicker_From_Abs.Value);
-                model.SetViewPeriod(timePicker_Period.Value);
+            model.SetViewRange(timePicker_From_Abs.Value, timePicker_Period.Value);
+            model.SetViewRange(timePicker_From_Eph.Value, timePicker_Period.Value);
 
-                timePicker_From_Eph.Value = model.GetViewStartEpoch();
-                timePicker_Period.Minimum = model.GetViewPeriodMin();
-                timePicker_Period.Maximum = model.GetViewPeriodMax();
-                timePicker_From_Abs.Minimum = model.GetViewStartPickerAbsMin();
-                timePicker_From_Abs.Maximum = model.GetViewStartPickerAbsMax();
-                timePicker_From_Eph.Minimum = model.GetViewStartPickerEphMin();
-                timePicker_From_Eph.Maximum = model.GetViewStartPickerEphMax();
-
-                DisableNavigation();
-                model.DrawChart();
-            }
-        }
-        private void timePicker_From_Eph_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
-        {
-            if (e.NewValue == null)
-                ((Xceed.Wpf.Toolkit.DateTimeUpDown)sender).Value = (DateTime)e.OldValue;
-
-            if (!model.UseAbsoluteTime)
-            {
-                model.SetViewStartEpoch(timePicker_From_Eph.Value);
-                model.SetViewPeriod(timePicker_Period.Value);
-
-                timePicker_From_Abs.Value = model.GetViewStartTime();
-                timePicker_Period.Minimum = model.GetViewPeriodMin();
-                timePicker_Period.Maximum = model.GetViewPeriodMax();
-                timePicker_From_Abs.Minimum = model.GetViewStartPickerAbsMin();
-                timePicker_From_Abs.Maximum = model.GetViewStartPickerAbsMax();
-                timePicker_From_Eph.Minimum = model.GetViewStartPickerEphMin();
-                timePicker_From_Eph.Maximum = model.GetViewStartPickerEphMax();
-
-                DisableNavigation();
-                model.DrawChart();
-            }
-        }
-        private void timePicker_Period_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
-        {
-            model.SetViewPeriod(timePicker_Period.Value);
-
-            timePicker_From_Abs.Minimum = model.GetViewStartPickerAbsMin();
-            timePicker_From_Abs.Maximum = model.GetViewStartPickerAbsMax();
-            timePicker_From_Eph.Minimum = model.GetViewStartPickerEphMin();
-            timePicker_From_Eph.Maximum = model.GetViewStartPickerEphMax();
+            GetTimePickerValues();
 
             DisableNavigation();
             model.DrawChart();
         }
-
         private void toggleButton_UseAbsoluteTime_Checked(object sender, RoutedEventArgs e)
         {
-            model.UseAbsoluteTime = true;
+            model.SetAbsoluteOrEpoch(true);
 
-            timePicker_Period.Minimum = model.GetViewPeriodMin();
-            timePicker_Period.Maximum = model.GetViewPeriodMax();
-            timePicker_From_Abs.Minimum = model.GetViewStartPickerAbsMin();
-            timePicker_From_Abs.Maximum = model.GetViewStartPickerAbsMax();
-            timePicker_From_Eph.Minimum = model.GetViewStartPickerEphMin();
-            timePicker_From_Eph.Maximum = model.GetViewStartPickerEphMax();
-
-            timePicker_Period.Value = (int)(model.GetViewEndTime() - model.GetViewStartTime()).TotalSeconds;
+            GetTimePickerValues();
 
             timePicker_From_Abs.Visibility = Visibility.Visible;
             timePicker_From_Eph.Visibility = Visibility.Hidden;
         }
         private void toggleButton_UseAbsoluteTime_Unchecked(object sender, RoutedEventArgs e)
         {
-            model.UseAbsoluteTime = false;
+            model.SetAbsoluteOrEpoch(false);
 
-            timePicker_Period.Minimum = model.GetViewPeriodMin();
-            timePicker_Period.Maximum = model.GetViewPeriodMax();
-            timePicker_From_Abs.Minimum = model.GetViewStartPickerAbsMin();
-            timePicker_From_Abs.Maximum = model.GetViewStartPickerAbsMax();
-            timePicker_From_Eph.Minimum = model.GetViewStartPickerEphMin();
-            timePicker_From_Eph.Maximum = model.GetViewStartPickerEphMax();
-
-            timePicker_Period.Value = model.GetViewEndEpoch() - model.GetViewStartEpoch();
+            GetTimePickerValues();
 
             timePicker_From_Abs.Visibility = Visibility.Hidden;
             timePicker_From_Eph.Visibility = Visibility.Visible;
-        }
-        #endregion
-        
+        }        
     }
-
-    public static class HelperFunctions
+    
+    public class Model
     {
-        public static DateTime EpochtoDateTime(int epoch, EDFFile file)
+        private static DateTime EpochtoDateTime(int epoch, EDFFile file)
         {
             return file.Header.StartDateTime + new TimeSpan(0, 0, epoch * file.Header.DurationOfDataRecordInSeconds);
         }
-        public static TimeSpan EpochPeriodtoTimeSpan(int period, EDFFile file)
+        private static TimeSpan EpochPeriodtoTimeSpan(int period, EDFFile file)
         {
             return new TimeSpan(0, 0, 0, period * file.Header.DurationOfDataRecordInSeconds);
         }
-        public static int DateTimetoEpoch(DateTime time, EDFFile file)
+        private static int DateTimetoEpoch(DateTime time, EDFFile file)
         {
             return (int)((time - file.Header.StartDateTime).TotalSeconds / (double)file.Header.DurationOfDataRecordInSeconds);
         }
-        public static int TimeSpantoEpochPeriod(TimeSpan period, EDFFile file)
+        private static int TimeSpantoEpochPeriod(TimeSpan period, EDFFile file)
         {
             return (int)(period.TotalSeconds / file.Header.DurationOfDataRecordInSeconds);
         }
-    }
 
-    public class Model
-    {
         // Loaded EDF Structure and File Name
         public EDFFile edfFile = null;
-        public string fileName = null;
-        // Preview Graph
-        public PlotModel signalPlot = null;
-        // Time Range of Graph
-        public bool UseAbsoluteTime = false;
-        // Selected Signals to be Previewed
-        public List<string> SelectedSignals = new List<string>();
-        // View Range
-        private DateTime ViewStartTime = new DateTime();
-        private DateTime ViewEndTime = new DateTime();
-
+        public string FileName = null;
+        
         // Recent File List and Functions. 
         public ReadOnlyCollection<string> RecentFiles
         {
@@ -398,6 +372,8 @@ namespace SleepApneaDiagnoser
                 sw.WriteLine(array[x]);
             }
             sw.Close();
+
+            RecentFilesChanged();
         }
         public void RecentFiles_Remove(string path)
         {
@@ -411,9 +387,19 @@ namespace SleepApneaDiagnoser
                 sw.WriteLine(array[x]);
             }
             sw.Close();
+
+            RecentFilesChanged();
         }
+
+        // Preview Graph
+        public PlotModel SignalPlot = null;
         
-        public DateTime StudyStartTime
+        // Selected Signals to be Previewed
+        private List<string> SelectedSignals = new List<string>();
+
+        // Preview Chart Ranges
+        private bool UseAbsoluteTime = false;
+        private DateTime StudyStartTime
         {
             get
             {
@@ -422,7 +408,7 @@ namespace SleepApneaDiagnoser
                 return value;
             }
         }
-        public DateTime StudyEndTime
+        private DateTime StudyEndTime
         {
             get
             {
@@ -431,7 +417,9 @@ namespace SleepApneaDiagnoser
                 return value;
             }
         }
-        public int EpochDuration
+        private DateTime ViewStartTime = new DateTime();
+        private DateTime ViewEndTime = new DateTime();
+        private int EpochDuration
         {
             get
             {
@@ -440,38 +428,57 @@ namespace SleepApneaDiagnoser
                 return value;
             }
         }
+        
+        public void SetSelectedSignals(System.Collections.IList SelectedItems)
+        {
+            SelectedSignals.Clear();
+            for (int x = 0; x < SelectedItems.Count; x++)
+                SelectedSignals.Add(SelectedItems[x].ToString());
+        }
 
-        public void SetViewStartTime(DateTime? value)
+        public void SetAbsoluteOrEpoch(bool value)
         {
-            ViewStartTime = value ?? StudyStartTime;
+            UseAbsoluteTime = value;
         }
-        public void SetViewStartEpoch(int? value)
-        {
-            ViewStartTime = HelperFunctions.EpochtoDateTime(value ?? 0, edfFile);
-        }
-        public void SetViewPeriod(int? value)
+        public void SetViewRange(DateTime? start, int? period)
         {
             if (UseAbsoluteTime)
-                ViewEndTime = ViewStartTime + new TimeSpan(0, 0, 0, value ?? 0);
-            else
-                ViewEndTime = ViewStartTime + HelperFunctions.EpochPeriodtoTimeSpan(value ?? 0, edfFile);
+            {
+                ViewStartTime = start ?? StudyStartTime;
+                ViewEndTime = ViewStartTime + new TimeSpan(0, 0, 0, period ?? 0);
+            }
+        }
+        public void SetViewRange(int? start, int? period)
+        {
+            if (!UseAbsoluteTime)
+            {
+                ViewStartTime = EpochtoDateTime(start ?? 0, edfFile);
+                ViewEndTime = ViewStartTime + EpochPeriodtoTimeSpan(period ?? 0, edfFile);
+            }
         }
 
         public DateTime GetViewStartTime()
         {
             return ViewStartTime;
         }
-        public int GetViewStartEpoch()
-        {
-            return HelperFunctions.DateTimetoEpoch(ViewStartTime, edfFile);
-        }
         public DateTime GetViewEndTime()
         {
             return ViewEndTime;
         }
+        public int GetViewStartEpoch()
+        {
+            return DateTimetoEpoch(ViewStartTime, edfFile);
+        }
         public int GetViewEndEpoch()
         {
-            return HelperFunctions.DateTimetoEpoch(ViewEndTime, edfFile);
+            return DateTimetoEpoch(ViewEndTime, edfFile);
+        }
+        public int GetViewPeriod()
+        {
+            if (UseAbsoluteTime)
+                return (int)(ViewEndTime - ViewStartTime).TotalSeconds;
+            else
+                return TimeSpantoEpochPeriod(ViewEndTime - ViewStartTime, edfFile);
         }
 
         public DateTime GetViewStartPickerAbsMin()
@@ -491,14 +498,14 @@ namespace SleepApneaDiagnoser
         public int GetViewStartPickerEphMin()
         {
             if (edfFile != null)
-                return HelperFunctions.DateTimetoEpoch(StudyStartTime, edfFile);
+                return DateTimetoEpoch(StudyStartTime, edfFile);
             else
                 return 0;
         }
         public int GetViewStartPickerEphMax()
         {
             if (edfFile != null)
-                return HelperFunctions.DateTimetoEpoch(StudyEndTime - (ViewEndTime - ViewStartTime), edfFile);
+                return DateTimetoEpoch(StudyEndTime - (ViewEndTime - ViewStartTime), edfFile);
             else
                 return 0;
         }
@@ -516,7 +523,7 @@ namespace SleepApneaDiagnoser
                 if (UseAbsoluteTime)
                     return Math.Min(2 * 60 * 60, (int)(StudyEndTime - ViewStartTime).TotalSeconds);
                 else
-                    return Math.Min((2 * 60 * 60) / EpochDuration, HelperFunctions.DateTimetoEpoch(StudyEndTime, edfFile) - HelperFunctions.DateTimetoEpoch(ViewStartTime, edfFile));
+                    return Math.Min((2 * 60 * 60) / EpochDuration, DateTimetoEpoch(StudyEndTime, edfFile) - DateTimetoEpoch(ViewStartTime, edfFile));
             }
             else // No File Loaded
                 return 0;
@@ -530,24 +537,24 @@ namespace SleepApneaDiagnoser
         }
         private void BW_FinishLoad(object sender, RunWorkerCompletedEventArgs e)
         {
-            RecentFiles_Add(fileName);
-            EDF_Loaded();
+            RecentFiles_Add(FileName);
+            EDFLoaded();
         }
         public void LoadEDFFile(string fileNameIn)
         {
-            fileName = fileNameIn;
+            FileName = fileNameIn;
             BackgroundWorker bw = new BackgroundWorker();
             bw.DoWork += BW_LoadEDFFile;
             bw.RunWorkerCompleted += BW_FinishLoad;
-            bw.RunWorkerAsync(fileName);
+            bw.RunWorkerAsync(FileName);
         }
 
         // Create Chart
         private void BW_CreateChart(object sender, DoWorkEventArgs e)
         {
-            signalPlot = new PlotModel();
-            signalPlot.Series.Clear();
-            signalPlot.Axes.Clear();
+            SignalPlot = new PlotModel();
+            SignalPlot.Series.Clear();
+            SignalPlot.Axes.Clear();
 
             if (SelectedSignals.Count > 0)
             {
@@ -555,7 +562,7 @@ namespace SleepApneaDiagnoser
                 xAxis.Key = "DateTime";
                 xAxis.Minimum = DateTimeAxis.ToDouble(ViewStartTime);
                 xAxis.Maximum = DateTimeAxis.ToDouble(ViewEndTime);
-                signalPlot.Axes.Add(xAxis);
+                SignalPlot.Axes.Add(xAxis);
 
                 for (int x = 0; x < SelectedSignals.Count; x++)
                 {
@@ -587,14 +594,14 @@ namespace SleepApneaDiagnoser
                     yAxis.EndPosition = (double)1 - (double)x * ((double)1 / (double)SelectedSignals.Count);
                     yAxis.StartPosition = (double)1 - (double)(x + 1) * ((double)1 / (double)SelectedSignals.Count);
 
-                    signalPlot.Axes.Add(yAxis);
-                    signalPlot.Series.Add(series);
+                    SignalPlot.Axes.Add(yAxis);
+                    SignalPlot.Series.Add(series);
                 }
             }
         }
         private void BW_FinishChart(object sender, RunWorkerCompletedEventArgs e)
         {
-            Preview_Chart_Drawn();
+            PreviewChartDrawn();
         }
         public void DrawChart()
         {
@@ -604,8 +611,9 @@ namespace SleepApneaDiagnoser
             bw.RunWorkerAsync();
         }
 
-        public Action EDF_Loaded;
-        public Action Preview_Chart_Drawn;
+        public Action EDFLoaded;
+        public Action RecentFilesChanged;
+        public Action PreviewChartDrawn;
         
         public Model()
         {
