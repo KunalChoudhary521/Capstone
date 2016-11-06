@@ -75,9 +75,7 @@ namespace SleepApneaDiagnoser
                 textBox_RI_Equipment.Text = model.edfFile.Header.RecordingIdentification.RecordingEquipment;
                 textBox_RI_Code.Text = model.edfFile.Header.RecordingIdentification.RecordingCode;
                 textBox_RI_Technician.Text = model.edfFile.Header.RecordingIdentification.RecordingTechnician;
-
-                toggleButton_UseAbsoluteTime.IsChecked = false;
-
+                
                 timePicker_From_Abs.Value = model.edfFile.Header.StartDateTime;
                 timePicker_From_Eph.Value = 0;
                 timePicker_Period.Value = 5;
@@ -107,9 +105,7 @@ namespace SleepApneaDiagnoser
                 textBox_RI_Equipment.Text = "";
                 textBox_RI_Code.Text = "";
                 textBox_RI_Technician.Text = "";
-
-                toggleButton_UseAbsoluteTime.IsChecked = false;
-
+                
                 timePicker_From_Abs.Value = null;
                 timePicker_From_Eph.Value = null;
                 timePicker_Period.Value = null;
@@ -192,6 +188,9 @@ namespace SleepApneaDiagnoser
         // Menu Bar Events
         private void MenuItem_File_Open_Click(object sender, RoutedEventArgs e)
         {
+            model.edfFile = null;
+            PopulateEDFInformation();
+
             OpenFileDialog dialog = new OpenFileDialog();
             dialog.Filter = "EDF files (*.edf)|*.edf";
             dialog.Title = "Select an EDF file";
@@ -217,6 +216,9 @@ namespace SleepApneaDiagnoser
         // Home Tab Events
         private void TextBlock_OpenEDF_Click(object sender, RoutedEventArgs e)
         {
+            model.edfFile = null;
+            PopulateEDFInformation();
+
             OpenFileDialog dialog = new OpenFileDialog();
             dialog.Filter = "EDF files (*.edf)|*.edf";
             dialog.Title = "Select an EDF file";
@@ -230,6 +232,9 @@ namespace SleepApneaDiagnoser
         }
         private void TextBlock_Recent_Click(object sender, RoutedEventArgs e)
         {
+            model.edfFile = null;
+            PopulateEDFInformation();
+
             List<string> array = model.RecentFiles.ToArray().ToList();
             List<string> selected = array.Where(temp => temp.Split('\\')[temp.Split('\\').Length - 1] == ((Hyperlink)sender).Inlines.FirstInline.DataContext.ToString()).ToList();
             
@@ -279,16 +284,16 @@ namespace SleepApneaDiagnoser
         }
         private void timePicker_RangeChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            if (e.NewValue == null)
-                ((Xceed.Wpf.Toolkit.DateTimeUpDown)sender).Value = (DateTime)e.OldValue;
-            
-            model.SetViewRange(timePicker_From_Abs.Value, timePicker_Period.Value);
-            model.SetViewRange(timePicker_From_Eph.Value, timePicker_Period.Value);
+            if (e.NewValue != null)
+            {
+                model.SetViewRange(timePicker_From_Abs.Value, timePicker_Period.Value);
+                model.SetViewRange(timePicker_From_Eph.Value, timePicker_Period.Value);
 
-            GetTimePickerValues();
+                GetTimePickerValues();
 
-            DisableNavigation();
-            model.DrawChart();
+                DisableNavigation();
+                model.DrawChart();
+            }
         }
         private void toggleButton_UseAbsoluteTime_Checked(object sender, RoutedEventArgs e)
         {
