@@ -21,7 +21,6 @@
         <TabControl Margin="10,30" TabStripPlacement="Left">
             <TabItem Header="Home" Margin="-2,-2,0,-23">
                 <Grid>
-                    <Image Source="double_bed_set.jpg" Margin="304,0,0,0"/>
                     <Grid HorizontalAlignment="Left" Width="299" Background="White" Margin="0,0">
                         <TextBlock Text="Sleep Apnea Diagnoser" FontSize="25" FontWeight="Bold" Margin="10,10,0,604" HorizontalAlignment="Left" Width="277"/>
                         <TextBlock Text="Start" Height="34" Width="94" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="18"  Margin="10,102,0,0"/>
@@ -99,8 +98,8 @@
 
                     <Grid Height="38" Margin="265,41,372.667,0" VerticalAlignment="Top">
                         <Label Content="From" HorizontalAlignment="Left" Margin="5,0,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="28" Width="47" HorizontalContentAlignment="Center"/>
-                        <xctk:DateTimeUpDown x:Name="timePicker_From_Abs" Margin="57,0,0,10" HorizontalAlignment="Left" Width="200" AllowTextInput="False" TextAlignment="Center" ValueChanged="timePicker_From_ValueChanged"/>
-                        <xctk:IntegerUpDown x:Name="timePicker_From_Eph" Margin="57,0,0,10" HorizontalAlignment="Left" Width="200" AllowTextInput="True" TextAlignment="Center" ValueChanged="timePicker_From_ValueChanged"/>
+                        <xctk:DateTimeUpDown x:Name="timePicker_From_Abs" Margin="57,0,0,10" HorizontalAlignment="Left" Width="200" AllowTextInput="False" TextAlignment="Center" ValueChanged="timePicker_From_Abs_ValueChanged"/>
+                        <xctk:IntegerUpDown x:Name="timePicker_From_Eph" Margin="57,0,0,10" HorizontalAlignment="Left" Width="200" AllowTextInput="True" TextAlignment="Center" ValueChanged="timePicker_From_Eph_ValueChanged"/>
                         <Label Content="Length" Margin="262,0,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="28" HorizontalAlignment="Left" Width="62" HorizontalContentAlignment="Center"/>
                         <xctk:IntegerUpDown x:Name="timePicker_Period" Margin="329,0,0,10" HorizontalAlignment="Left" Width="85" AllowTextInput="True" TextAlignment="Center" ValueChanged="timePicker_Period_ValueChanged"/>
                         <ToggleButton x:Name="toggleButton_UseAbsoluteTime" Content="Use Absolute Time" VerticalAlignment="Top" HorizontalAlignment="Right" Width="112" Height="28" Checked="toggleButton_UseAbsoluteTime_Checked" Unchecked="toggleButton_UseAbsoluteTime_Unchecked"/>

@@ -31,257 +31,50 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public partial class MainWindow : Window
     {
-        // Recent File List and Functions. 
-        public ReadOnlyCollection<string> RecentFiles
-        {
-            get
-            {
-                string[] value = null;
-
-                Dispatcher.Invoke(
-                    new Action(() =>
-                    {
-                        if (File.Exists("recent.txt"))
-                        {
-                            StreamReader sr = new StreamReader("recent.txt");
-                            string[] text = sr.ReadToEnd().Split('\n');
-                            List<string> values = new List<string>();
-                            for (int x = 0; x < text.Length; x++)
-                                if (File.Exists(text[x].Trim()))
-                                    values.Add(text[x].Trim());
-                            sr.Close();
-
-                            value = values.ToArray();
-                        }
-                        else
-                        {
-                            value = new string[0];
-                        }
-                    }
-                ));
-
-                return Array.AsReadOnly(value);
-            }
-        }
-        
-        // Loaded EDF Structure and File Name
-        public EDFFile edfFile = null;
-        public string fileName = null;
-        
-        // Preview Graph
-        public PlotModel signalPlot = null;
-
-        // Time Range of Graph
-        public bool UseAbsoluteTime
-        {
-            get
-            {
-                bool value = false;
-                Dispatcher.Invoke(
-                    new Action(() => { value = toggleButton_UseAbsoluteTime.IsChecked == true; }
-                ));
-                return value;
-            }
-        }
-        public DateTime StudyStartTime
-        {
-            get
-            {
-                DateTime value = new DateTime();
-                Dispatcher.Invoke(
-                    new Action(() => { value = edfFile.Header.StartDateTime; }
-                ));
-                return value;
-            }
-        }
-        public DateTime StudyEndTime
-        {
-            get
-            {
-                DateTime value = new DateTime();
-                Dispatcher.Invoke(
-                    new Action(() => { value = edfFile.Header.StartDateTime + new TimeSpan(0, 0, edfFile.Header.NumberOfDataRecords * edfFile.Header.DurationOfDataRecordInSeconds); }
-                ));
-                return value;
-            }
-        }
-        public DateTime ViewStartTime
-        {
-            get
-            {
-                DateTime value = new DateTime();
-                Dispatcher.Invoke(
-                            new Action(() => { value = timePicker_From_Abs.Value ?? StudyStartTime; }
-                        ));
-                return value;
-            }
-        }
-        public DateTime ViewEndTime
-        {
-            get
-            {
-                DateTime value = new DateTime();
-                Dispatcher.Invoke(
-                            new Action(() => { value = (timePicker_From_Abs.Value ?? StudyStartTime) + new TimeSpan(0, 0, (int)(timePicker_Period.Value ?? 0)); }
-                        ));
-                return value;
-            }
-        }
-        public int StudyStartEpoch
-        {
-            get
-            {
-                return 0;
-            }
-        }
-        public int StudyEndEpoch
-        {
-            get
-            {
-                int value = 0;
-                Dispatcher.Invoke(
-                            new Action(() => { value = edfFile == null ? 0 : edfFile.Header.NumberOfDataRecords - 1; }
-                        ));
-                return value;
-            }
-        }
-        public int ViewStartEpoch
-        {
-            get
-            {
-                int value = 0;
-                Dispatcher.Invoke(
-                            new Action(() => { value = (int)(timePicker_From_Eph.Value ?? 0); }
-                        ));
-                return value;
-            }
-        }
-        public int ViewEndEpoch
-        {
-            get
-            {
-                int value = 0;
-                Dispatcher.Invoke(
-                            new Action(() => { value = (int)(timePicker_From_Eph.Value ?? 0) + (int)(timePicker_Period.Value ?? 0); }
-                        ));
-                return value;
-            }
-        }
-        public int EpochDuration
-        {
-            get
-            {
-                int value = 0;
-                Dispatcher.Invoke(
-                            new Action(() => { value = (edfFile == null ? 30 : edfFile.Header.DurationOfDataRecordInSeconds); }
-                        ));
-                return value;
-            }
-        }
-
-        // Selected Signals to be Previewed
-        public ReadOnlyCollection<string> SelectedSignals
-        {
-            get
-            {
-                string[] value = null; 
-
-                Dispatcher.Invoke(
-                    new Action(() =>
-                    {
-                        value = new string[listBox_SignalSelect.SelectedItems.Count];
-                        for (int x = 0; x < listBox_SignalSelect.SelectedItems.Count; x++)
-                            value[x] = listBox_SignalSelect.SelectedItems[x].ToString();
-                    }
-                ));
-
-                return Array.AsReadOnly(value);
-            }
-        }
+        public Model model;
         
         public MainWindow()
         {
             InitializeComponent();
+
+            model = new Model();
+            model.EDF_Loaded += EDFLoaded;
+            model.Preview_Chart_Drawn += PreviewChartDrawn;
+
             LoadRecent();
         }
         
-        // Home Page Helper Functions
-        public void addRecentFile(string path)
+        // Model Events
+        public void EDFLoaded()
         {
-            List<string> array = RecentFiles.ToArray().ToList();
-            array.Insert(0, path);
-            array = array.Distinct().ToList();
-
-            StreamWriter sw = new StreamWriter("recent.txt");
-            for (int x = 0; x < array.Count; x++)
-            {
-                sw.WriteLine(array[x]);
-            }
-            sw.Close();
-
             LoadRecent();
-        }
-        public void removeRecentFile(string path)
-        {
-            List<string> array = RecentFiles.ToArray().ToList();
-            array.Remove(path);
-            array = array.Distinct().ToList();
-
-            StreamWriter sw = new StreamWriter("recent.txt");
-            for (int x = 0; x < array.Count; x++)
-            {
-                sw.WriteLine(array[x]);
-            }
-            sw.Close();
-
-            LoadRecent();
-        }
-        public void LoadRecent()
-        {
-            List<string> array = RecentFiles.ToArray().ToList();
-
-            itemControl_RecentEDF.Items.Clear();
-            for (int x = 0; x < array.Count; x++)
-                if (!itemControl_RecentEDF.Items.Contains(array[x].Split('\\')[array[x].Split('\\').Length - 1]))
-                    itemControl_RecentEDF.Items.Add(array[x].Split('\\')[array[x].Split('\\').Length - 1]);
-        }
-
-        // Loading EDF Files Helper Functions
-        public void BW_LoadEDFFile(object sender, DoWorkEventArgs e)
-        {
-            edfFile = new EDFFile();
-            edfFile.readFile(e.Argument.ToString());
-        }
-        public void BW_FinishLoad(object sender, RunWorkerCompletedEventArgs e)
-        {
-            addRecentFile(fileName);
 
             TextBlock_Status.Text = "Waiting";
             this.IsEnabled = true;
-            
-            textBox_StartTime.Text = StudyStartTime.ToString();
-            textBox_EndTime.Text = StudyEndTime.ToString();
-            textBox_TimeRecord.Text = edfFile.Header.DurationOfDataRecordInSeconds.ToString();
-            textBox_NumRecords.Text = edfFile.Header.NumberOfDataRecords.ToString();
 
-            textBox_PI_Name.Text = edfFile.Header.PatientIdentification.PatientName;
-            textBox_PI_Sex.Text = edfFile.Header.PatientIdentification.PatientSex;
-            textBox_PI_Code.Text = edfFile.Header.PatientIdentification.PatientCode;
-            textBox_PI_Birthdate.Text = edfFile.Header.PatientIdentification.PatientBirthDate.ToString();
+            textBox_StartTime.Text = model.StudyStartTime.ToString();
+            textBox_EndTime.Text = model.StudyEndTime.ToString();
+            textBox_TimeRecord.Text = model.edfFile.Header.DurationOfDataRecordInSeconds.ToString();
+            textBox_NumRecords.Text = model.edfFile.Header.NumberOfDataRecords.ToString();
 
-            textBox_RI_Equipment.Text = edfFile.Header.RecordingIdentification.RecordingEquipment;
-            textBox_RI_Code.Text = edfFile.Header.RecordingIdentification.RecordingCode;
-            textBox_RI_Technician.Text = edfFile.Header.RecordingIdentification.RecordingTechnician;
+            textBox_PI_Name.Text = model.edfFile.Header.PatientIdentification.PatientName;
+            textBox_PI_Sex.Text = model.edfFile.Header.PatientIdentification.PatientSex;
+            textBox_PI_Code.Text = model.edfFile.Header.PatientIdentification.PatientCode;
+            textBox_PI_Birthdate.Text = model.edfFile.Header.PatientIdentification.PatientBirthDate.ToString();
+
+            textBox_RI_Equipment.Text = model.edfFile.Header.RecordingIdentification.RecordingEquipment;
+            textBox_RI_Code.Text = model.edfFile.Header.RecordingIdentification.RecordingCode;
+            textBox_RI_Technician.Text = model.edfFile.Header.RecordingIdentification.RecordingTechnician;
 
             toggleButton_UseAbsoluteTime.IsChecked = false;
 
-            timePicker_From_Abs.Value = StudyStartTime;
-            timePicker_From_Eph.Value = StudyStartEpoch;
+            timePicker_From_Abs.Value = model.StudyStartTime;
+            timePicker_From_Eph.Value = HelperFunctions.DateTimetoEpoch(model.StudyStartTime, model.edfFile);
             timePicker_Period.Value = 5;
 
             listBox_SignalSelect.Items.Clear();
             comboBox_SignalSelect.Items.Clear();
-            foreach (EDFSignal signal in edfFile.Header.Signals)
+            foreach (EDFSignal signal in model.edfFile.Header.Signals)
             {
                 listBox_SignalSelect.Items.Add(signal);
                 comboBox_SignalSelect.Items.Add(signal);
@@ -289,98 +82,39 @@ namespace SleepApneaDiagnoser
 
             PlotView_signalPlot.Model = null;
         }
+        public void PreviewChartDrawn()
+        {
+            PlotView_signalPlot.Model = model.signalPlot;
+            EnableNavigation();
+        }
 
+        // Home Page Helper Functions
+        public void LoadRecent()
+        {
+            List<string> array = model.RecentFiles.ToArray().ToList();
+
+            itemControl_RecentEDF.Items.Clear();
+            for (int x = 0; x < array.Count; x++)
+                if (!itemControl_RecentEDF.Items.Contains(array[x].Split('\\')[array[x].Split('\\').Length - 1]))
+                    itemControl_RecentEDF.Items.Add(array[x].Split('\\')[array[x].Split('\\').Length - 1]);
+        }
+        
         // Preview Helper Functions
-        public void BW_CreateChart(object sender, DoWorkEventArgs e)
+        public void DisableNavigation()
         {
-            signalPlot = new PlotModel();
-            signalPlot.Series.Clear();
-            signalPlot.Axes.Clear();
-
-            if (SelectedSignals.Count > 0)
-            {
-                if (UseAbsoluteTime)
-                {
-                    DateTimeAxis xAxis = new DateTimeAxis();
-                    xAxis.Key = "DateTime";
-                    xAxis.Minimum = DateTimeAxis.ToDouble(ViewStartTime);
-                    xAxis.Maximum = DateTimeAxis.ToDouble(ViewEndTime);
-                    signalPlot.Axes.Add(xAxis);
-
-                    for (int x = 0; x < SelectedSignals.Count; x++)
-                    {
-                        EDFSignal edfsignal = edfFile.Header.Signals.Find(temp => temp.ToString() == SelectedSignals[x]);
-                        float sample_period = (float)edfFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
-
-                        List<float> values = edfFile.retrieveSignalSampleValues(edfsignal);
-
-                        int startIndex, indexCount;
-                        TimeSpan startPoint = ViewStartTime - StudyStartTime;
-                        TimeSpan duration = ViewEndTime - ViewStartTime;
-                        startIndex = (int)(startPoint.TotalSeconds / sample_period);
-                        indexCount = (int)(duration.TotalSeconds / sample_period);
-
-                        LineSeries series = new LineSeries();
-                        for (int y = startIndex; y < indexCount + startIndex; y++)
-                        {
-                            series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(edfFile.Header.StartDateTime + new TimeSpan(0,0,0,0,(int)(sample_period * (float)y * 1000))),values[y]));
-                        }
-
-                        series.YAxisKey = SelectedSignals[x];
-                        series.XAxisKey = "DateTime";
-
-                        LinearAxis yAxis = new LinearAxis();
-                        yAxis.MajorGridlineStyle = LineStyle.Solid;
-                        yAxis.MinorGridlineStyle = LineStyle.Dot;
-                        yAxis.Title = SelectedSignals[x];
-                        yAxis.Key = SelectedSignals[x];
-                        yAxis.EndPosition = (double)1 - (double)x * ((double)1 / (double)SelectedSignals.Count);
-                        yAxis.StartPosition = (double)1 - (double)(x + 1) * ((double)1 / (double)SelectedSignals.Count);
-
-                        signalPlot.Axes.Add(yAxis);
-                        signalPlot.Series.Add(series);
-                    }
-                }
-                else
-                {
-                    for (int x = 0; x < SelectedSignals.Count; x++)
-                    {
-                        EDFSignal edfsignal = edfFile.Header.Signals.Find(temp => temp.ToString() == SelectedSignals[x]);
-
-                        List<float> values = edfFile.retrieveSignalSampleValues(edfsignal);
-
-                        int startIndex, endIndex;
-                        startIndex = edfsignal.NumberOfSamplesPerDataRecord * ViewStartEpoch;
-                        endIndex= edfsignal.NumberOfSamplesPerDataRecord * ViewEndEpoch;
-
-                        LineSeries series = new LineSeries();
-                        for (int y = startIndex; y < endIndex; y++)
-                        {
-                            float x_value = ((float)y / (float)edfsignal.NumberOfSamplesPerDataRecord);
-                            series.Points.Add(new DataPoint(x_value, values[y]));
-                        }
-                        
-                        series.YAxisKey = SelectedSignals[x];
-
-                        LinearAxis yAxis = new LinearAxis();
-                        yAxis.MajorGridlineStyle = LineStyle.Solid;
-                        yAxis.MinorGridlineStyle = LineStyle.Dot;
-                        yAxis.Title = SelectedSignals[x];
-                        yAxis.Key = SelectedSignals[x];
-                        yAxis.EndPosition = (double)1 - (double)x * ((double)1 / (double)SelectedSignals.Count);
-                        yAxis.StartPosition = (double)1 - (double)(x + 1) * ((double)1 / (double)SelectedSignals.Count);
-
-                        signalPlot.Axes.Add(yAxis);
-                        signalPlot.Series.Add(series);
-                    }
-                }
-            }
+            timePicker_From_Abs.IsEnabled = false;
+            timePicker_From_Eph.IsEnabled = false;
+            timePicker_Period.IsEnabled = false;
+            listBox_SignalSelect.IsEnabled = false;
         }
-        public void BW_FinishChart(object sender, RunWorkerCompletedEventArgs e)
+        public void EnableNavigation()
         {
-            PlotView_signalPlot.Model = signalPlot;
+            timePicker_From_Abs.IsEnabled = true;
+            timePicker_From_Eph.IsEnabled = true;
+            timePicker_Period.IsEnabled = true;
+            listBox_SignalSelect.IsEnabled = true;
         }
-
+       
         #region Menu Bar Events
         private void MenuItem_File_Open_Click(object sender, RoutedEventArgs e)
         {
@@ -390,19 +124,14 @@ namespace SleepApneaDiagnoser
 
             if (dialog.ShowDialog() == true)
             {
-                fileName = dialog.FileName;
                 TextBlock_Status.Text = "Loading EDF File";
                 this.IsEnabled = false;
-
-                BackgroundWorker bw = new BackgroundWorker();
-                bw.DoWork += BW_LoadEDFFile;
-                bw.RunWorkerCompleted += BW_FinishLoad;
-                bw.RunWorkerAsync(fileName);
+                model.LoadEDFFile(dialog.FileName);
             }
         }
         private void MenuItem_File_Close_Click(object sender, RoutedEventArgs e)
         {
-            edfFile = null;
+            model.edfFile = null;
 
             textBox_StartTime.Text = "";
             textBox_EndTime.Text = "";
@@ -443,19 +172,14 @@ namespace SleepApneaDiagnoser
 
             if (dialog.ShowDialog() == true)
             {
-                fileName = dialog.FileName;
                 TextBlock_Status.Text = "Loading EDF File";
                 this.IsEnabled = false;
-
-                BackgroundWorker bw = new BackgroundWorker();
-                bw.DoWork += BW_LoadEDFFile;
-                bw.RunWorkerCompleted += BW_FinishLoad;
-                bw.RunWorkerAsync(fileName);
+                model.LoadEDFFile(dialog.FileName);
             }
         }
         private void TextBlock_Recent_Click(object sender, RoutedEventArgs e)
         {
-            List<string> array = RecentFiles.ToArray().ToList();
+            List<string> array = model.RecentFiles.ToArray().ToList();
             List<string> selected = array.Where(temp => temp.Split('\\')[temp.Split('\\').Length - 1] == ((Hyperlink)sender).Inlines.FirstInline.DataContext.ToString()).ToList();
             
             if (selected.Count == 0)
@@ -470,12 +194,14 @@ namespace SleepApneaDiagnoser
                     {
                         TextBlock_Status.Text = "Loading EDF File";
                         this.IsEnabled = false;
-
-                        BackgroundWorker bw = new BackgroundWorker();
-                        bw.DoWork += BW_LoadEDFFile;
-                        bw.RunWorkerCompleted += BW_FinishLoad;
-                        bw.RunWorkerAsync(selected[x]);
+                        model.LoadEDFFile(selected[x]);
                         break;
+                    }
+                    else
+                    {
+                        MessageBox.Show("File not Found");
+                        model.RecentFiles_Remove(selected[x]);
+                        LoadRecent();
                     }
                 }
             }
@@ -485,16 +211,18 @@ namespace SleepApneaDiagnoser
         #region Preview Tab Events
         private void listBox_SignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            BackgroundWorker bw = new BackgroundWorker();
-            bw.DoWork += BW_CreateChart;
-            bw.RunWorkerCompleted += BW_FinishChart;
-            bw.RunWorkerAsync();
+            model.SelectedSignals.Clear();
+            for (int x = 0; x < listBox_SignalSelect.SelectedItems.Count; x++)
+                model.SelectedSignals.Add(listBox_SignalSelect.SelectedItems[x].ToString());
+
+            DisableNavigation();
+            model.DrawChart();
         }
         private void comboBox_SignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (comboBox_SignalSelect.SelectedValue != null)
             {
-                EDFSignal edfsignal = edfFile.Header.Signals.Find(temp => temp.ToString() == comboBox_SignalSelect.SelectedValue.ToString());
+                EDFSignal edfsignal = model.edfFile.Header.Signals.Find(temp => temp.ToString() == comboBox_SignalSelect.SelectedValue.ToString());
                 textBox_SampRecord.Text = edfsignal.NumberOfSamplesPerDataRecord.ToString();
             }
             else
@@ -502,94 +230,386 @@ namespace SleepApneaDiagnoser
                 textBox_SampRecord.Text = "";
             }
         }
-        private void timePicker_From_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
-        {
-            if (UseAbsoluteTime) // Absolute Time
-            {
-                if (edfFile != null) // File Loaded
-                {
-                    timePicker_Period.Minimum = 1;
-                    timePicker_Period.Maximum = Math.Min(2 * 60 * 60, (int)(StudyEndTime - ViewStartTime).TotalSeconds);
-                }
-                else // No File Loaded
-                {
-                    timePicker_Period.Minimum = 0;
-                    timePicker_Period.Maximum = 0;
-                }
-            }
-            else // Epoch
-            {
-                if (edfFile != null) // File Loaded
-                {
-                    timePicker_Period.Minimum = 1;
-                    timePicker_Period.Maximum = Math.Min((2 * 60 * 60) / EpochDuration, StudyEndEpoch - ViewStartEpoch);
-                }
-                else // No File Loaded
-                {
-                    timePicker_Period.Minimum = 0;
-                    timePicker_Period.Maximum = 0;
-                }
-            }
 
-            // Create New Chart
-            BackgroundWorker bw = new BackgroundWorker();
-            bw.DoWork += BW_CreateChart;
-            bw.RunWorkerCompleted += BW_FinishChart;
-            bw.RunWorkerAsync();
+        private void timePicker_From_Abs_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        {
+            if (e.NewValue == null)
+                ((Xceed.Wpf.Toolkit.DateTimeUpDown)sender).Value = (DateTime)e.OldValue;
+            
+            if (model.UseAbsoluteTime)
+            {
+                model.SetViewStartTime(timePicker_From_Abs.Value);
+                model.SetViewPeriod(timePicker_Period.Value);
+
+                timePicker_From_Eph.Value = model.GetViewStartEpoch();
+                timePicker_Period.Minimum = model.GetViewPeriodMin();
+                timePicker_Period.Maximum = model.GetViewPeriodMax();
+                timePicker_From_Abs.Minimum = model.GetViewStartPickerAbsMin();
+                timePicker_From_Abs.Maximum = model.GetViewStartPickerAbsMax();
+                timePicker_From_Eph.Minimum = model.GetViewStartPickerEphMin();
+                timePicker_From_Eph.Maximum = model.GetViewStartPickerEphMax();
+
+                DisableNavigation();
+                model.DrawChart();
+            }
+        }
+        private void timePicker_From_Eph_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        {
+            if (e.NewValue == null)
+                ((Xceed.Wpf.Toolkit.DateTimeUpDown)sender).Value = (DateTime)e.OldValue;
+
+            if (!model.UseAbsoluteTime)
+            {
+                model.SetViewStartEpoch(timePicker_From_Eph.Value);
+                model.SetViewPeriod(timePicker_Period.Value);
+
+                timePicker_From_Abs.Value = model.GetViewStartTime();
+                timePicker_Period.Minimum = model.GetViewPeriodMin();
+                timePicker_Period.Maximum = model.GetViewPeriodMax();
+                timePicker_From_Abs.Minimum = model.GetViewStartPickerAbsMin();
+                timePicker_From_Abs.Maximum = model.GetViewStartPickerAbsMax();
+                timePicker_From_Eph.Minimum = model.GetViewStartPickerEphMin();
+                timePicker_From_Eph.Maximum = model.GetViewStartPickerEphMax();
+
+                DisableNavigation();
+                model.DrawChart();
+            }
         }
         private void timePicker_Period_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            if (UseAbsoluteTime) // Absolute Time
-            {
-                if (edfFile != null) // File Loaded
-                {
-                    timePicker_From_Abs.Minimum = StudyStartTime;
-                    timePicker_From_Abs.Maximum = StudyEndTime - new TimeSpan(0, 0, timePicker_Period.Value ?? 1);
-                }
-                else // No File Loaded
-                {
-                    timePicker_From_Abs.Minimum = new DateTime();
-                    timePicker_From_Abs.Maximum = new DateTime();
-                }
-            }
-            else
-            {
-                if (edfFile != null) // File Loaded
-                {
-                    timePicker_From_Eph.Minimum = StudyStartEpoch;
-                    timePicker_From_Eph.Maximum = StudyEndEpoch - timePicker_Period.Value ?? 1;
-                }
-                else // No File Loaded
-                {
-                    timePicker_From_Eph.Minimum = 0;
-                    timePicker_From_Eph.Maximum = 0;
-                }
-            }
+            model.SetViewPeriod(timePicker_Period.Value);
 
-            // Create New Chart
-            BackgroundWorker bw = new BackgroundWorker();
-            bw.DoWork += BW_CreateChart;
-            bw.RunWorkerCompleted += BW_FinishChart;
-            bw.RunWorkerAsync();
+            timePicker_From_Abs.Minimum = model.GetViewStartPickerAbsMin();
+            timePicker_From_Abs.Maximum = model.GetViewStartPickerAbsMax();
+            timePicker_From_Eph.Minimum = model.GetViewStartPickerEphMin();
+            timePicker_From_Eph.Maximum = model.GetViewStartPickerEphMax();
+
+            DisableNavigation();
+            model.DrawChart();
         }
+
         private void toggleButton_UseAbsoluteTime_Checked(object sender, RoutedEventArgs e)
         {
-            timePicker_From_Abs.Value = StudyStartTime + new TimeSpan(0, 0, (timePicker_From_Eph.Value ?? 0) * EpochDuration);
-            timePicker_Period.Value = (timePicker_Period.Value ?? 1) * EpochDuration;
+            model.UseAbsoluteTime = true;
+
+            timePicker_Period.Minimum = model.GetViewPeriodMin();
+            timePicker_Period.Maximum = model.GetViewPeriodMax();
+            timePicker_From_Abs.Minimum = model.GetViewStartPickerAbsMin();
+            timePicker_From_Abs.Maximum = model.GetViewStartPickerAbsMax();
+            timePicker_From_Eph.Minimum = model.GetViewStartPickerEphMin();
+            timePicker_From_Eph.Maximum = model.GetViewStartPickerEphMax();
+
+            timePicker_Period.Value = (int)(model.GetViewEndTime() - model.GetViewStartTime()).TotalSeconds;
 
             timePicker_From_Abs.Visibility = Visibility.Visible;
             timePicker_From_Eph.Visibility = Visibility.Hidden;
         }
         private void toggleButton_UseAbsoluteTime_Unchecked(object sender, RoutedEventArgs e)
         {
-            timePicker_From_Eph.Value = (int)((ViewStartTime - StudyStartTime).TotalSeconds / (double)EpochDuration);
-            timePicker_Period.Value = (timePicker_Period.Value ?? 1) / EpochDuration;
+            model.UseAbsoluteTime = false;
+
+            timePicker_Period.Minimum = model.GetViewPeriodMin();
+            timePicker_Period.Maximum = model.GetViewPeriodMax();
+            timePicker_From_Abs.Minimum = model.GetViewStartPickerAbsMin();
+            timePicker_From_Abs.Maximum = model.GetViewStartPickerAbsMax();
+            timePicker_From_Eph.Minimum = model.GetViewStartPickerEphMin();
+            timePicker_From_Eph.Maximum = model.GetViewStartPickerEphMax();
+
+            timePicker_Period.Value = model.GetViewEndEpoch() - model.GetViewStartEpoch();
 
             timePicker_From_Abs.Visibility = Visibility.Hidden;
             timePicker_From_Eph.Visibility = Visibility.Visible;
         }
         #endregion
+        
+    }
 
+    public static class HelperFunctions
+    {
+        public static DateTime EpochtoDateTime(int epoch, EDFFile file)
+        {
+            return file.Header.StartDateTime + new TimeSpan(0, 0, epoch * file.Header.DurationOfDataRecordInSeconds);
+        }
+        public static TimeSpan EpochPeriodtoTimeSpan(int period, EDFFile file)
+        {
+            return new TimeSpan(0, 0, 0, period * file.Header.DurationOfDataRecordInSeconds);
+        }
+        public static int DateTimetoEpoch(DateTime time, EDFFile file)
+        {
+            return (int)((time - file.Header.StartDateTime).TotalSeconds / (double)file.Header.DurationOfDataRecordInSeconds);
+        }
+        public static int TimeSpantoEpochPeriod(TimeSpan period, EDFFile file)
+        {
+            return (int)(period.TotalSeconds / file.Header.DurationOfDataRecordInSeconds);
+        }
+    }
 
+    public class Model
+    {
+        // Loaded EDF Structure and File Name
+        public EDFFile edfFile = null;
+        public string fileName = null;
+        // Preview Graph
+        public PlotModel signalPlot = null;
+        // Time Range of Graph
+        public bool UseAbsoluteTime = false;
+        // Selected Signals to be Previewed
+        public List<string> SelectedSignals = new List<string>();
+        // View Range
+        private DateTime ViewStartTime = new DateTime();
+        private DateTime ViewEndTime = new DateTime();
+
+        // Recent File List and Functions. 
+        public ReadOnlyCollection<string> RecentFiles
+        {
+            get
+            {
+                string[] value = null;
+
+                if (File.Exists("recent.txt"))
+                {
+                    StreamReader sr = new StreamReader("recent.txt");
+                    string[] text = sr.ReadToEnd().Split('\n');
+                    List<string> values = new List<string>();
+                    for (int x = 0; x < text.Length; x++)
+                        if (File.Exists(text[x].Trim()))
+                            values.Add(text[x].Trim());
+                    sr.Close();
+
+                    value = values.ToArray();
+                }
+                else
+                {
+                    value = new string[0];
+                }
+
+                return Array.AsReadOnly(value);
+            }
+        }
+        public void RecentFiles_Add(string path)
+        {
+            List<string> array = RecentFiles.ToArray().ToList();
+            array.Insert(0, path);
+            array = array.Distinct().ToList();
+
+            StreamWriter sw = new StreamWriter("recent.txt");
+            for (int x = 0; x < array.Count; x++)
+            {
+                sw.WriteLine(array[x]);
+            }
+            sw.Close();
+        }
+        public void RecentFiles_Remove(string path)
+        {
+            List<string> array = RecentFiles.ToArray().ToList();
+            array.Remove(path);
+            array = array.Distinct().ToList();
+
+            StreamWriter sw = new StreamWriter("recent.txt");
+            for (int x = 0; x < array.Count; x++)
+            {
+                sw.WriteLine(array[x]);
+            }
+            sw.Close();
+        }
+        
+        public DateTime StudyStartTime
+        {
+            get
+            {
+                DateTime value = new DateTime();
+                value = edfFile.Header.StartDateTime;
+                return value;
+            }
+        }
+        public DateTime StudyEndTime
+        {
+            get
+            {
+                DateTime value = new DateTime();
+                value = edfFile.Header.StartDateTime + new TimeSpan(0, 0, edfFile.Header.NumberOfDataRecords * edfFile.Header.DurationOfDataRecordInSeconds);
+                return value;
+            }
+        }
+        public int EpochDuration
+        {
+            get
+            {
+                int value = 0;
+                value = (edfFile == null ? 30 : edfFile.Header.DurationOfDataRecordInSeconds);
+                return value;
+            }
+        }
+
+        public void SetViewStartTime(DateTime? value)
+        {
+            ViewStartTime = value ?? StudyStartTime;
+        }
+        public void SetViewStartEpoch(int? value)
+        {
+            ViewStartTime = HelperFunctions.EpochtoDateTime(value ?? 0, edfFile);
+        }
+        public void SetViewPeriod(int? value)
+        {
+            if (UseAbsoluteTime)
+                ViewEndTime = ViewStartTime + new TimeSpan(0, 0, 0, value ?? 0);
+            else
+                ViewEndTime = ViewStartTime + HelperFunctions.EpochPeriodtoTimeSpan(value ?? 0, edfFile);
+        }
+
+        public DateTime GetViewStartTime()
+        {
+            return ViewStartTime;
+        }
+        public int GetViewStartEpoch()
+        {
+            return HelperFunctions.DateTimetoEpoch(ViewStartTime, edfFile);
+        }
+        public DateTime GetViewEndTime()
+        {
+            return ViewEndTime;
+        }
+        public int GetViewEndEpoch()
+        {
+            return HelperFunctions.DateTimetoEpoch(ViewEndTime, edfFile);
+        }
+
+        public DateTime GetViewStartPickerAbsMin()
+        {
+            if (edfFile != null)
+                return StudyStartTime;
+            else
+                return new DateTime();
+        }
+        public DateTime GetViewStartPickerAbsMax()
+        {
+            if (edfFile != null)
+                return StudyEndTime - (ViewEndTime - ViewStartTime);
+            else
+                return new DateTime();
+        }
+        public int GetViewStartPickerEphMin()
+        {
+            if (edfFile != null)
+                return HelperFunctions.DateTimetoEpoch(StudyStartTime, edfFile);
+            else
+                return 0;
+        }
+        public int GetViewStartPickerEphMax()
+        {
+            if (edfFile != null)
+                return HelperFunctions.DateTimetoEpoch(StudyEndTime - (ViewEndTime - ViewStartTime), edfFile);
+            else
+                return 0;
+        }
+        public int GetViewPeriodMin()
+        {
+            if (edfFile != null) // File Loaded
+                return 1;
+            else // No File Loaded
+                return 0;
+        }
+        public int GetViewPeriodMax()
+        {
+            if (edfFile != null) // File Loaded
+            {
+                if (UseAbsoluteTime)
+                    return Math.Min(2 * 60 * 60, (int)(StudyEndTime - ViewStartTime).TotalSeconds);
+                else
+                    return Math.Min((2 * 60 * 60) / EpochDuration, HelperFunctions.DateTimetoEpoch(StudyEndTime, edfFile) - HelperFunctions.DateTimetoEpoch(ViewStartTime, edfFile));
+            }
+            else // No File Loaded
+                return 0;
+        }
+                
+        // Load EDF
+        private void BW_LoadEDFFile(object sender, DoWorkEventArgs e)
+        {
+            edfFile = new EDFFile();
+            edfFile.readFile(e.Argument.ToString());
+        }
+        private void BW_FinishLoad(object sender, RunWorkerCompletedEventArgs e)
+        {
+            RecentFiles_Add(fileName);
+            EDF_Loaded();
+        }
+        public void LoadEDFFile(string fileNameIn)
+        {
+            fileName = fileNameIn;
+            BackgroundWorker bw = new BackgroundWorker();
+            bw.DoWork += BW_LoadEDFFile;
+            bw.RunWorkerCompleted += BW_FinishLoad;
+            bw.RunWorkerAsync(fileName);
+        }
+
+        // Create Chart
+        private void BW_CreateChart(object sender, DoWorkEventArgs e)
+        {
+            signalPlot = new PlotModel();
+            signalPlot.Series.Clear();
+            signalPlot.Axes.Clear();
+
+            if (SelectedSignals.Count > 0)
+            {
+                DateTimeAxis xAxis = new DateTimeAxis();
+                xAxis.Key = "DateTime";
+                xAxis.Minimum = DateTimeAxis.ToDouble(ViewStartTime);
+                xAxis.Maximum = DateTimeAxis.ToDouble(ViewEndTime);
+                signalPlot.Axes.Add(xAxis);
+
+                for (int x = 0; x < SelectedSignals.Count; x++)
+                {
+                    EDFSignal edfsignal = edfFile.Header.Signals.Find(temp => temp.ToString() == SelectedSignals[x]);
+                    float sample_period = (float)edfFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
+
+                    List<float> values = edfFile.retrieveSignalSampleValues(edfsignal);
+
+                    int startIndex, indexCount;
+                    TimeSpan startPoint = ViewStartTime - StudyStartTime;
+                    TimeSpan duration = ViewEndTime - ViewStartTime;
+                    startIndex = (int)(startPoint.TotalSeconds / sample_period);
+                    indexCount = (int)(duration.TotalSeconds / sample_period);
+
+                    LineSeries series = new LineSeries();
+                    for (int y = startIndex; y < indexCount + startIndex; y++)
+                    {
+                        series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(edfFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
+                    }
+
+                    series.YAxisKey = SelectedSignals[x];
+                    series.XAxisKey = "DateTime";
+
+                    LinearAxis yAxis = new LinearAxis();
+                    yAxis.MajorGridlineStyle = LineStyle.Solid;
+                    yAxis.MinorGridlineStyle = LineStyle.Dot;
+                    yAxis.Title = SelectedSignals[x];
+                    yAxis.Key = SelectedSignals[x];
+                    yAxis.EndPosition = (double)1 - (double)x * ((double)1 / (double)SelectedSignals.Count);
+                    yAxis.StartPosition = (double)1 - (double)(x + 1) * ((double)1 / (double)SelectedSignals.Count);
+
+                    signalPlot.Axes.Add(yAxis);
+                    signalPlot.Series.Add(series);
+                }
+            }
+        }
+        private void BW_FinishChart(object sender, RunWorkerCompletedEventArgs e)
+        {
+            Preview_Chart_Drawn();
+        }
+        public void DrawChart()
+        {
+            BackgroundWorker bw = new BackgroundWorker();
+            bw.DoWork += BW_CreateChart;
+            bw.RunWorkerCompleted += BW_FinishChart;
+            bw.RunWorkerAsync();
+        }
+
+        public Action EDF_Loaded;
+        public Action Preview_Chart_Drawn;
+        
+        public Model()
+        {
+
+        }
     }
 }
