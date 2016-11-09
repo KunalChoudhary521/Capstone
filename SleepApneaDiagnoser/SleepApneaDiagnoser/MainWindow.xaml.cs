@@ -240,7 +240,8 @@ namespace SleepApneaDiagnoser
             
             if (selected.Count == 0)
             {
-                MessageBox.Show("Error");
+                MessageBox.Show("File not Found");
+                model.EDFLoaded();
             }
             else
             {
