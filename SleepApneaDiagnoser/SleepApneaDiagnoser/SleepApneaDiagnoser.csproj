@@ -103,7 +103,11 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Page Include="Dialog_Derivative.xaml">
+    <Page Include="Dialog_Add_Derivative.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Dialog_Remove_Derivative.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -115,8 +119,11 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Dialog_Derivative.xaml.cs">
-      <DependentUpon>Dialog_Derivative.xaml</DependentUpon>
+    <Compile Include="Dialog_Add_Derivative.xaml.cs">
+      <DependentUpon>Dialog_Add_Derivative.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialog_Remove_Derivative.xaml.cs">
+      <DependentUpon>Dialog_Remove_Derivative.xaml</DependentUpon>
     </Compile>
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>

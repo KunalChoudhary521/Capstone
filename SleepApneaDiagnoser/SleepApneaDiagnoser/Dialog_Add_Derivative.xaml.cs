@@ -17,7 +17,7 @@ namespace SleepApneaDiagnoser
     /// <summary>
     /// Interaction logic for Dialog_Derivative.xaml
     /// </summary>
-    public partial class Dialog_Derivative : Window
+    public partial class Dialog_Add_Derivative : Window
     {
         public string SignalName
         {
@@ -41,14 +41,20 @@ namespace SleepApneaDiagnoser
             }
         }
 
-        public Dialog_Derivative(string[] Signals)
+        private string[] DerivedSignals;
+        private string[] Signals;
+
+        public Dialog_Add_Derivative(string[] i_Signals, string[] i_DerivedSignals)
         {
             InitializeComponent();
 
-            for (int x = 0; x < Signals.Length; x++)
+            Signals = i_Signals;
+            DerivedSignals = i_DerivedSignals;
+
+            for (int x = 0; x < i_Signals.Length; x++)
             {
-                comboBox_Signal1.Items.Add(Signals[x]);
-                comboBox_Signal2.Items.Add(Signals[x]);
+                comboBox_Signal1.Items.Add(i_Signals[x]);
+                comboBox_Signal2.Items.Add(i_Signals[x]);
             }
         }
 
@@ -56,8 +62,15 @@ namespace SleepApneaDiagnoser
         {
             if (comboBox_Signal1.Text.Trim() != "" && comboBox_Signal2.Text.Trim() != "" && textBox_SignalName.Text.Trim() != "")
             {
-                this.DialogResult = true;
-                this.Close();
+                if (Signals.ToList().Contains(textBox_SignalName.Text.Trim()) || DerivedSignals.ToList().Contains(textBox_SignalName.Text.Trim()))
+                {
+                    MessageBox.Show("Please select a unique signal name.");
+                }
+                else
+                {
+                    this.DialogResult = true;
+                    this.Close();
+                }
             }
             else
             {

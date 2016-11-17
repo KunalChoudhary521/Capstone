@@ -91,7 +91,12 @@ namespace SleepApneaDiagnoser
                     listBox_SignalSelect.Items.Add(signal.Label);
                     comboBox_SignalSelect.Items.Add(signal.Label);
                 }
+                for (int x = 0; x < model.GetDerivedSignals().Length; x++)
+                {
+                    listBox_SignalSelect.Items.Add(model.GetDerivedSignals()[x][0]);
+                }
                 listBox_SignalSelect.Items.Add(Model.AddDerivativeString);
+                listBox_SignalSelect.Items.Add(Model.RemoveDerivativeString);
 
                 PlotView_signalPlot.Model = null;
             }
@@ -283,9 +288,28 @@ namespace SleepApneaDiagnoser
                     if (new_signal != null)
                     {
                         listBox_SignalSelect.Items.Remove(Model.AddDerivativeString);
+                        listBox_SignalSelect.Items.Remove(Model.RemoveDerivativeString);
                         listBox_SignalSelect.Items.Add(new_signal);
                         listBox_SignalSelect.Items.Add(Model.AddDerivativeString);
+                        listBox_SignalSelect.Items.Add(Model.RemoveDerivativeString);
                     }
+                    break;
+                }
+                if (listBox_SignalSelect.SelectedItems[x].ToString() == Model.RemoveDerivativeString)
+                {
+                    listBox_SignalSelect.SelectionChanged -= listBox_SignalSelect_SelectionChanged;
+                    listBox_SignalSelect.SelectedItems.Remove(listBox_SignalSelect.SelectedItems[x]);
+
+                    string[] remove_signals = model.Remove_Derivative();
+                    if (remove_signals != null)
+                    {
+                        for (int y = 0; y < remove_signals.Length; y++)
+                        {
+                            listBox_SignalSelect.Items.Remove(remove_signals[y]);
+                        }
+                    }
+
+                    listBox_SignalSelect.SelectionChanged += listBox_SignalSelect_SelectionChanged;
                     break;
                 }
             }
@@ -299,7 +323,7 @@ namespace SleepApneaDiagnoser
         {
             if (comboBox_SignalSelect.SelectedValue != null)
             {
-                EDFSignal edfsignal = model.edfFile.Header.Signals.Find(temp => temp.Label == comboBox_SignalSelect.SelectedValue.ToString());
+                EDFSignal edfsignal = model.edfFile.Header.Signals.Find(temp => temp.Label.Trim() == comboBox_SignalSelect.SelectedValue.ToString().Trim());
                 textBox_SampRecord.Text = edfsignal.NumberOfSamplesPerDataRecord.ToString();
             }
             else
@@ -343,6 +367,7 @@ namespace SleepApneaDiagnoser
     public class Model
     {
         public const string AddDerivativeString = "Add Derivative";
+        public const string RemoveDerivativeString = "Remove Derivative";
 
         private static DateTime EpochtoDateTime(int epoch, EDFFile file)
         {
@@ -574,6 +599,8 @@ namespace SleepApneaDiagnoser
         {
             edfFile = new EDFFile();
             edfFile.readFile(e.Argument.ToString());
+
+            LoadCommonDerivativesFile();
         }
         private void BW_FinishLoad(object sender, RunWorkerCompletedEventArgs e)
         {
@@ -589,21 +616,104 @@ namespace SleepApneaDiagnoser
             bw.RunWorkerAsync(FileName);
         }
 
-        // Create Derivative
+        // Create/Remove Derivative
+        public void LoadCommonDerivativesFile()
+        {
+            DerivedSignals.Clear();
+            if (File.Exists("common_derivatives.txt"))
+            {
+                List<string> text = new StreamReader("common_derivatives.txt").ReadToEnd().Replace("\r\n", "\n").Split('\n').ToList();
+                for (int x = 0; x < text.Count; x++)
+                {
+                    string[] new_entry = text[x].Split(',');
+
+                    if (new_entry.Length == 3)
+                    {
+                        if (edfFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[1].Trim()) != null) // Signals Exist
+                        {
+                            if (edfFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[2].Trim()) != null) // Signals Exist
+                            {
+                                if (edfFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[0].Trim()) == null) // Unique Name
+                                {
+                                    if (DerivedSignals.Where(temp => temp[0].Trim() == new_entry[0].Trim()).ToList().Count == 0) // Unique Name
+                                    {
+                                        DerivedSignals.Add(new_entry);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        public void AddToCommonDerivativesFile(string name, string signal1, string signal2)
+        {
+            StreamWriter sw = new StreamWriter("common_derivatives.txt", true);
+            sw.WriteLine(name + "," + signal1 + "," + signal2);
+            sw.Close();
+        }
+        public void RemoveFromCommonDerivativesFile(List<string[]> signals)
+        {
+            if (File.Exists("common_derivatives.txt"))
+            {
+                StreamReader sr = new StreamReader("common_derivatives.txt");
+                List<string> text = sr.ReadToEnd().Split('\n').ToList();
+                sr.Close();
+                for (int x = 0; x < text.Count; x++)
+                {
+                    for (int y = 0; y < signals.Count; y++)
+                    {
+                        if (text[x].Split(',').Length != 3 || text[x].Split(',')[0].Trim() == signals[y][0].Trim() && text[x].Split(',')[1].Trim() == signals[y][1].Trim() && text[x].Split(',')[2].Trim() == signals[y][2].Trim())
+                        {
+                            text.Remove(text[x]);
+                            x--;
+                        }
+                    }
+                }
+
+                StreamWriter sw = new StreamWriter("common_derivatives.txt");
+                for (int x = 0; x < text.Count; x++)
+                {
+                    sw.WriteLine(text[x].Trim());
+                }
+                sw.Close();
+            }
+        }
+
         public string Add_Derivative()
         {
-            Dialog_Derivative dlg = new Dialog_Derivative(edfFile.Header.Signals.Select(temp => temp.Label).ToArray());
+            Dialog_Add_Derivative dlg = new Dialog_Add_Derivative(edfFile.Header.Signals.Select(temp => temp.Label.Trim()).ToArray(), DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
             dlg.ShowDialog();
 
             if (dlg.DialogResult == true)
             {
                 DerivedSignals.Add(new string[] { dlg.SignalName, dlg.Signal1, dlg.Signal2 });
+                AddToCommonDerivativesFile(dlg.SignalName, dlg.Signal1, dlg.Signal2);
                 return dlg.SignalName;
             }
 
             return null;
         }
-        
+        public string[] Remove_Derivative()
+        {
+            Dialog_Remove_Derivative dlg = new Dialog_Remove_Derivative(DerivedSignals.ToArray());
+            dlg.ShowDialog();
+
+            if (dlg.DialogResult == true)
+            {
+                for (int x = 0; x < dlg.RemovedSignals.Length; x++)
+                {
+                    List<string[]> RemovedDerivatives = DerivedSignals.FindAll(temp => temp[0].Trim() == dlg.RemovedSignals[x].Trim()).ToList();
+                    DerivedSignals.RemoveAll(temp => temp[0].Trim() == dlg.RemovedSignals[x].Trim());
+                    RemoveFromCommonDerivativesFile(RemovedDerivatives);
+                }
+
+                return dlg.RemovedSignals;
+            }
+
+            return null;
+        }
+
         // Create Chart
         private void BW_CreateChart(object sender, DoWorkEventArgs e)
         {
@@ -622,9 +732,9 @@ namespace SleepApneaDiagnoser
                 for (int x = 0; x < SelectedSignals.Count; x++)
                 {
                     LineSeries series = new LineSeries();
-                    if (edfFile.Header.Signals.Find(temp => temp.Label == SelectedSignals[x]) != null) // Normal EDF Signal
+                    if (edfFile.Header.Signals.Find(temp => temp.Label.Trim() == SelectedSignals[x].Trim()) != null) // Normal EDF Signal
                     {
-                        EDFSignal edfsignal = edfFile.Header.Signals.Find(temp => temp.Label == SelectedSignals[x]);
+                        EDFSignal edfsignal = edfFile.Header.Signals.Find(temp => temp.Label.Trim() == SelectedSignals[x].Trim());
 
                         float sample_period = (float)edfFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
 
@@ -644,8 +754,8 @@ namespace SleepApneaDiagnoser
                     else // Derivative Signal
                     {
                         string[] deriv_info = DerivedSignals.Find(temp => temp[0] == SelectedSignals[x]);
-                        EDFSignal edfsignal1 = edfFile.Header.Signals.Find(temp => temp.Label == deriv_info[1]);
-                        EDFSignal edfsignal2 = edfFile.Header.Signals.Find(temp => temp.Label == deriv_info[2]);
+                        EDFSignal edfsignal1 = edfFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[1].Trim());
+                        EDFSignal edfsignal2 = edfFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[2].Trim());
 
                         List<float> values1;
                         List<float> values2;
