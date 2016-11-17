@@ -24,6 +24,10 @@ using OxyPlot;
 using OxyPlot.Series;
 using OxyPlot.Axes;
 
+using MathWorks.MATLAB.NET.Arrays;
+using MathWorks.MATLAB.NET.Utility;
+using MATLAB_496;
+
 namespace SleepApneaDiagnoser
 {
     /// <summary>
@@ -84,9 +88,10 @@ namespace SleepApneaDiagnoser
                 comboBox_SignalSelect.Items.Clear();
                 foreach (EDFSignal signal in model.edfFile.Header.Signals)
                 {
-                    listBox_SignalSelect.Items.Add(signal);
-                    comboBox_SignalSelect.Items.Add(signal);
+                    listBox_SignalSelect.Items.Add(signal.Label);
+                    comboBox_SignalSelect.Items.Add(signal.Label);
                 }
+                listBox_SignalSelect.Items.Add(Model.AddDerivativeString);
 
                 PlotView_signalPlot.Model = null;
             }
@@ -266,8 +271,27 @@ namespace SleepApneaDiagnoser
         // Preview Tab Events   
         private void listBox_SignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            model.SetSelectedSignals(listBox_SignalSelect.SelectedItems);
+            for (int x = 0; x < listBox_SignalSelect.SelectedItems.Count; x++)
+            {
+                if (listBox_SignalSelect.SelectedItems[x].ToString() == Model.AddDerivativeString)
+                {
+                    listBox_SignalSelect.SelectionChanged -= listBox_SignalSelect_SelectionChanged;
+                    listBox_SignalSelect.SelectedItems.Remove(listBox_SignalSelect.SelectedItems[x]);
+                    listBox_SignalSelect.SelectionChanged += listBox_SignalSelect_SelectionChanged;
 
+                    string new_signal = model.Add_Derivative();
+                    if (new_signal != null)
+                    {
+                        listBox_SignalSelect.Items.Remove(Model.AddDerivativeString);
+                        listBox_SignalSelect.Items.Add(new_signal);
+                        listBox_SignalSelect.Items.Add(Model.AddDerivativeString);
+                    }
+                    break;
+                }
+            }
+
+            model.SetSelectedSignals(listBox_SignalSelect.SelectedItems);
+            
             DisableNavigation();
             model.DrawChart();
         }
@@ -275,7 +299,7 @@ namespace SleepApneaDiagnoser
         {
             if (comboBox_SignalSelect.SelectedValue != null)
             {
-                EDFSignal edfsignal = model.edfFile.Header.Signals.Find(temp => temp.ToString() == comboBox_SignalSelect.SelectedValue.ToString());
+                EDFSignal edfsignal = model.edfFile.Header.Signals.Find(temp => temp.Label == comboBox_SignalSelect.SelectedValue.ToString());
                 textBox_SampRecord.Text = edfsignal.NumberOfSamplesPerDataRecord.ToString();
             }
             else
@@ -318,6 +342,8 @@ namespace SleepApneaDiagnoser
     
     public class Model
     {
+        public const string AddDerivativeString = "Add Derivative";
+
         private static DateTime EpochtoDateTime(int epoch, EDFFile file)
         {
             return file.Header.StartDateTime + new TimeSpan(0, 0, epoch * file.Header.DurationOfDataRecordInSeconds);
@@ -403,6 +429,9 @@ namespace SleepApneaDiagnoser
         // Selected Signals to be Previewed
         private List<string> SelectedSignals = new List<string>();
 
+        // Created Derivatives
+        private List<string[]> DerivedSignals = new List<string[]>();
+
         // Preview Chart Ranges
         private bool UseAbsoluteTime = false;
         private DateTime StudyStartTime
@@ -440,6 +469,11 @@ namespace SleepApneaDiagnoser
             SelectedSignals.Clear();
             for (int x = 0; x < SelectedItems.Count; x++)
                 SelectedSignals.Add(SelectedItems[x].ToString());
+        }
+
+        public string[][] GetDerivedSignals()
+        {
+            return DerivedSignals.ToArray();
         }
 
         public void SetAbsoluteOrEpoch(bool value)
@@ -555,6 +589,21 @@ namespace SleepApneaDiagnoser
             bw.RunWorkerAsync(FileName);
         }
 
+        // Create Derivative
+        public string Add_Derivative()
+        {
+            Dialog_Derivative dlg = new Dialog_Derivative(edfFile.Header.Signals.Select(temp => temp.Label).ToArray());
+            dlg.ShowDialog();
+
+            if (dlg.DialogResult == true)
+            {
+                DerivedSignals.Add(new string[] { dlg.SignalName, dlg.Signal1, dlg.Signal2 });
+                return dlg.SignalName;
+            }
+
+            return null;
+        }
+        
         // Create Chart
         private void BW_CreateChart(object sender, DoWorkEventArgs e)
         {
@@ -572,21 +621,84 @@ namespace SleepApneaDiagnoser
 
                 for (int x = 0; x < SelectedSignals.Count; x++)
                 {
-                    EDFSignal edfsignal = edfFile.Header.Signals.Find(temp => temp.ToString() == SelectedSignals[x]);
-                    float sample_period = (float)edfFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
-
-                    List<float> values = edfFile.retrieveSignalSampleValues(edfsignal);
-
-                    int startIndex, indexCount;
-                    TimeSpan startPoint = ViewStartTime - StudyStartTime;
-                    TimeSpan duration = ViewEndTime - ViewStartTime;
-                    startIndex = (int)(startPoint.TotalSeconds / sample_period);
-                    indexCount = (int)(duration.TotalSeconds / sample_period);
-
                     LineSeries series = new LineSeries();
-                    for (int y = startIndex; y < indexCount + startIndex; y++)
+                    if (edfFile.Header.Signals.Find(temp => temp.Label == SelectedSignals[x]) != null) // Normal EDF Signal
                     {
-                        series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(edfFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
+                        EDFSignal edfsignal = edfFile.Header.Signals.Find(temp => temp.Label == SelectedSignals[x]);
+
+                        float sample_period = (float)edfFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
+
+                        List<float> values = edfFile.retrieveSignalSampleValues(edfsignal);
+
+                        int startIndex, indexCount;
+                        TimeSpan startPoint = ViewStartTime - StudyStartTime;
+                        TimeSpan duration = ViewEndTime - ViewStartTime;
+                        startIndex = (int)(startPoint.TotalSeconds / sample_period);
+                        indexCount = (int)(duration.TotalSeconds / sample_period);
+                        
+                        for (int y = startIndex; y < indexCount + startIndex; y++)
+                        {
+                            series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(edfFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
+                        }
+                    }
+                    else // Derivative Signal
+                    {
+                        string[] deriv_info = DerivedSignals.Find(temp => temp[0] == SelectedSignals[x]);
+                        EDFSignal edfsignal1 = edfFile.Header.Signals.Find(temp => temp.Label == deriv_info[1]);
+                        EDFSignal edfsignal2 = edfFile.Header.Signals.Find(temp => temp.Label == deriv_info[2]);
+
+                        List<float> values1;
+                        List<float> values2;
+                        float sample_period;
+                        if (edfsignal1.NumberOfSamplesPerDataRecord == edfsignal2.NumberOfSamplesPerDataRecord) // No resampling
+                        {
+                            values1 = edfFile.retrieveSignalSampleValues(edfsignal1);
+                            values2 = edfFile.retrieveSignalSampleValues(edfsignal2);
+                            sample_period = (float)edfFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
+                        }
+                        else if (edfsignal1.NumberOfSamplesPerDataRecord > edfsignal2.NumberOfSamplesPerDataRecord) // Upsample signal 2
+                        {
+                            Processing proc = new Processing();
+                            MWArray[] input = new MWArray[2];
+                            input[0] = new MWNumericArray(edfFile.retrieveSignalSampleValues(edfsignal2).ToArray());
+                            input[1] = edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord;
+
+                            values1 = edfFile.retrieveSignalSampleValues(edfsignal1);
+                            values2 = (
+                                        (double[])(
+                                            (MWNumericArray) proc.m_resample(1, input[0], input[1])[0]
+                                        ).ToVector(MWArrayComponent.Real)
+                                      ).ToList().Select(temp => (float)temp).ToList();
+
+                            sample_period = (float)edfFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
+                        }
+                        else // Upsample signal 1
+                        {
+                            Processing proc = new Processing();
+                            MWArray[] input = new MWArray[2];
+                            input[0] = new MWNumericArray(edfFile.retrieveSignalSampleValues(edfsignal1).ToArray());
+                            input[1] = edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord;
+
+                            values1 = (
+                                        (double[])(
+                                            (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
+                                        ).ToVector(MWArrayComponent.Real)
+                                      ).ToList().Select(temp => (float)temp).ToList();
+                            values2 = edfFile.retrieveSignalSampleValues(edfsignal2);
+
+                            sample_period = (float)edfFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal2.NumberOfSamplesPerDataRecord;
+                        }
+
+                        int startIndex, indexCount;
+                        TimeSpan startPoint = ViewStartTime - StudyStartTime;
+                        TimeSpan duration = ViewEndTime - ViewStartTime;
+                        startIndex = (int)(startPoint.TotalSeconds / sample_period);
+                        indexCount = (int)(duration.TotalSeconds / sample_period);
+
+                        for (int y = startIndex; y < indexCount + startIndex; y++)
+                        {
+                            series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(edfFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values1[y] - values2[y]));
+                        }
                     }
 
                     series.YAxisKey = SelectedSignals[x];
