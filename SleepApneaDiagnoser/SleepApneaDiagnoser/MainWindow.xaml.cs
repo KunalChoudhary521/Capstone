@@ -33,14 +33,14 @@ namespace SleepApneaDiagnoser
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow
+    public partial class MainWindow : Window
     {
-        private Model model;
+        Model model;
 
         /// <summary>
         /// Function called after new EDF file is loaded to populate right pane of Preview tab.
         /// </summary>
-        private void EDFLoaded()
+        public void EDFLoaded()
         {
             LoadRecent();
             this.IsEnabled = true;
@@ -49,7 +49,7 @@ namespace SleepApneaDiagnoser
         /// <summary>
         /// Function called to populate recent files list. Called when application is first loaded and if the recent files list changes.
         /// </summary>
-        private void LoadRecent()
+        public void LoadRecent()
         {
             List<string> array = model.RecentFiles.ToArray().ToList();
 
@@ -58,62 +58,25 @@ namespace SleepApneaDiagnoser
                 if (!itemControl_RecentEDF.Items.Contains(array[x].Split('\\')[array[x].Split('\\').Length - 1]))
                     itemControl_RecentEDF.Items.Add(array[x].Split('\\')[array[x].Split('\\').Length - 1]);
         }
-        
-        private void RefreshEDFHeaderInfo()
+        /// <summary>
+        /// Function called after chart in preview tab is drawn to add drawing to Preview tab.
+        /// </summary>
+        public void PreviewChartDrawn()
         {
-            if (model.edfFile != null)
-            {
-                TextBlock_Status.Text = "File: " + model.FileName;
-                textBox_StartTime.Text = model.edfFile.Header.StartDateTime.ToString();
-                textBox_EndTime.Text = (model.edfFile.Header.StartDateTime + new TimeSpan(0, 0, model.edfFile.Header.DurationOfDataRecordInSeconds * model.edfFile.Header.NumberOfDataRecords)).ToString();
-                textBox_TimeRecord.Text = model.edfFile.Header.DurationOfDataRecordInSeconds.ToString();
-                textBox_NumRecords.Text = model.edfFile.Header.NumberOfDataRecords.ToString();
-
-                textBox_PI_Name.Text = model.edfFile.Header.PatientIdentification.PatientName;
-                textBox_PI_Sex.Text = model.edfFile.Header.PatientIdentification.PatientSex;
-                textBox_PI_Code.Text = model.edfFile.Header.PatientIdentification.PatientCode;
-                textBox_PI_Birthdate.Text = model.edfFile.Header.PatientIdentification.PatientBirthDate.ToString();
-
-                textBox_RI_Equipment.Text = model.edfFile.Header.RecordingIdentification.RecordingEquipment;
-                textBox_RI_Code.Text = model.edfFile.Header.RecordingIdentification.RecordingCode;
-                textBox_RI_Technician.Text = model.edfFile.Header.RecordingIdentification.RecordingTechnician;
-
-                comboBox_SignalSelect.Items.Clear();
-                foreach (EDFSignal signal in model.edfFile.Header.Signals)
-                {
-                    comboBox_SignalSelect.Items.Add(signal.Label);
-                }
-            }
-            else
-            {
-                TextBlock_Status.Text = "Waiting";
-                textBox_StartTime.Text = "";
-                textBox_EndTime.Text = "";
-                textBox_TimeRecord.Text = "";
-                textBox_NumRecords.Text = "";
-
-                textBox_PI_Name.Text = "";
-                textBox_PI_Sex.Text = "";
-                textBox_PI_Code.Text = "";
-                textBox_PI_Birthdate.Text = "";
-
-                textBox_RI_Equipment.Text = "";
-                textBox_RI_Code.Text = "";
-                textBox_RI_Technician.Text = "";
-
-                comboBox_SignalSelect.Items.Clear();
-            }
+            PlotView_signalPlot.Model = model.PreviewSignalPlot;
+            EnableNavigation();
         }
+        
         private void RefreshPreviewTimePicker()
         {
-            if (model.edfFile != null)
+            if (model.LoadedEDFFile != null)
             {
                 timePicker_From_Abs.IsEnabled = true;
                 timePicker_From_Eph.IsEnabled = true;
                 timePicker_Period.IsEnabled = true;
                 toggleButton_UseAbsoluteTime.IsEnabled = true;
 
-                timePicker_From_Abs.Value = model.edfFile.Header.StartDateTime;
+                timePicker_From_Abs.Value = model.LoadedEDFFile.Header.StartDateTime;
                 timePicker_From_Eph.Value = 0;
                 timePicker_Period.Value = 5;
             }
@@ -131,16 +94,24 @@ namespace SleepApneaDiagnoser
         }
         private void RefreshPreviewSignalSelector()
         {
-            if (model.edfFile != null)
+            if (model.LoadedEDFFile != null)
             {
+                label_CurrentCategory.Content = model.PreviewCurrentCategoryName;
+
                 listBox_SignalSelect.Items.Clear();
-                foreach (EDFSignal signal in model.edfFile.Header.Signals)
+                foreach (EDFSignal signal in model.LoadedEDFFile.Header.Signals)
                 {
-                    listBox_SignalSelect.Items.Add(signal.Label);
+                    if (model.PreviewCategoryContents.Contains(signal.Label.Trim()))
+                    {
+                        listBox_SignalSelect.Items.Add(signal.Label);
+                    }
                 }
                 for (int x = 0; x < model.GetDerivedSignals().Length; x++)
                 {
-                    listBox_SignalSelect.Items.Add(model.GetDerivedSignals()[x][0]);
+                    if (model.PreviewCategoryContents.Contains(model.GetDerivedSignals()[x][0].Trim()))
+                    {
+                        listBox_SignalSelect.Items.Add(model.GetDerivedSignals()[x][0]);
+                    }
                 }
 
                 button_AddDerivative.IsEnabled = true;
@@ -162,11 +133,10 @@ namespace SleepApneaDiagnoser
         }
         private void RefreshAll()
         {
-            RefreshEDFHeaderInfo();
             RefreshPreviewTimePicker();
             RefreshPreviewSignalSelector();
         }
-        
+
         /// <summary>
         /// Disables the time picker controls while the chart is being drawn. Called before drawing the chart.
         /// </summary>
@@ -188,7 +158,7 @@ namespace SleepApneaDiagnoser
             listBox_SignalSelect.IsEnabled = true;
         }
         /// <summary>
-        /// Updates GUI time picker controls from the model.
+        /// Updates GUI time picker controls from the 
         /// </summary>
         private void GetTimePickerValues()
         {
@@ -211,15 +181,7 @@ namespace SleepApneaDiagnoser
             timePicker_From_Eph.Minimum = model.GetViewStartPickerEphMin();
             timePicker_From_Eph.Maximum = model.GetViewStartPickerEphMax();
         }
-        /// <summary>
-        /// Function called after chart in preview tab is drawn to add drawing to Preview tab.
-        /// </summary>
-        private void PreviewChartDrawn()
-        {
-            PlotView_signalPlot.Model = model.SignalPlot;
-            EnableNavigation();
-        }
-
+        
         /// <summary>
         /// Constructor for GUI class.
         /// </summary>
@@ -227,11 +189,8 @@ namespace SleepApneaDiagnoser
         {
             InitializeComponent();
 
-            model = new Model();
-            model.EDFLoaded += EDFLoaded;
-            model.PreviewChartDrawn += PreviewChartDrawn;
-            model.RecentFilesChanged += LoadRecent;
-
+            model = new Model(this);
+            this.DataContext = model;
             LoadRecent();
             RefreshAll();
         }
@@ -239,7 +198,7 @@ namespace SleepApneaDiagnoser
         // Menu Bar Events
         private void MenuItem_File_Open_Click(object sender, RoutedEventArgs e)
         {
-            model.edfFile = null;
+            model.LoadedEDFFile = null;
             RefreshAll();
 
             OpenFileDialog dialog = new OpenFileDialog();
@@ -255,7 +214,7 @@ namespace SleepApneaDiagnoser
         }
         private void MenuItem_File_Close_Click(object sender, RoutedEventArgs e)
         {
-            model.edfFile = null;
+            model.LoadedEDFFile = null;
             RefreshAll();
         }
         private void MenuItem_File_Exit_Click(object sender, RoutedEventArgs e)
@@ -266,7 +225,7 @@ namespace SleepApneaDiagnoser
         // Home Tab Events
         private void TextBlock_OpenEDF_Click(object sender, RoutedEventArgs e)
         {
-            model.edfFile = null;
+            model.LoadedEDFFile = null;
             RefreshAll();
 
             OpenFileDialog dialog = new OpenFileDialog();
@@ -282,16 +241,16 @@ namespace SleepApneaDiagnoser
         }
         private void TextBlock_Recent_Click(object sender, RoutedEventArgs e)
         {
-            model.edfFile = null;
+            model.LoadedEDFFile = null;
             RefreshAll();
 
             List<string> array = model.RecentFiles.ToArray().ToList();
             List<string> selected = array.Where(temp => temp.Split('\\')[temp.Split('\\').Length - 1] == ((Hyperlink)sender).Inlines.FirstInline.DataContext.ToString()).ToList();
-            
+
             if (selected.Count == 0)
             {
                 MessageBox.Show("File not Found");
-                model.EDFLoaded();
+                EDFLoaded();
             }
             else
             {
@@ -312,12 +271,12 @@ namespace SleepApneaDiagnoser
                 }
             }
         }
-             
+
         // Preview Tab Events   
         private void listBox_SignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             model.SetSelectedSignals(listBox_SignalSelect.SelectedItems);
-            
+
             DisableNavigation();
             model.DrawChart();
         }
@@ -325,7 +284,7 @@ namespace SleepApneaDiagnoser
         {
             if (comboBox_SignalSelect.SelectedValue != null)
             {
-                EDFSignal edfsignal = model.edfFile.Header.Signals.Find(temp => temp.Label.Trim() == comboBox_SignalSelect.SelectedValue.ToString().Trim());
+                EDFSignal edfsignal = model.LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == comboBox_SignalSelect.SelectedValue.ToString().Trim());
                 textBox_SampRecord.Text = edfsignal.NumberOfSamplesPerDataRecord.ToString();
             }
             else
@@ -386,13 +345,24 @@ namespace SleepApneaDiagnoser
         }
         private void button_Categories_Click(object sender, RoutedEventArgs e)
         {
-            Dialog_ManageCategories dlg = new Dialog_ManageCategories();
-            dlg.ShowDialog();
+            model.ManageCategories();
+            RefreshPreviewSignalSelector();
+        }
+        private void button_Next_Click(object sender, RoutedEventArgs e)
+        {
+            model.NextCategory();
+            RefreshPreviewSignalSelector();
+        }
+        private void button_Prev_Click(object sender, RoutedEventArgs e)
+        {
+            model.PreviousCategory();
+            RefreshPreviewSignalSelector();
         }
     }
 
-    public class Model
+    public class Model : INotifyPropertyChanged
     {
+        // Static Functions
         private static DateTime EpochtoDateTime(int epoch, EDFFile file)
         {
             return file.Header.StartDateTime + new TimeSpan(0, 0, epoch * file.Header.DurationOfDataRecordInSeconds);
@@ -410,9 +380,19 @@ namespace SleepApneaDiagnoser
             return (int)(period.TotalSeconds / file.Header.DurationOfDataRecordInSeconds);
         }
 
-        // Loaded EDF Structure and File Name
-        public EDFFile edfFile = null;
-        public string FileName = null;
+        // General Private Variables
+        private MainWindow p_window;
+        private EDFFile p_LoadedEDFFile = null;
+        private string p_LoadedEDFFileName = null;
+        private List<string> p_SignalCategories = new List<string>();
+        private List<List<string>> p_SignalCategoryContents = new List<List<string>>();
+
+        // Preview Private Variables
+        private int p_PreviewCurrentCategory = -1;
+        private List<string> p_PreviewSelectedSignals = new List<string>();
+        private bool p_PreviewUseAbsoluteTime = false;
+        private DateTime p_PreviewViewStartTime = new DateTime();
+        private DateTime p_PreviewViewEndTime = new DateTime();
         
         // Recent File List and Functions. 
         public ReadOnlyCollection<string> RecentFiles
@@ -454,7 +434,7 @@ namespace SleepApneaDiagnoser
             }
             sw.Close();
 
-            RecentFilesChanged();
+            p_window.LoadRecent();
         }
         public void RecentFiles_Remove(string path)
         {
@@ -469,59 +449,23 @@ namespace SleepApneaDiagnoser
             }
             sw.Close();
 
-            RecentFilesChanged();
+            p_window.LoadRecent();
         }
 
         // Preview Graph
-        public PlotModel SignalPlot = null;
-        
+        public PlotModel PreviewSignalPlot = null;
+
         // Selected Signals to be Previewed
-        private List<string> SelectedSignals = new List<string>();
+        
 
         // Created Derivatives
         private List<string[]> DerivedSignals = new List<string[]>();
-
-        // Categories
-        private List<string> SignalCategories = new List<string>();
-        private List<List<string>> SignalCategoryContents = new List<List<string>>();
-
-        // Preview Chart Ranges
-        private bool UseAbsoluteTime = false;
-        private DateTime StudyStartTime
-        {
-            get
-            {
-                DateTime value = new DateTime();
-                value = edfFile.Header.StartDateTime;
-                return value;
-            }
-        }
-        private DateTime StudyEndTime
-        {
-            get
-            {
-                DateTime value = new DateTime();
-                value = edfFile.Header.StartDateTime + new TimeSpan(0, 0, edfFile.Header.NumberOfDataRecords * edfFile.Header.DurationOfDataRecordInSeconds);
-                return value;
-            }
-        }
-        private DateTime ViewStartTime = new DateTime();
-        private DateTime ViewEndTime = new DateTime();
-        private int EpochDuration
-        {
-            get
-            {
-                int value = 0;
-                value = (edfFile == null ? 30 : edfFile.Header.DurationOfDataRecordInSeconds);
-                return value;
-            }
-        }
         
         public void SetSelectedSignals(System.Collections.IList SelectedItems)
         {
-            SelectedSignals.Clear();
+            p_PreviewSelectedSignals.Clear();
             for (int x = 0; x < SelectedItems.Count; x++)
-                SelectedSignals.Add(SelectedItems[x].ToString());
+                p_PreviewSelectedSignals.Add(SelectedItems[x].ToString());
         }
 
         public string[][] GetDerivedSignals()
@@ -531,117 +475,143 @@ namespace SleepApneaDiagnoser
 
         public void SetAbsoluteOrEpoch(bool value)
         {
-            UseAbsoluteTime = value;
+            p_PreviewUseAbsoluteTime = value;
         }
         public void SetViewRange(DateTime? start, int? period)
         {
-            if (UseAbsoluteTime)
+            if (p_PreviewUseAbsoluteTime)
             {
-                ViewStartTime = start ?? StudyStartTime;
-                ViewEndTime = ViewStartTime + new TimeSpan(0, 0, 0, period ?? 0);
+                p_PreviewViewStartTime = start ?? LoadedEDFFile.Header.StartDateTime;
+                p_PreviewViewEndTime = p_PreviewViewStartTime + new TimeSpan(0, 0, 0, period ?? 0);
             }
         }
         public void SetViewRange(int? start, int? period)
         {
-            if (!UseAbsoluteTime)
+            if (!p_PreviewUseAbsoluteTime)
             {
-                ViewStartTime = EpochtoDateTime(start ?? 0, edfFile);
-                ViewEndTime = ViewStartTime + EpochPeriodtoTimeSpan(period ?? 0, edfFile);
+                p_PreviewViewStartTime = EpochtoDateTime(start ?? 0, LoadedEDFFile);
+                p_PreviewViewEndTime = p_PreviewViewStartTime + EpochPeriodtoTimeSpan(period ?? 0, LoadedEDFFile);
             }
         }
 
         public DateTime GetViewStartTime()
         {
-            return ViewStartTime;
+            return p_PreviewViewStartTime;
         }
         public DateTime GetViewEndTime()
         {
-            return ViewEndTime;
+            return p_PreviewViewEndTime;
         }
         public int GetViewStartEpoch()
         {
-            return DateTimetoEpoch(ViewStartTime, edfFile);
+            return DateTimetoEpoch(p_PreviewViewStartTime, LoadedEDFFile);
         }
         public int GetViewEndEpoch()
         {
-            return DateTimetoEpoch(ViewEndTime, edfFile);
+            return DateTimetoEpoch(p_PreviewViewEndTime, LoadedEDFFile);
         }
         public int GetViewPeriod()
         {
-            if (UseAbsoluteTime)
-                return (int)(ViewEndTime - ViewStartTime).TotalSeconds;
+            if (p_PreviewUseAbsoluteTime)
+                return (int)(p_PreviewViewEndTime - p_PreviewViewStartTime).TotalSeconds;
             else
-                return TimeSpantoEpochPeriod(ViewEndTime - ViewStartTime, edfFile);
+                return TimeSpantoEpochPeriod(p_PreviewViewEndTime - p_PreviewViewStartTime, LoadedEDFFile);
         }
 
         public DateTime GetViewStartPickerAbsMin()
         {
-            if (edfFile != null)
-                return StudyStartTime;
+            if (LoadedEDFFile != null)
+                return LoadedEDFFile.Header.StartDateTime;
             else
                 return new DateTime();
         }
         public DateTime GetViewStartPickerAbsMax()
         {
-            if (edfFile != null)
-                return StudyEndTime - (ViewEndTime - ViewStartTime);
+            if (LoadedEDFFile != null)
+                return (LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)) - (p_PreviewViewEndTime - p_PreviewViewStartTime);
             else
                 return new DateTime();
         }
         public int GetViewStartPickerEphMin()
         {
-            if (edfFile != null)
-                return DateTimetoEpoch(StudyStartTime, edfFile);
+            if (LoadedEDFFile != null)
+                return DateTimetoEpoch(LoadedEDFFile.Header.StartDateTime, LoadedEDFFile);
             else
                 return 0;
         }
         public int GetViewStartPickerEphMax()
         {
-            if (edfFile != null)
-                return DateTimetoEpoch(StudyEndTime - (ViewEndTime - ViewStartTime), edfFile);
+            if (LoadedEDFFile != null)
+                return DateTimetoEpoch((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)) - (p_PreviewViewEndTime - p_PreviewViewStartTime), LoadedEDFFile);
             else
                 return 0;
         }
         public int GetViewPeriodMin()
         {
-            if (edfFile != null) // File Loaded
+            if (LoadedEDFFile != null) // File Loaded
                 return 1;
             else // No File Loaded
                 return 0;
         }
         public int GetViewPeriodMax()
         {
-            if (edfFile != null) // File Loaded
+            if (LoadedEDFFile != null) // File Loaded
             {
-                if (UseAbsoluteTime)
-                    return Math.Min(2 * 60 * 60, (int)(StudyEndTime - ViewStartTime).TotalSeconds);
+                if (p_PreviewUseAbsoluteTime)
+                    return Math.Min(2 * 60 * 60, (int)((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)) - p_PreviewViewStartTime).TotalSeconds);
                 else
-                    return Math.Min((2 * 60 * 60) / EpochDuration, DateTimetoEpoch(StudyEndTime, edfFile) - DateTimetoEpoch(ViewStartTime, edfFile));
+                    return Math.Min((2 * 60 * 60) / (LoadedEDFFile == null ? 30 : LoadedEDFFile.Header.DurationOfDataRecordInSeconds), DateTimetoEpoch((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)), LoadedEDFFile) - DateTimetoEpoch(p_PreviewViewStartTime, LoadedEDFFile));
             }
             else // No File Loaded
                 return 0;
         }
-                
+
         // Load EDF
         private void BW_LoadEDFFile(object sender, DoWorkEventArgs e)
         {
-            edfFile = new EDFFile();
-            edfFile.readFile(e.Argument.ToString());
+            EDFFile temp = new EDFFile();
+            temp.readFile(e.Argument.ToString());
+            LoadedEDFFile = temp;
 
             LoadCommonDerivativesFile();
         }
         private void BW_FinishLoad(object sender, RunWorkerCompletedEventArgs e)
         {
-            RecentFiles_Add(FileName);
-            EDFLoaded();
+            RecentFiles_Add(LoadedEDFFileName);
+            p_window.EDFLoaded();
         }
         public void LoadEDFFile(string fileNameIn)
         {
-            FileName = fileNameIn;
+            LoadedEDFFileName = fileNameIn;
             BackgroundWorker bw = new BackgroundWorker();
             bw.DoWork += BW_LoadEDFFile;
             bw.RunWorkerCompleted += BW_FinishLoad;
-            bw.RunWorkerAsync(FileName);
+            bw.RunWorkerAsync(LoadedEDFFileName);
+        }
+
+        // Categories
+        public void ManageCategories()
+        {
+            Dialog_Manage_Categories dlg = new Dialog_Manage_Categories(p_SignalCategories.ToArray(), p_SignalCategoryContents.Select(temp => temp.ToArray()).ToArray(), LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray(), DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+            dlg.ShowDialog();
+
+            PreviewCurrentCategory = -1;
+            p_SignalCategories = dlg.categories.ToList();
+            p_SignalCategoryContents = dlg.categories_signals;
+        }
+        public void NextCategory()
+        {
+            if (PreviewCurrentCategory == p_SignalCategories.Count - 1)
+                PreviewCurrentCategory = -1;
+            else
+                PreviewCurrentCategory++;
+        }
+        public void PreviousCategory()
+        {
+            if (PreviewCurrentCategory == -1)
+                PreviewCurrentCategory = p_SignalCategories.Count - 1;
+            else
+                PreviewCurrentCategory--;
         }
 
         // Create/Remove Derivative
@@ -657,11 +627,11 @@ namespace SleepApneaDiagnoser
 
                     if (new_entry.Length == 3)
                     {
-                        if (edfFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[1].Trim()) != null) // Signals Exist
+                        if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[1].Trim()) != null) // Signals Exist
                         {
-                            if (edfFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[2].Trim()) != null) // Signals Exist
+                            if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[2].Trim()) != null) // Signals Exist
                             {
-                                if (edfFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[0].Trim()) == null) // Unique Name
+                                if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[0].Trim()) == null) // Unique Name
                                 {
                                     if (DerivedSignals.Where(temp => temp[0].Trim() == new_entry[0].Trim()).ToList().Count == 0) // Unique Name
                                     {
@@ -710,7 +680,7 @@ namespace SleepApneaDiagnoser
 
         public string Add_Derivative()
         {
-            Dialog_Add_Derivative dlg = new Dialog_Add_Derivative(edfFile.Header.Signals.Select(temp => temp.Label.Trim()).ToArray(), DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+            Dialog_Add_Derivative dlg = new Dialog_Add_Derivative(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.Trim()).ToArray(), DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
             dlg.ShowDialog();
 
             if (dlg.DialogResult == true)
@@ -745,76 +715,76 @@ namespace SleepApneaDiagnoser
         // Create Chart
         private void BW_CreateChart(object sender, DoWorkEventArgs e)
         {
-            SignalPlot = new PlotModel();
-            SignalPlot.Series.Clear();
-            SignalPlot.Axes.Clear();
+            PreviewSignalPlot = new PlotModel();
+            PreviewSignalPlot.Series.Clear();
+            PreviewSignalPlot.Axes.Clear();
 
-            if (SelectedSignals.Count > 0)
+            if (p_PreviewSelectedSignals.Count > 0)
             {
                 DateTimeAxis xAxis = new DateTimeAxis();
                 xAxis.Key = "DateTime";
-                xAxis.Minimum = DateTimeAxis.ToDouble(ViewStartTime);
-                xAxis.Maximum = DateTimeAxis.ToDouble(ViewEndTime);
-                SignalPlot.Axes.Add(xAxis);
+                xAxis.Minimum = DateTimeAxis.ToDouble(p_PreviewViewStartTime);
+                xAxis.Maximum = DateTimeAxis.ToDouble(p_PreviewViewEndTime);
+                PreviewSignalPlot.Axes.Add(xAxis);
 
-                for (int x = 0; x < SelectedSignals.Count; x++)
+                for (int x = 0; x < p_PreviewSelectedSignals.Count; x++)
                 {
                     LineSeries series = new LineSeries();
-                    if (edfFile.Header.Signals.Find(temp => temp.Label.Trim() == SelectedSignals[x].Trim()) != null) // Normal EDF Signal
+                    if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == p_PreviewSelectedSignals[x].Trim()) != null) // Normal EDF Signal
                     {
-                        EDFSignal edfsignal = edfFile.Header.Signals.Find(temp => temp.Label.Trim() == SelectedSignals[x].Trim());
+                        EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == p_PreviewSelectedSignals[x].Trim());
 
-                        float sample_period = (float)edfFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
+                        float sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
 
-                        List<float> values = edfFile.retrieveSignalSampleValues(edfsignal);
+                        List<float> values = LoadedEDFFile.retrieveSignalSampleValues(edfsignal);
 
                         int startIndex, indexCount;
-                        TimeSpan startPoint = ViewStartTime - StudyStartTime;
-                        TimeSpan duration = ViewEndTime - ViewStartTime;
+                        TimeSpan startPoint = p_PreviewViewStartTime - LoadedEDFFile.Header.StartDateTime;
+                        TimeSpan duration = p_PreviewViewEndTime - p_PreviewViewStartTime;
                         startIndex = (int)(startPoint.TotalSeconds / sample_period);
                         indexCount = (int)(duration.TotalSeconds / sample_period);
-                        
+
                         for (int y = startIndex; y < indexCount + startIndex; y++)
                         {
-                            series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(edfFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
+                            series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
                         }
                     }
                     else // Derivative Signal
                     {
-                        string[] deriv_info = DerivedSignals.Find(temp => temp[0] == SelectedSignals[x]);
-                        EDFSignal edfsignal1 = edfFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[1].Trim());
-                        EDFSignal edfsignal2 = edfFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[2].Trim());
+                        string[] deriv_info = DerivedSignals.Find(temp => temp[0] == p_PreviewSelectedSignals[x]);
+                        EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[1].Trim());
+                        EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[2].Trim());
 
                         List<float> values1;
                         List<float> values2;
                         float sample_period;
                         if (edfsignal1.NumberOfSamplesPerDataRecord == edfsignal2.NumberOfSamplesPerDataRecord) // No resampling
                         {
-                            values1 = edfFile.retrieveSignalSampleValues(edfsignal1);
-                            values2 = edfFile.retrieveSignalSampleValues(edfsignal2);
-                            sample_period = (float)edfFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
+                            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
+                            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
+                            sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
                         }
                         else if (edfsignal1.NumberOfSamplesPerDataRecord > edfsignal2.NumberOfSamplesPerDataRecord) // Upsample signal 2
                         {
                             Processing proc = new Processing();
                             MWArray[] input = new MWArray[2];
-                            input[0] = new MWNumericArray(edfFile.retrieveSignalSampleValues(edfsignal2).ToArray());
+                            input[0] = new MWNumericArray(LoadedEDFFile.retrieveSignalSampleValues(edfsignal2).ToArray());
                             input[1] = edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord;
 
-                            values1 = edfFile.retrieveSignalSampleValues(edfsignal1);
+                            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
                             values2 = (
                                         (double[])(
-                                            (MWNumericArray) proc.m_resample(1, input[0], input[1])[0]
+                                            (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
                                         ).ToVector(MWArrayComponent.Real)
                                       ).ToList().Select(temp => (float)temp).ToList();
 
-                            sample_period = (float)edfFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
+                            sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
                         }
                         else // Upsample signal 1
                         {
                             Processing proc = new Processing();
                             MWArray[] input = new MWArray[2];
-                            input[0] = new MWNumericArray(edfFile.retrieveSignalSampleValues(edfsignal1).ToArray());
+                            input[0] = new MWNumericArray(LoadedEDFFile.retrieveSignalSampleValues(edfsignal1).ToArray());
                             input[1] = edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord;
 
                             values1 = (
@@ -822,42 +792,42 @@ namespace SleepApneaDiagnoser
                                             (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
                                         ).ToVector(MWArrayComponent.Real)
                                       ).ToList().Select(temp => (float)temp).ToList();
-                            values2 = edfFile.retrieveSignalSampleValues(edfsignal2);
+                            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
 
-                            sample_period = (float)edfFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal2.NumberOfSamplesPerDataRecord;
+                            sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal2.NumberOfSamplesPerDataRecord;
                         }
 
                         int startIndex, indexCount;
-                        TimeSpan startPoint = ViewStartTime - StudyStartTime;
-                        TimeSpan duration = ViewEndTime - ViewStartTime;
+                        TimeSpan startPoint = p_PreviewViewStartTime - LoadedEDFFile.Header.StartDateTime;
+                        TimeSpan duration = p_PreviewViewEndTime - p_PreviewViewStartTime;
                         startIndex = (int)(startPoint.TotalSeconds / sample_period);
                         indexCount = (int)(duration.TotalSeconds / sample_period);
 
                         for (int y = startIndex; y < indexCount + startIndex; y++)
                         {
-                            series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(edfFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values1[y] - values2[y]));
+                            series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values1[y] - values2[y]));
                         }
                     }
 
-                    series.YAxisKey = SelectedSignals[x];
+                    series.YAxisKey = p_PreviewSelectedSignals[x];
                     series.XAxisKey = "DateTime";
 
                     LinearAxis yAxis = new LinearAxis();
                     yAxis.MajorGridlineStyle = LineStyle.Solid;
                     yAxis.MinorGridlineStyle = LineStyle.Dot;
-                    yAxis.Title = SelectedSignals[x];
-                    yAxis.Key = SelectedSignals[x];
-                    yAxis.EndPosition = (double)1 - (double)x * ((double)1 / (double)SelectedSignals.Count);
-                    yAxis.StartPosition = (double)1 - (double)(x + 1) * ((double)1 / (double)SelectedSignals.Count);
+                    yAxis.Title = p_PreviewSelectedSignals[x];
+                    yAxis.Key = p_PreviewSelectedSignals[x];
+                    yAxis.EndPosition = (double)1 - (double)x * ((double)1 / (double)p_PreviewSelectedSignals.Count);
+                    yAxis.StartPosition = (double)1 - (double)(x + 1) * ((double)1 / (double)p_PreviewSelectedSignals.Count);
 
-                    SignalPlot.Axes.Add(yAxis);
-                    SignalPlot.Series.Add(series);
+                    PreviewSignalPlot.Axes.Add(yAxis);
+                    PreviewSignalPlot.Series.Add(series);
                 }
             }
         }
         private void BW_FinishChart(object sender, RunWorkerCompletedEventArgs e)
         {
-            PreviewChartDrawn();
+            p_window.PreviewChartDrawn();
         }
         public void DrawChart()
         {
@@ -866,14 +836,237 @@ namespace SleepApneaDiagnoser
             bw.RunWorkerCompleted += BW_FinishChart;
             bw.RunWorkerAsync();
         }
-
-        public Action EDFLoaded;
-        public Action RecentFilesChanged;
-        public Action PreviewChartDrawn;
         
-        public Model()
+        // Loaded EDF Structure and File Name
+        public EDFFile LoadedEDFFile
         {
+            get
+            {
+                return p_LoadedEDFFile;
+            }
+            set
+            {
+                p_LoadedEDFFile = value;
+                PreviewCurrentCategory = -1;
 
+                // Header
+                OnPropertyChanged(nameof(EDFStartTime));
+                OnPropertyChanged(nameof(EDFEndTime));
+                OnPropertyChanged(nameof(EDFRecordDuration));
+                OnPropertyChanged(nameof(EDFNumRecords));
+                OnPropertyChanged(nameof(EDFPatientName));
+                OnPropertyChanged(nameof(EDFPatientSex));
+                OnPropertyChanged(nameof(EDFPatientCode));
+                OnPropertyChanged(nameof(EDFPatientBirthDate));
+                OnPropertyChanged(nameof(EDFRecordEquipment));
+                OnPropertyChanged(nameof(EDFRecordCode));
+                OnPropertyChanged(nameof(EDFRecordTechnician));
+                OnPropertyChanged(nameof(EDFAllSignals));
+
+                // Misc
+                OnPropertyChanged(nameof(IsEDFLoaded));
+            }
+        }
+        public string LoadedEDFFileName
+        {
+            get
+            {
+                return p_LoadedEDFFileName ?? "No File Loaded";
+            }
+            set
+            {
+                p_LoadedEDFFileName = value;
+                OnPropertyChanged(nameof(LoadedEDFFileName));
+            }
+        }
+        public bool IsEDFLoaded
+        {
+            get
+            {
+                return LoadedEDFFile != null;
+            }
+        }
+
+        // EDF Header
+        public string EDFStartTime
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                    return LoadedEDFFile.Header.StartDateTime.ToString();
+                else
+                    return null;
+            }
+        }
+        public string EDFEndTime
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                    return (LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.DurationOfDataRecordInSeconds * LoadedEDFFile.Header.NumberOfDataRecords)).ToString();
+                else
+                    return "";
+            }
+        }
+        public string EDFRecordDuration
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                    return LoadedEDFFile.Header.DurationOfDataRecordInSeconds.ToString();
+                else
+                    return "";
+            }
+        }
+        public string EDFNumRecords
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                    return LoadedEDFFile.Header.NumberOfDataRecords.ToString();
+                else
+                    return "";
+            }
+        }
+        public string EDFPatientName
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                    return LoadedEDFFile.Header.PatientIdentification.PatientName;
+                else
+                    return "";
+            }
+        }
+        public string EDFPatientSex
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                    return LoadedEDFFile.Header.PatientIdentification.PatientSex;
+                else
+                    return "";
+            }
+        }
+        public string EDFPatientCode
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                    return LoadedEDFFile.Header.PatientIdentification.PatientCode;
+                else
+                    return "";
+            }
+        }
+        public string EDFPatientBirthDate
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                    return LoadedEDFFile.Header.PatientIdentification.PatientBirthDate.ToString();
+                else
+                    return "";
+            }
+        }
+        public string EDFRecordEquipment
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                    return LoadedEDFFile.Header.RecordingIdentification.RecordingEquipment;
+                else
+                    return "";
+            }
+        }
+        public string EDFRecordCode
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                    return LoadedEDFFile.Header.RecordingIdentification.RecordingCode;
+                else
+                    return "";
+            }
+        }
+        public string EDFRecordTechnician
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                    return LoadedEDFFile.Header.RecordingIdentification.RecordingTechnician;
+                else
+                    return "";
+            }
+        }
+        public ReadOnlyCollection<string> EDFAllSignals
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                    return Array.AsReadOnly(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray());
+                else
+                    return Array.AsReadOnly(new string[0]);
+            }
+        }
+
+        // Preview Signal Selection
+        public int PreviewCurrentCategory
+        {
+            get
+            {
+                return p_PreviewCurrentCategory;
+            }
+            set
+            {
+                p_PreviewCurrentCategory = value;
+                OnPropertyChanged(nameof(PreviewCurrentCategory));
+                OnPropertyChanged(nameof(PreviewCurrentCategoryName));
+                OnPropertyChanged(nameof(PreviewCategoryContents));
+            }
+        }
+        public string PreviewCurrentCategoryName
+        {
+            get
+            {
+                if (PreviewCurrentCategory == -1)
+                    return "All";
+                else
+                    return p_SignalCategories[PreviewCurrentCategory];
+            }
+        }
+        public ReadOnlyCollection<string> PreviewCategoryContents
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                {
+                    if (PreviewCurrentCategory != -1)
+                        return Array.AsReadOnly(p_SignalCategoryContents[PreviewCurrentCategory].ToArray());
+                    else
+                    {
+                        List<string> output = new List<string>();
+                        output.AddRange(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray());
+                        output.AddRange(DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+                        return Array.AsReadOnly(output.ToArray());
+                    }
+                }
+                else
+                {
+                    return Array.AsReadOnly(new string[0]);
+                }
+            }
+        }
+
+        // INotify Interface
+        public event PropertyChangedEventHandler PropertyChanged;
+        private void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+        }
+        
+        public Model(MainWindow i_window)
+        {
+            p_window = i_window;
         }
     }
 }
