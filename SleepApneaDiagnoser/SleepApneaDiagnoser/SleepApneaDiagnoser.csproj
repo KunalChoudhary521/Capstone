@@ -107,6 +107,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Dialog_Manage_Categories.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Dialog_Remove_Derivative.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -121,6 +125,9 @@
     </Compile>
     <Compile Include="Dialog_Add_Derivative.xaml.cs">
       <DependentUpon>Dialog_Add_Derivative.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialog_Manage_Categories.xaml.cs">
+      <DependentUpon>Dialog_Manage_Categories.xaml</DependentUpon>
     </Compile>
     <Compile Include="Dialog_Remove_Derivative.xaml.cs">
       <DependentUpon>Dialog_Remove_Derivative.xaml</DependentUpon>

@@ -93,7 +93,9 @@
                     </Grid>
 
                     <Label x:Name="label" Content="Signals" FontSize="18" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="42" Width="71"/>
-                    <ListBox x:Name="listBox_SignalSelect"  HorizontalAlignment="Left" Margin="10,52,0,10" Width="250" SelectionMode="Multiple" SelectionChanged="listBox_SignalSelect_SelectionChanged"/>
+                    <Label x:Name="label_CurrentCategory" Content="All" HorizontalContentAlignment="Center"  HorizontalAlignment="Left" Margin="47,52,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="33" Width="176"/>
+
+                    <ListBox x:Name="listBox_SignalSelect"  HorizontalAlignment="Left" Margin="10,90,0,83.667" Width="250" SelectionMode="Multiple" SelectionChanged="listBox_SignalSelect_SelectionChanged"/>
 
                     <Label Content="Plot" FontSize="18" HorizontalAlignment="Left" Margin="265,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="42" Width="47"/>
                     <Grid Height="38" Margin="265,52,373,0" VerticalAlignment="Top">
@@ -105,7 +107,11 @@
                         <ToggleButton x:Name="toggleButton_UseAbsoluteTime" Content="Use Absolute Time" VerticalAlignment="Top" HorizontalAlignment="Right" Width="112" Height="28" Checked="toggleButton_UseAbsoluteTime_Checked" Unchecked="toggleButton_UseAbsoluteTime_Unchecked"/>
                     </Grid>
                     <oxy:PlotView x:Name="PlotView_signalPlot" Margin="265,90,373,30"/>
-
+                    <Button x:Name="button_AddDerivative" Content="Add Derivative" HorizontalAlignment="Left" Margin="10,0,0,46.667" Width="122" Height="32" VerticalAlignment="Bottom" Click="button_AddDerivative_Click"/>
+                    <Button x:Name="button_RemoveDerivative" Content="Remove Derivative" HorizontalAlignment="Left" Margin="10,0,0,9.667" Width="122" Height="32" VerticalAlignment="Bottom" Click="button_RemoveDerivative_Click"/>
+                    <Button x:Name="button_Categories" Content="Categories" HorizontalAlignment="Left" Margin="138,0,0,46.667" Width="122" Height="32" VerticalAlignment="Bottom" Click="button_Categories_Click"/>
+                    <Button x:Name="button_Prev" Content="&lt;" HorizontalAlignment="Left" Margin="10,52,0,0" VerticalAlignment="Top" Width="32" Height="23"/>
+                    <Button x:Name="button_Next" Content="&gt;" HorizontalAlignment="Left" Margin="228,52,0,0" VerticalAlignment="Top" Width="32" Height="23"/>
                 </Grid>
             </TabItem>
 

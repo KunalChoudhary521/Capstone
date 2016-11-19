@@ -43,9 +43,8 @@ namespace SleepApneaDiagnoser
         private void EDFLoaded()
         {
             LoadRecent();
-            TextBlock_Status.Text = "File: " + model.FileName;
             this.IsEnabled = true;
-            PopulateEDFInformation();
+            RefreshAll();
         }
         /// <summary>
         /// Function called to populate recent files list. Called when application is first loaded and if the recent files list changes.
@@ -59,13 +58,12 @@ namespace SleepApneaDiagnoser
                 if (!itemControl_RecentEDF.Items.Contains(array[x].Split('\\')[array[x].Split('\\').Length - 1]))
                     itemControl_RecentEDF.Items.Add(array[x].Split('\\')[array[x].Split('\\').Length - 1]);
         }
-        /// <summary>
-        /// Function to populate right pane of Preview tab.
-        /// </summary>
-        private void PopulateEDFInformation()
+        
+        private void RefreshEDFHeaderInfo()
         {
             if (model.edfFile != null)
             {
+                TextBlock_Status.Text = "File: " + model.FileName;
                 textBox_StartTime.Text = model.edfFile.Header.StartDateTime.ToString();
                 textBox_EndTime.Text = (model.edfFile.Header.StartDateTime + new TimeSpan(0, 0, model.edfFile.Header.DurationOfDataRecordInSeconds * model.edfFile.Header.NumberOfDataRecords)).ToString();
                 textBox_TimeRecord.Text = model.edfFile.Header.DurationOfDataRecordInSeconds.ToString();
@@ -79,29 +77,16 @@ namespace SleepApneaDiagnoser
                 textBox_RI_Equipment.Text = model.edfFile.Header.RecordingIdentification.RecordingEquipment;
                 textBox_RI_Code.Text = model.edfFile.Header.RecordingIdentification.RecordingCode;
                 textBox_RI_Technician.Text = model.edfFile.Header.RecordingIdentification.RecordingTechnician;
-                
-                timePicker_From_Abs.Value = model.edfFile.Header.StartDateTime;
-                timePicker_From_Eph.Value = 0;
-                timePicker_Period.Value = 5;
 
-                listBox_SignalSelect.Items.Clear();
                 comboBox_SignalSelect.Items.Clear();
                 foreach (EDFSignal signal in model.edfFile.Header.Signals)
                 {
-                    listBox_SignalSelect.Items.Add(signal.Label);
                     comboBox_SignalSelect.Items.Add(signal.Label);
                 }
-                for (int x = 0; x < model.GetDerivedSignals().Length; x++)
-                {
-                    listBox_SignalSelect.Items.Add(model.GetDerivedSignals()[x][0]);
-                }
-                listBox_SignalSelect.Items.Add(Model.AddDerivativeString);
-                listBox_SignalSelect.Items.Add(Model.RemoveDerivativeString);
-
-                PlotView_signalPlot.Model = null;
             }
             else
             {
+                TextBlock_Status.Text = "Waiting";
                 textBox_StartTime.Text = "";
                 textBox_EndTime.Text = "";
                 textBox_TimeRecord.Text = "";
@@ -115,16 +100,71 @@ namespace SleepApneaDiagnoser
                 textBox_RI_Equipment.Text = "";
                 textBox_RI_Code.Text = "";
                 textBox_RI_Technician.Text = "";
-                
+
+                comboBox_SignalSelect.Items.Clear();
+            }
+        }
+        private void RefreshPreviewTimePicker()
+        {
+            if (model.edfFile != null)
+            {
+                timePicker_From_Abs.IsEnabled = true;
+                timePicker_From_Eph.IsEnabled = true;
+                timePicker_Period.IsEnabled = true;
+                toggleButton_UseAbsoluteTime.IsEnabled = true;
+
+                timePicker_From_Abs.Value = model.edfFile.Header.StartDateTime;
+                timePicker_From_Eph.Value = 0;
+                timePicker_Period.Value = 5;
+            }
+            else
+            {
+                timePicker_From_Abs.IsEnabled = false;
+                timePicker_From_Eph.IsEnabled = false;
+                timePicker_Period.IsEnabled = false;
+                toggleButton_UseAbsoluteTime.IsEnabled = false;
+
                 timePicker_From_Abs.Value = null;
                 timePicker_From_Eph.Value = null;
                 timePicker_Period.Value = null;
+            }
+        }
+        private void RefreshPreviewSignalSelector()
+        {
+            if (model.edfFile != null)
+            {
+                listBox_SignalSelect.Items.Clear();
+                foreach (EDFSignal signal in model.edfFile.Header.Signals)
+                {
+                    listBox_SignalSelect.Items.Add(signal.Label);
+                }
+                for (int x = 0; x < model.GetDerivedSignals().Length; x++)
+                {
+                    listBox_SignalSelect.Items.Add(model.GetDerivedSignals()[x][0]);
+                }
 
-                comboBox_SignalSelect.Items.Clear();
+                button_AddDerivative.IsEnabled = true;
+                button_RemoveDerivative.IsEnabled = true;
+                button_Categories.IsEnabled = true;
+                button_Next.IsEnabled = true;
+                button_Prev.IsEnabled = true;
+            }
+            else
+            {
                 listBox_SignalSelect.Items.Clear();
 
-                PlotView_signalPlot.Model = null;
+                button_AddDerivative.IsEnabled = false;
+                button_RemoveDerivative.IsEnabled = false;
+                button_Categories.IsEnabled = false;
+                button_Next.IsEnabled = false;
+                button_Prev.IsEnabled = false;
             }
+        }
+        private void RefreshAll()
+        {
+            RefreshEDFHeaderInfo();
+            RefreshPreviewTimePicker();
+            RefreshPreviewSignalSelector();
         }
         
         /// <summary>
@@ -193,13 +233,14 @@ namespace SleepApneaDiagnoser
             model.RecentFilesChanged += LoadRecent;
 
             LoadRecent();
+            RefreshAll();
         }
 
         // Menu Bar Events
         private void MenuItem_File_Open_Click(object sender, RoutedEventArgs e)
         {
             model.edfFile = null;
-            PopulateEDFInformation();
+            RefreshAll();
 
             OpenFileDialog dialog = new OpenFileDialog();
             dialog.Filter = "EDF files (*.edf)|*.edf";
@@ -215,8 +256,7 @@ namespace SleepApneaDiagnoser
         private void MenuItem_File_Close_Click(object sender, RoutedEventArgs e)
         {
             model.edfFile = null;
-            TextBlock_Status.Text = "Waiting";
-            PopulateEDFInformation();
+            RefreshAll();
         }
         private void MenuItem_File_Exit_Click(object sender, RoutedEventArgs e)
         {
@@ -227,7 +267,7 @@ namespace SleepApneaDiagnoser
         private void TextBlock_OpenEDF_Click(object sender, RoutedEventArgs e)
         {
             model.edfFile = null;
-            PopulateEDFInformation();
+            RefreshAll();
 
             OpenFileDialog dialog = new OpenFileDialog();
             dialog.Filter = "EDF files (*.edf)|*.edf";
@@ -243,7 +283,7 @@ namespace SleepApneaDiagnoser
         private void TextBlock_Recent_Click(object sender, RoutedEventArgs e)
         {
             model.edfFile = null;
-            PopulateEDFInformation();
+            RefreshAll();
 
             List<string> array = model.RecentFiles.ToArray().ToList();
             List<string> selected = array.Where(temp => temp.Split('\\')[temp.Split('\\').Length - 1] == ((Hyperlink)sender).Inlines.FirstInline.DataContext.ToString()).ToList();
@@ -276,44 +316,6 @@ namespace SleepApneaDiagnoser
         // Preview Tab Events   
         private void listBox_SignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            for (int x = 0; x < listBox_SignalSelect.SelectedItems.Count; x++)
-            {
-                if (listBox_SignalSelect.SelectedItems[x].ToString() == Model.AddDerivativeString)
-                {
-                    listBox_SignalSelect.SelectionChanged -= listBox_SignalSelect_SelectionChanged;
-                    listBox_SignalSelect.SelectedItems.Remove(listBox_SignalSelect.SelectedItems[x]);
-                    listBox_SignalSelect.SelectionChanged += listBox_SignalSelect_SelectionChanged;
-
-                    string new_signal = model.Add_Derivative();
-                    if (new_signal != null)
-                    {
-                        listBox_SignalSelect.Items.Remove(Model.AddDerivativeString);
-                        listBox_SignalSelect.Items.Remove(Model.RemoveDerivativeString);
-                        listBox_SignalSelect.Items.Add(new_signal);
-                        listBox_SignalSelect.Items.Add(Model.AddDerivativeString);
-                        listBox_SignalSelect.Items.Add(Model.RemoveDerivativeString);
-                    }
-                    break;
-                }
-                if (listBox_SignalSelect.SelectedItems[x].ToString() == Model.RemoveDerivativeString)
-                {
-                    listBox_SignalSelect.SelectionChanged -= listBox_SignalSelect_SelectionChanged;
-                    listBox_SignalSelect.SelectedItems.Remove(listBox_SignalSelect.SelectedItems[x]);
-
-                    string[] remove_signals = model.Remove_Derivative();
-                    if (remove_signals != null)
-                    {
-                        for (int y = 0; y < remove_signals.Length; y++)
-                        {
-                            listBox_SignalSelect.Items.Remove(remove_signals[y]);
-                        }
-                    }
-
-                    listBox_SignalSelect.SelectionChanged += listBox_SignalSelect_SelectionChanged;
-                    break;
-                }
-            }
-
             model.SetSelectedSignals(listBox_SignalSelect.SelectedItems);
             
             DisableNavigation();
@@ -361,14 +363,36 @@ namespace SleepApneaDiagnoser
 
             timePicker_From_Abs.Visibility = Visibility.Hidden;
             timePicker_From_Eph.Visibility = Visibility.Visible;
-        }        
+        }
+
+        private void button_AddDerivative_Click(object sender, RoutedEventArgs e)
+        {
+            string new_signal = model.Add_Derivative();
+            if (new_signal != null)
+            {
+                listBox_SignalSelect.Items.Add(new_signal);
+            }
+        }
+        private void button_RemoveDerivative_Click(object sender, RoutedEventArgs e)
+        {
+            string[] remove_signals = model.Remove_Derivative();
+            if (remove_signals != null)
+            {
+                for (int y = 0; y < remove_signals.Length; y++)
+                {
+                    listBox_SignalSelect.Items.Remove(remove_signals[y]);
+                }
+            }
+        }
+        private void button_Categories_Click(object sender, RoutedEventArgs e)
+        {
+            Dialog_ManageCategories dlg = new Dialog_ManageCategories();
+            dlg.ShowDialog();
+        }
     }
-    
+
     public class Model
     {
-        public const string AddDerivativeString = "Add Derivative";
-        public const string RemoveDerivativeString = "Remove Derivative";
-
         private static DateTime EpochtoDateTime(int epoch, EDFFile file)
         {
             return file.Header.StartDateTime + new TimeSpan(0, 0, epoch * file.Header.DurationOfDataRecordInSeconds);
@@ -456,6 +480,10 @@ namespace SleepApneaDiagnoser
 
         // Created Derivatives
         private List<string[]> DerivedSignals = new List<string[]>();
+
+        // Categories
+        private List<string> SignalCategories = new List<string>();
+        private List<List<string>> SignalCategoryContents = new List<List<string>>();
 
         // Preview Chart Ranges
         private bool UseAbsoluteTime = false;
