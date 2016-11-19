@@ -35,7 +35,7 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public partial class MainWindow : Window
     {
-        Model model;
+        ModelView model;
 
         /// <summary>
         /// Function called after new EDF file is loaded to populate right pane of Preview tab.
@@ -92,49 +92,9 @@ namespace SleepApneaDiagnoser
                 timePicker_Period.Value = null;
             }
         }
-        private void RefreshPreviewSignalSelector()
-        {
-            if (model.LoadedEDFFile != null)
-            {
-                label_CurrentCategory.Content = model.PreviewCurrentCategoryName;
-
-                listBox_SignalSelect.Items.Clear();
-                foreach (EDFSignal signal in model.LoadedEDFFile.Header.Signals)
-                {
-                    if (model.PreviewCategoryContents.Contains(signal.Label.Trim()))
-                    {
-                        listBox_SignalSelect.Items.Add(signal.Label);
-                    }
-                }
-                for (int x = 0; x < model.GetDerivedSignals().Length; x++)
-                {
-                    if (model.PreviewCategoryContents.Contains(model.GetDerivedSignals()[x][0].Trim()))
-                    {
-                        listBox_SignalSelect.Items.Add(model.GetDerivedSignals()[x][0]);
-                    }
-                }
-
-                button_AddDerivative.IsEnabled = true;
-                button_RemoveDerivative.IsEnabled = true;
-                button_Categories.IsEnabled = true;
-                button_Next.IsEnabled = true;
-                button_Prev.IsEnabled = true;
-            }
-            else
-            {
-                listBox_SignalSelect.Items.Clear();
-
-                button_AddDerivative.IsEnabled = false;
-                button_RemoveDerivative.IsEnabled = false;
-                button_Categories.IsEnabled = false;
-                button_Next.IsEnabled = false;
-                button_Prev.IsEnabled = false;
-            }
-        }
         private void RefreshAll()
         {
             RefreshPreviewTimePicker();
-            RefreshPreviewSignalSelector();
         }
 
         /// <summary>
@@ -189,7 +149,7 @@ namespace SleepApneaDiagnoser
         {
             InitializeComponent();
 
-            model = new Model(this);
+            model = new ModelView(this);
             this.DataContext = model;
             LoadRecent();
             RefreshAll();
@@ -207,7 +167,6 @@ namespace SleepApneaDiagnoser
 
             if (dialog.ShowDialog() == true)
             {
-                TextBlock_Status.Text = "Loading EDF File";
                 this.IsEnabled = false;
                 model.LoadEDFFile(dialog.FileName);
             }
@@ -234,7 +193,6 @@ namespace SleepApneaDiagnoser
 
             if (dialog.ShowDialog() == true)
             {
-                TextBlock_Status.Text = "Loading EDF File";
                 this.IsEnabled = false;
                 model.LoadEDFFile(dialog.FileName);
             }
@@ -258,7 +216,6 @@ namespace SleepApneaDiagnoser
                 {
                     if (File.Exists(selected[x]))
                     {
-                        TextBlock_Status.Text = "Loading EDF File";
                         this.IsEnabled = false;
                         model.LoadEDFFile(selected[x]);
                         break;
@@ -292,6 +249,7 @@ namespace SleepApneaDiagnoser
                 textBox_SampRecord.Text = "";
             }
         }
+
         private void timePicker_RangeChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
             if (e.NewValue != null)
@@ -326,74 +284,30 @@ namespace SleepApneaDiagnoser
 
         private void button_AddDerivative_Click(object sender, RoutedEventArgs e)
         {
-            string new_signal = model.Add_Derivative();
-            if (new_signal != null)
-            {
-                listBox_SignalSelect.Items.Add(new_signal);
-            }
+            model.AddDerivative();
         }
         private void button_RemoveDerivative_Click(object sender, RoutedEventArgs e)
         {
-            string[] remove_signals = model.Remove_Derivative();
-            if (remove_signals != null)
-            {
-                for (int y = 0; y < remove_signals.Length; y++)
-                {
-                    listBox_SignalSelect.Items.Remove(remove_signals[y]);
-                }
-            }
+            model.RemoveDerivative();
         }
         private void button_Categories_Click(object sender, RoutedEventArgs e)
         {
             model.ManageCategories();
-            RefreshPreviewSignalSelector();
         }
         private void button_Next_Click(object sender, RoutedEventArgs e)
         {
             model.NextCategory();
-            RefreshPreviewSignalSelector();
         }
         private void button_Prev_Click(object sender, RoutedEventArgs e)
         {
             model.PreviousCategory();
-            RefreshPreviewSignalSelector();
         }
     }
 
-    public class Model : INotifyPropertyChanged
+    public class ModelView : INotifyPropertyChanged
     {
-        // Static Functions
-        private static DateTime EpochtoDateTime(int epoch, EDFFile file)
-        {
-            return file.Header.StartDateTime + new TimeSpan(0, 0, epoch * file.Header.DurationOfDataRecordInSeconds);
-        }
-        private static TimeSpan EpochPeriodtoTimeSpan(int period, EDFFile file)
-        {
-            return new TimeSpan(0, 0, 0, period * file.Header.DurationOfDataRecordInSeconds);
-        }
-        private static int DateTimetoEpoch(DateTime time, EDFFile file)
-        {
-            return (int)((time - file.Header.StartDateTime).TotalSeconds / (double)file.Header.DurationOfDataRecordInSeconds);
-        }
-        private static int TimeSpantoEpochPeriod(TimeSpan period, EDFFile file)
-        {
-            return (int)(period.TotalSeconds / file.Header.DurationOfDataRecordInSeconds);
-        }
+        /*********************************************** THIS IS ALL A MESS THAT I NEED TO CLEAN UP *************************************/
 
-        // General Private Variables
-        private MainWindow p_window;
-        private EDFFile p_LoadedEDFFile = null;
-        private string p_LoadedEDFFileName = null;
-        private List<string> p_SignalCategories = new List<string>();
-        private List<List<string>> p_SignalCategoryContents = new List<List<string>>();
-
-        // Preview Private Variables
-        private int p_PreviewCurrentCategory = -1;
-        private List<string> p_PreviewSelectedSignals = new List<string>();
-        private bool p_PreviewUseAbsoluteTime = false;
-        private DateTime p_PreviewViewStartTime = new DateTime();
-        private DateTime p_PreviewViewEndTime = new DateTime();
-        
         // Recent File List and Functions. 
         public ReadOnlyCollection<string> RecentFiles
         {
@@ -588,130 +502,7 @@ namespace SleepApneaDiagnoser
             bw.RunWorkerCompleted += BW_FinishLoad;
             bw.RunWorkerAsync(LoadedEDFFileName);
         }
-
-        // Categories
-        public void ManageCategories()
-        {
-            Dialog_Manage_Categories dlg = new Dialog_Manage_Categories(p_SignalCategories.ToArray(), p_SignalCategoryContents.Select(temp => temp.ToArray()).ToArray(), LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray(), DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
-            dlg.ShowDialog();
-
-            PreviewCurrentCategory = -1;
-            p_SignalCategories = dlg.categories.ToList();
-            p_SignalCategoryContents = dlg.categories_signals;
-        }
-        public void NextCategory()
-        {
-            if (PreviewCurrentCategory == p_SignalCategories.Count - 1)
-                PreviewCurrentCategory = -1;
-            else
-                PreviewCurrentCategory++;
-        }
-        public void PreviousCategory()
-        {
-            if (PreviewCurrentCategory == -1)
-                PreviewCurrentCategory = p_SignalCategories.Count - 1;
-            else
-                PreviewCurrentCategory--;
-        }
-
-        // Create/Remove Derivative
-        public void LoadCommonDerivativesFile()
-        {
-            DerivedSignals.Clear();
-            if (File.Exists("common_derivatives.txt"))
-            {
-                List<string> text = new StreamReader("common_derivatives.txt").ReadToEnd().Replace("\r\n", "\n").Split('\n').ToList();
-                for (int x = 0; x < text.Count; x++)
-                {
-                    string[] new_entry = text[x].Split(',');
-
-                    if (new_entry.Length == 3)
-                    {
-                        if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[1].Trim()) != null) // Signals Exist
-                        {
-                            if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[2].Trim()) != null) // Signals Exist
-                            {
-                                if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[0].Trim()) == null) // Unique Name
-                                {
-                                    if (DerivedSignals.Where(temp => temp[0].Trim() == new_entry[0].Trim()).ToList().Count == 0) // Unique Name
-                                    {
-                                        DerivedSignals.Add(new_entry);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        public void AddToCommonDerivativesFile(string name, string signal1, string signal2)
-        {
-            StreamWriter sw = new StreamWriter("common_derivatives.txt", true);
-            sw.WriteLine(name + "," + signal1 + "," + signal2);
-            sw.Close();
-        }
-        public void RemoveFromCommonDerivativesFile(List<string[]> signals)
-        {
-            if (File.Exists("common_derivatives.txt"))
-            {
-                StreamReader sr = new StreamReader("common_derivatives.txt");
-                List<string> text = sr.ReadToEnd().Split('\n').ToList();
-                sr.Close();
-                for (int x = 0; x < text.Count; x++)
-                {
-                    for (int y = 0; y < signals.Count; y++)
-                    {
-                        if (text[x].Split(',').Length != 3 || text[x].Split(',')[0].Trim() == signals[y][0].Trim() && text[x].Split(',')[1].Trim() == signals[y][1].Trim() && text[x].Split(',')[2].Trim() == signals[y][2].Trim())
-                        {
-                            text.Remove(text[x]);
-                            x--;
-                        }
-                    }
-                }
-
-                StreamWriter sw = new StreamWriter("common_derivatives.txt");
-                for (int x = 0; x < text.Count; x++)
-                {
-                    sw.WriteLine(text[x].Trim());
-                }
-                sw.Close();
-            }
-        }
-
-        public string Add_Derivative()
-        {
-            Dialog_Add_Derivative dlg = new Dialog_Add_Derivative(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.Trim()).ToArray(), DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
-            dlg.ShowDialog();
-
-            if (dlg.DialogResult == true)
-            {
-                DerivedSignals.Add(new string[] { dlg.SignalName, dlg.Signal1, dlg.Signal2 });
-                AddToCommonDerivativesFile(dlg.SignalName, dlg.Signal1, dlg.Signal2);
-                return dlg.SignalName;
-            }
-
-            return null;
-        }
-        public string[] Remove_Derivative()
-        {
-            Dialog_Remove_Derivative dlg = new Dialog_Remove_Derivative(DerivedSignals.ToArray());
-            dlg.ShowDialog();
-
-            if (dlg.DialogResult == true)
-            {
-                for (int x = 0; x < dlg.RemovedSignals.Length; x++)
-                {
-                    List<string[]> RemovedDerivatives = DerivedSignals.FindAll(temp => temp[0].Trim() == dlg.RemovedSignals[x].Trim()).ToList();
-                    DerivedSignals.RemoveAll(temp => temp[0].Trim() == dlg.RemovedSignals[x].Trim());
-                    RemoveFromCommonDerivativesFile(RemovedDerivatives);
-                }
-
-                return dlg.RemovedSignals;
-            }
-
-            return null;
-        }
-
+        
         // Create Chart
         private void BW_CreateChart(object sender, DoWorkEventArgs e)
         {
@@ -836,7 +627,41 @@ namespace SleepApneaDiagnoser
             bw.RunWorkerCompleted += BW_FinishChart;
             bw.RunWorkerAsync();
         }
+
+        /*********************************************** THIS PART IS OK *************************************/
         
+        // Static Functions
+        private static DateTime EpochtoDateTime(int epoch, EDFFile file)
+        {
+            return file.Header.StartDateTime + new TimeSpan(0, 0, epoch * file.Header.DurationOfDataRecordInSeconds);
+        }
+        private static TimeSpan EpochPeriodtoTimeSpan(int period, EDFFile file)
+        {
+            return new TimeSpan(0, 0, 0, period * file.Header.DurationOfDataRecordInSeconds);
+        }
+        private static int DateTimetoEpoch(DateTime time, EDFFile file)
+        {
+            return (int)((time - file.Header.StartDateTime).TotalSeconds / (double)file.Header.DurationOfDataRecordInSeconds);
+        }
+        private static int TimeSpantoEpochPeriod(TimeSpan period, EDFFile file)
+        {
+            return (int)(period.TotalSeconds / file.Header.DurationOfDataRecordInSeconds);
+        }
+
+        // General Private Variables
+        private MainWindow p_window;
+        private EDFFile p_LoadedEDFFile = null;
+        private string p_LoadedEDFFileName = null;
+        private List<string> p_SignalCategories = new List<string>();
+        private List<List<string>> p_SignalCategoryContents = new List<List<string>>();
+
+        // Preview Private Variables
+        private int p_PreviewCurrentCategory = -1;
+        private List<string> p_PreviewSelectedSignals = new List<string>();
+        private bool p_PreviewUseAbsoluteTime = false;
+        private DateTime p_PreviewViewStartTime = new DateTime();
+        private DateTime p_PreviewViewEndTime = new DateTime();
+
         // Loaded EDF Structure and File Name
         public EDFFile LoadedEDFFile
         {
@@ -1021,7 +846,7 @@ namespace SleepApneaDiagnoser
                 p_PreviewCurrentCategory = value;
                 OnPropertyChanged(nameof(PreviewCurrentCategory));
                 OnPropertyChanged(nameof(PreviewCurrentCategoryName));
-                OnPropertyChanged(nameof(PreviewCategoryContents));
+                OnPropertyChanged(nameof(PreviewSignals));
             }
         }
         public string PreviewCurrentCategoryName
@@ -1034,7 +859,7 @@ namespace SleepApneaDiagnoser
                     return p_SignalCategories[PreviewCurrentCategory];
             }
         }
-        public ReadOnlyCollection<string> PreviewCategoryContents
+        public ReadOnlyCollection<string> PreviewSignals
         {
             get
             {
@@ -1057,6 +882,131 @@ namespace SleepApneaDiagnoser
             }
         }
 
+        // Category Management
+        public void ManageCategories()
+        {
+            Dialog_Manage_Categories dlg = new Dialog_Manage_Categories(p_SignalCategories.ToArray(), p_SignalCategoryContents.Select(temp => temp.ToArray()).ToArray(), LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray(), DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+            dlg.ShowDialog();
+
+            PreviewCurrentCategory = -1;
+            p_SignalCategories = dlg.categories.ToList();
+            p_SignalCategoryContents = dlg.categories_signals;
+        }
+        public void NextCategory()
+        {
+            if (PreviewCurrentCategory == p_SignalCategories.Count - 1)
+                PreviewCurrentCategory = -1;
+            else
+                PreviewCurrentCategory++;
+        }
+        public void PreviousCategory()
+        {
+            if (PreviewCurrentCategory == -1)
+                PreviewCurrentCategory = p_SignalCategories.Count - 1;
+            else
+                PreviewCurrentCategory--;
+        }
+        
+        // Derivative Management
+        private void LoadCommonDerivativesFile()
+        {
+            DerivedSignals.Clear();
+            if (File.Exists("common_derivatives.txt"))
+            {
+                List<string> text = new StreamReader("common_derivatives.txt").ReadToEnd().Replace("\r\n", "\n").Split('\n').ToList();
+                for (int x = 0; x < text.Count; x++)
+                {
+                    string[] new_entry = text[x].Split(',');
+
+                    if (new_entry.Length == 3)
+                    {
+                        if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[1].Trim()) != null) // Signals Exist
+                        {
+                            if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[2].Trim()) != null) // Signals Exist
+                            {
+                                if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[0].Trim()) == null) // Unique Name
+                                {
+                                    if (DerivedSignals.Where(temp => temp[0].Trim() == new_entry[0].Trim()).ToList().Count == 0) // Unique Name
+                                    {
+                                        DerivedSignals.Add(new_entry);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            OnPropertyChanged(nameof(PreviewSignals));
+        }
+        private void AddToCommonDerivativesFile(string name, string signal1, string signal2)
+        {
+            StreamWriter sw = new StreamWriter("common_derivatives.txt", true);
+            sw.WriteLine(name + "," + signal1 + "," + signal2);
+            sw.Close();
+        }
+        private void RemoveFromCommonDerivativesFile(List<string[]> signals)
+        {
+            if (File.Exists("common_derivatives.txt"))
+            {
+                StreamReader sr = new StreamReader("common_derivatives.txt");
+                List<string> text = sr.ReadToEnd().Split('\n').ToList();
+                sr.Close();
+                for (int x = 0; x < text.Count; x++)
+                {
+                    for (int y = 0; y < signals.Count; y++)
+                    {
+                        if (text[x].Split(',').Length != 3 || text[x].Split(',')[0].Trim() == signals[y][0].Trim() && text[x].Split(',')[1].Trim() == signals[y][1].Trim() && text[x].Split(',')[2].Trim() == signals[y][2].Trim())
+                        {
+                            text.Remove(text[x]);
+                            x--;
+                        }
+                    }
+                }
+
+                StreamWriter sw = new StreamWriter("common_derivatives.txt");
+                for (int x = 0; x < text.Count; x++)
+                {
+                    sw.WriteLine(text[x].Trim());
+                }
+                sw.Close();
+            }
+        }
+        public void AddDerivative()
+        {
+            Dialog_Add_Derivative dlg = new Dialog_Add_Derivative(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.Trim()).ToArray(), DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+            dlg.ShowDialog();
+
+            if (dlg.DialogResult == true)
+            {
+                DerivedSignals.Add(new string[] { dlg.SignalName, dlg.Signal1, dlg.Signal2 });
+                AddToCommonDerivativesFile(dlg.SignalName, dlg.Signal1, dlg.Signal2);
+            }
+
+            OnPropertyChanged(nameof(PreviewSignals));
+        }
+        public void RemoveDerivative()
+        {
+            Dialog_Remove_Derivative dlg = new Dialog_Remove_Derivative(DerivedSignals.ToArray());
+            dlg.ShowDialog();
+
+            if (dlg.DialogResult == true)
+            {
+                for (int x = 0; x < dlg.RemovedSignals.Length; x++)
+                {
+                    List<string[]> RemovedDerivatives = DerivedSignals.FindAll(temp => temp[0].Trim() == dlg.RemovedSignals[x].Trim()).ToList();
+                    DerivedSignals.RemoveAll(temp => temp[0].Trim() == dlg.RemovedSignals[x].Trim());
+                    RemoveFromCommonDerivativesFile(RemovedDerivatives);
+
+                    if (p_PreviewSelectedSignals.Contains(dlg.RemovedSignals[x].Trim()))
+                    {
+                        p_PreviewSelectedSignals.Remove(dlg.RemovedSignals[x].Trim());
+                    }
+                }
+            }
+
+            OnPropertyChanged(nameof(PreviewSignals));
+        }
+
         // INotify Interface
         public event PropertyChangedEventHandler PropertyChanged;
         private void OnPropertyChanged(string propertyName)
@@ -1064,7 +1014,7 @@ namespace SleepApneaDiagnoser
             PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
         }
         
-        public Model(MainWindow i_window)
+        public ModelView(MainWindow i_window)
         {
             p_window = i_window;
         }
