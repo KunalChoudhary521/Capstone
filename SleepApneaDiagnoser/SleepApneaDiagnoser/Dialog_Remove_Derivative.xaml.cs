@@ -12,12 +12,14 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
+using MahApps.Metro.Controls.Dialogs;
+
 namespace SleepApneaDiagnoser
 {
     /// <summary>
     /// Interaction logic for Dialog_Remove_Derivative.xaml
     /// </summary>
-    public partial class Dialog_Remove_Derivative : Window
+    public partial class Dialog_Remove_Derivative
     {
         public string[] RemovedSignals
         {
@@ -49,7 +51,7 @@ namespace SleepApneaDiagnoser
             }
             else
             {
-                MessageBox.Show("Please select a signal.");
+                this.ShowMessageAsync("Error", "Please select a signal.");
             }
         }
         private void button_Cancel_Click(object sender, RoutedEventArgs e)

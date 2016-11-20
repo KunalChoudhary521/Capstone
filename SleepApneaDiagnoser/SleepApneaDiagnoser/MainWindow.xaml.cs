@@ -27,13 +27,15 @@ using OxyPlot.Axes;
 using MathWorks.MATLAB.NET.Arrays;
 using MathWorks.MATLAB.NET.Utility;
 using MATLAB_496;
+using MahApps.Metro.Controls;
+using MahApps.Metro.Controls.Dialogs;
 
 namespace SleepApneaDiagnoser
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : MetroWindow
     {
         ModelView model;
 
@@ -44,7 +46,6 @@ namespace SleepApneaDiagnoser
         {
             LoadRecent();
             this.IsEnabled = true;
-            RefreshAll();
         }
         /// <summary>
         /// Function called to populate recent files list. Called when application is first loaded and if the recent files list changes.
@@ -58,90 +59,7 @@ namespace SleepApneaDiagnoser
                 if (!itemControl_RecentEDF.Items.Contains(array[x].Split('\\')[array[x].Split('\\').Length - 1]))
                     itemControl_RecentEDF.Items.Add(array[x].Split('\\')[array[x].Split('\\').Length - 1]);
         }
-        /// <summary>
-        /// Function called after chart in preview tab is drawn to add drawing to Preview tab.
-        /// </summary>
-        public void PreviewChartDrawn()
-        {
-            PlotView_signalPlot.Model = model.PreviewSignalPlot;
-            EnableNavigation();
-        }
-        
-        private void RefreshPreviewTimePicker()
-        {
-            if (model.LoadedEDFFile != null)
-            {
-                timePicker_From_Abs.IsEnabled = true;
-                timePicker_From_Eph.IsEnabled = true;
-                timePicker_Period.IsEnabled = true;
-                toggleButton_UseAbsoluteTime.IsEnabled = true;
-
-                timePicker_From_Abs.Value = model.LoadedEDFFile.Header.StartDateTime;
-                timePicker_From_Eph.Value = 0;
-                timePicker_Period.Value = 5;
-            }
-            else
-            {
-                timePicker_From_Abs.IsEnabled = false;
-                timePicker_From_Eph.IsEnabled = false;
-                timePicker_Period.IsEnabled = false;
-                toggleButton_UseAbsoluteTime.IsEnabled = false;
-
-                timePicker_From_Abs.Value = null;
-                timePicker_From_Eph.Value = null;
-                timePicker_Period.Value = null;
-            }
-        }
-        private void RefreshAll()
-        {
-            RefreshPreviewTimePicker();
-        }
-
-        /// <summary>
-        /// Disables the time picker controls while the chart is being drawn. Called before drawing the chart.
-        /// </summary>
-        private void DisableNavigation()
-        {
-            timePicker_From_Abs.IsEnabled = false;
-            timePicker_From_Eph.IsEnabled = false;
-            timePicker_Period.IsEnabled = false;
-            listBox_SignalSelect.IsEnabled = false;
-        }
-        /// <summary>
-        /// Enables the time picker controls after the chart is drawn. Called in PreviewChartDrawn.
-        /// </summary>
-        private void EnableNavigation()
-        {
-            timePicker_From_Abs.IsEnabled = true;
-            timePicker_From_Eph.IsEnabled = true;
-            timePicker_Period.IsEnabled = true;
-            listBox_SignalSelect.IsEnabled = true;
-        }
-        /// <summary>
-        /// Updates GUI time picker controls from the 
-        /// </summary>
-        private void GetTimePickerValues()
-        {
-            timePicker_From_Abs.ValueChanged -= timePicker_RangeChanged;
-            timePicker_From_Eph.ValueChanged -= timePicker_RangeChanged;
-            timePicker_Period.ValueChanged -= timePicker_RangeChanged;
-
-            timePicker_From_Abs.Value = model.GetViewStartTime();
-            timePicker_From_Eph.Value = model.GetViewStartEpoch();
-            timePicker_Period.Value = model.GetViewPeriod();
-
-            timePicker_From_Abs.ValueChanged += timePicker_RangeChanged;
-            timePicker_From_Eph.ValueChanged += timePicker_RangeChanged;
-            timePicker_Period.ValueChanged += timePicker_RangeChanged;
-
-            timePicker_Period.Minimum = model.GetViewPeriodMin();
-            timePicker_Period.Maximum = model.GetViewPeriodMax();
-            timePicker_From_Abs.Minimum = model.GetViewStartPickerAbsMin();
-            timePicker_From_Abs.Maximum = model.GetViewStartPickerAbsMax();
-            timePicker_From_Eph.Minimum = model.GetViewStartPickerEphMin();
-            timePicker_From_Eph.Maximum = model.GetViewStartPickerEphMax();
-        }
-        
+                
         /// <summary>
         /// Constructor for GUI class.
         /// </summary>
@@ -152,40 +70,17 @@ namespace SleepApneaDiagnoser
             model = new ModelView(this);
             this.DataContext = model;
             LoadRecent();
-            RefreshAll();
         }
 
-        // Menu Bar Events
-        private void MenuItem_File_Open_Click(object sender, RoutedEventArgs e)
+        private void Window_Closing(object sender, CancelEventArgs e)
         {
-            model.LoadedEDFFile = null;
-            RefreshAll();
-
-            OpenFileDialog dialog = new OpenFileDialog();
-            dialog.Filter = "EDF files (*.edf)|*.edf";
-            dialog.Title = "Select an EDF file";
-
-            if (dialog.ShowDialog() == true)
-            {
-                this.IsEnabled = false;
-                model.LoadEDFFile(dialog.FileName);
-            }
+            model.WriteToCategoriesFile();
         }
-        private void MenuItem_File_Close_Click(object sender, RoutedEventArgs e)
-        {
-            model.LoadedEDFFile = null;
-            RefreshAll();
-        }
-        private void MenuItem_File_Exit_Click(object sender, RoutedEventArgs e)
-        {
-            Application.Current.Shutdown();
-        }
-
+        
         // Home Tab Events
         private void TextBlock_OpenEDF_Click(object sender, RoutedEventArgs e)
         {
             model.LoadedEDFFile = null;
-            RefreshAll();
 
             OpenFileDialog dialog = new OpenFileDialog();
             dialog.Filter = "EDF files (*.edf)|*.edf";
@@ -200,14 +95,13 @@ namespace SleepApneaDiagnoser
         private void TextBlock_Recent_Click(object sender, RoutedEventArgs e)
         {
             model.LoadedEDFFile = null;
-            RefreshAll();
 
             List<string> array = model.RecentFiles.ToArray().ToList();
             List<string> selected = array.Where(temp => temp.Split('\\')[temp.Split('\\').Length - 1] == ((Hyperlink)sender).Inlines.FirstInline.DataContext.ToString()).ToList();
 
             if (selected.Count == 0)
             {
-                MessageBox.Show("File not Found");
+                this.ShowMessageAsync("Error", "File not Found");
                 EDFLoaded();
             }
             else
@@ -222,7 +116,7 @@ namespace SleepApneaDiagnoser
                     }
                     else
                     {
-                        MessageBox.Show("File not Found");
+                        this.ShowMessageAsync("Error", "File not Found");
                         model.RecentFiles_Remove(selected[x]);
                     }
                 }
@@ -233,9 +127,6 @@ namespace SleepApneaDiagnoser
         private void listBox_SignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             model.SetSelectedSignals(listBox_SignalSelect.SelectedItems);
-
-            DisableNavigation();
-            model.DrawChart();
         }
         private void comboBox_SignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -249,35 +140,14 @@ namespace SleepApneaDiagnoser
                 textBox_SampRecord.Text = "";
             }
         }
-
-        private void timePicker_RangeChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
-        {
-            if (e.NewValue != null)
-            {
-                model.SetViewRange(timePicker_From_Abs.Value, timePicker_Period.Value);
-                model.SetViewRange(timePicker_From_Eph.Value, timePicker_Period.Value);
-
-                GetTimePickerValues();
-
-                DisableNavigation();
-                model.DrawChart();
-            }
-        }
+        
         private void toggleButton_UseAbsoluteTime_Checked(object sender, RoutedEventArgs e)
         {
-            model.SetAbsoluteOrEpoch(true);
-
-            GetTimePickerValues();
-
             timePicker_From_Abs.Visibility = Visibility.Visible;
             timePicker_From_Eph.Visibility = Visibility.Hidden;
         }
         private void toggleButton_UseAbsoluteTime_Unchecked(object sender, RoutedEventArgs e)
         {
-            model.SetAbsoluteOrEpoch(false);
-
-            GetTimePickerValues();
-
             timePicker_From_Abs.Visibility = Visibility.Hidden;
             timePicker_From_Eph.Visibility = Visibility.Visible;
         }
@@ -307,6 +177,277 @@ namespace SleepApneaDiagnoser
     public class ModelView : INotifyPropertyChanged
     {
         /*********************************************** THIS IS ALL A MESS THAT I NEED TO CLEAN UP *************************************/
+
+        // Load EDF
+        private ProgressDialogController controller;
+        private async void BW_LoadEDFFile(object sender, DoWorkEventArgs e)
+        {
+            controller.SetCancelable(false);
+
+            EDFFile temp = new EDFFile();
+            temp.readFile(e.Argument.ToString());
+            LoadedEDFFile = temp;
+            controller.SetProgress(.33);
+            LoadCommonDerivativesFile();
+            controller.SetProgress(.66);
+            LoadCategoriesFile();
+            controller.SetProgress(.100);
+
+            await controller.CloseAsync();
+        }
+        private void BW_FinishLoad(object sender, RunWorkerCompletedEventArgs e)
+        {
+            RecentFiles_Add(LoadedEDFFileName);
+
+            p_window.EDFLoaded();
+            p_window.ShowMessageAsync("Success!", "EDF file loaded");
+
+        }
+        public async void LoadEDFFile(string fileNameIn)
+        {
+            controller = await p_window.ShowProgressAsync("Please wait...", "Loading EDF File: " + fileNameIn);
+
+            LoadedEDFFileName = fileNameIn;
+            BackgroundWorker bw = new BackgroundWorker();
+            bw.DoWork += BW_LoadEDFFile;
+            bw.RunWorkerCompleted += BW_FinishLoad;
+            bw.RunWorkerAsync(LoadedEDFFileName);
+        }
+
+        // Create Chart
+        private void BW_CreateChart(object sender, DoWorkEventArgs e)
+        {
+            PlotModel temp_PreviewSignalPlot = new PlotModel();
+            temp_PreviewSignalPlot.Series.Clear();
+            temp_PreviewSignalPlot.Axes.Clear();
+
+            if (p_PreviewSelectedSignals.Count > 0)
+            {
+                DateTimeAxis xAxis = new DateTimeAxis();
+                xAxis.Key = "DateTime";
+                xAxis.Minimum = DateTimeAxis.ToDouble(PreviewViewStartTime);
+                xAxis.Maximum = DateTimeAxis.ToDouble(PreviewViewEndTime);
+                temp_PreviewSignalPlot.Axes.Add(xAxis);
+
+                for (int x = 0; x < p_PreviewSelectedSignals.Count; x++)
+                {
+                    LineSeries series = new LineSeries();
+                    if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == p_PreviewSelectedSignals[x].Trim()) != null) // Normal EDF Signal
+                    {
+                        EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == p_PreviewSelectedSignals[x].Trim());
+
+                        float sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
+
+                        List<float> values = LoadedEDFFile.retrieveSignalSampleValues(edfsignal);
+
+                        int startIndex, indexCount;
+                        TimeSpan startPoint = (PreviewViewStartTime ?? new DateTime()) - LoadedEDFFile.Header.StartDateTime;
+                        TimeSpan duration = PreviewViewEndTime - (PreviewViewStartTime ?? new DateTime());
+                        startIndex = (int)(startPoint.TotalSeconds / sample_period);
+                        indexCount = (int)(duration.TotalSeconds / sample_period);
+
+                        for (int y = startIndex; y < indexCount + startIndex; y++)
+                        {
+                            series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
+                        }
+                    }
+                    else // Derivative Signal
+                    {
+                        string[] deriv_info = p_DerivedSignals.Find(temp => temp[0] == p_PreviewSelectedSignals[x]);
+                        EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[1].Trim());
+                        EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[2].Trim());
+
+                        List<float> values1;
+                        List<float> values2;
+                        float sample_period;
+                        if (edfsignal1.NumberOfSamplesPerDataRecord == edfsignal2.NumberOfSamplesPerDataRecord) // No resampling
+                        {
+                            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
+                            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
+                            sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
+                        }
+                        else if (edfsignal1.NumberOfSamplesPerDataRecord > edfsignal2.NumberOfSamplesPerDataRecord) // Upsample signal 2
+                        {
+                            Processing proc = new Processing();
+                            MWArray[] input = new MWArray[2];
+                            input[0] = new MWNumericArray(LoadedEDFFile.retrieveSignalSampleValues(edfsignal2).ToArray());
+                            input[1] = edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord;
+
+                            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
+                            values2 = (
+                                        (double[])(
+                                            (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
+                                        ).ToVector(MWArrayComponent.Real)
+                                      ).ToList().Select(temp => (float)temp).ToList();
+
+                            sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
+                        }
+                        else // Upsample signal 1
+                        {
+                            Processing proc = new Processing();
+                            MWArray[] input = new MWArray[2];
+                            input[0] = new MWNumericArray(LoadedEDFFile.retrieveSignalSampleValues(edfsignal1).ToArray());
+                            input[1] = edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord;
+
+                            values1 = (
+                                        (double[])(
+                                            (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
+                                        ).ToVector(MWArrayComponent.Real)
+                                      ).ToList().Select(temp => (float)temp).ToList();
+                            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
+
+                            sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal2.NumberOfSamplesPerDataRecord;
+                        }
+
+                        int startIndex, indexCount;
+                        TimeSpan startPoint = (PreviewViewStartTime ?? new DateTime()) - LoadedEDFFile.Header.StartDateTime;
+                        TimeSpan duration = PreviewViewEndTime - (PreviewViewStartTime ?? new DateTime());
+                        startIndex = (int)(startPoint.TotalSeconds / sample_period);
+                        indexCount = (int)(duration.TotalSeconds / sample_period);
+
+                        for (int y = startIndex; y < indexCount + startIndex; y++)
+                        {
+                            series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values1[y] - values2[y]));
+                        }
+                    }
+
+                    series.YAxisKey = p_PreviewSelectedSignals[x];
+                    series.XAxisKey = "DateTime";
+
+                    LinearAxis yAxis = new LinearAxis();
+                    yAxis.MajorGridlineStyle = LineStyle.Solid;
+                    yAxis.MinorGridlineStyle = LineStyle.Dot;
+                    yAxis.Title = p_PreviewSelectedSignals[x];
+                    yAxis.Key = p_PreviewSelectedSignals[x];
+                    yAxis.EndPosition = (double)1 - (double)x * ((double)1 / (double)p_PreviewSelectedSignals.Count);
+                    yAxis.StartPosition = (double)1 - (double)(x + 1) * ((double)1 / (double)p_PreviewSelectedSignals.Count);
+
+                    temp_PreviewSignalPlot.Axes.Add(yAxis);
+                    temp_PreviewSignalPlot.Series.Add(series);
+                }
+            }
+
+            PreviewSignalPlot = temp_PreviewSignalPlot;
+        }
+        private void BW_FinishChart(object sender, RunWorkerCompletedEventArgs e)
+        {
+            PreviewNavigationEnabled = true;
+        }
+        public void DrawChart()
+        {
+            PreviewNavigationEnabled = false;
+
+            BackgroundWorker bw = new BackgroundWorker();
+            bw.DoWork += BW_CreateChart;
+            bw.RunWorkerCompleted += BW_FinishChart;
+            bw.RunWorkerAsync();
+        }
+
+        /********************************************************************************************************************************/
+
+        // Static Functions
+        private static DateTime RecordtoDateTime(int epoch, EDFFile file)
+        {
+            return file.Header.StartDateTime + new TimeSpan(0, 0, epoch * file.Header.DurationOfDataRecordInSeconds);
+        }
+        private static TimeSpan RecordPeriodtoTimeSpan(int period, EDFFile file)
+        {
+            return new TimeSpan(0, 0, 0, period * file.Header.DurationOfDataRecordInSeconds);
+        }
+        private static int DateTimetoRecord(DateTime time, EDFFile file)
+        {
+            return (int)((time - file.Header.StartDateTime).TotalSeconds / (double)file.Header.DurationOfDataRecordInSeconds);
+        }
+        private static int TimeSpantoRecordPeriod(TimeSpan period, EDFFile file)
+        {
+            return (int)(period.TotalSeconds / file.Header.DurationOfDataRecordInSeconds);
+        }
+
+        // General Private Variables
+        private MainWindow p_window;
+        private EDFFile p_LoadedEDFFile = null;
+        private string p_LoadedEDFFileName = null;
+        private List<string> p_SignalCategories = new List<string>();
+        private List<List<string>> p_SignalCategoryContents = new List<List<string>>();
+
+        // Preview Private Variables
+        private int p_PreviewCurrentCategory = -1;
+        private List<string> p_PreviewSelectedSignals = new List<string>();
+        private List<string[]> p_DerivedSignals = new List<string[]>();
+
+        private bool p_PreviewUseAbsoluteTime = false;
+        private DateTime p_PreviewViewStartTime = new DateTime();
+        private int p_PreviewViewStartRecord = 0;
+        private int p_PreviewViewDuration = 0;
+        private PlotModel p_PreviewSignalPlot = null;
+        private bool p_PreviewNavigationEnabled = false;
+
+        // Loaded EDF Structure and File Name
+        public EDFFile LoadedEDFFile
+        {
+            get
+            {
+                return p_LoadedEDFFile;
+            }
+            set
+            {
+                p_LoadedEDFFile = value;
+                PreviewCurrentCategory = -1;
+
+                // Header
+                OnPropertyChanged(nameof(EDFStartTime));
+                OnPropertyChanged(nameof(EDFEndTime));
+                OnPropertyChanged(nameof(EDFRecordDuration));
+                OnPropertyChanged(nameof(EDFNumRecords));
+                OnPropertyChanged(nameof(EDFPatientName));
+                OnPropertyChanged(nameof(EDFPatientSex));
+                OnPropertyChanged(nameof(EDFPatientCode));
+                OnPropertyChanged(nameof(EDFPatientBirthDate));
+                OnPropertyChanged(nameof(EDFRecordEquipment));
+                OnPropertyChanged(nameof(EDFRecordCode));
+                OnPropertyChanged(nameof(EDFRecordTechnician));
+                OnPropertyChanged(nameof(EDFAllSignals));
+
+                // Preview Time Picker
+                OnPropertyChanged(nameof(PreviewNavigationEnabled));
+                if (value == null)
+                {
+                    PreviewUseAbsoluteTime = false;
+                    PreviewViewStartTime = null;
+                    PreviewViewStartRecord = null;
+                    PreviewViewDuration = null;
+                }
+                else
+                {
+                    PreviewUseAbsoluteTime = false;
+                    PreviewViewStartTime = LoadedEDFFile.Header.StartDateTime;
+                    PreviewViewStartRecord = 0;
+                    PreviewViewDuration = 5;
+                }
+
+                // Misc
+                OnPropertyChanged(nameof(IsEDFLoaded));
+            }
+        }
+        public string LoadedEDFFileName
+        {
+            get
+            {
+                return p_LoadedEDFFileName ?? "No File Loaded";
+            }
+            set
+            {
+                p_LoadedEDFFileName = value;
+                OnPropertyChanged(nameof(LoadedEDFFileName));
+            }
+        }
+        public bool IsEDFLoaded
+        {
+            get
+            {
+                return LoadedEDFFile != null;
+            }
+        }
 
         // Recent File List and Functions. 
         public ReadOnlyCollection<string> RecentFiles
@@ -364,352 +505,6 @@ namespace SleepApneaDiagnoser
             sw.Close();
 
             p_window.LoadRecent();
-        }
-
-        // Preview Graph
-        public PlotModel PreviewSignalPlot = null;
-
-        // Selected Signals to be Previewed
-        
-
-        // Created Derivatives
-        private List<string[]> DerivedSignals = new List<string[]>();
-        
-        public void SetSelectedSignals(System.Collections.IList SelectedItems)
-        {
-            p_PreviewSelectedSignals.Clear();
-            for (int x = 0; x < SelectedItems.Count; x++)
-                p_PreviewSelectedSignals.Add(SelectedItems[x].ToString());
-        }
-
-        public string[][] GetDerivedSignals()
-        {
-            return DerivedSignals.ToArray();
-        }
-
-        public void SetAbsoluteOrEpoch(bool value)
-        {
-            p_PreviewUseAbsoluteTime = value;
-        }
-        public void SetViewRange(DateTime? start, int? period)
-        {
-            if (p_PreviewUseAbsoluteTime)
-            {
-                p_PreviewViewStartTime = start ?? LoadedEDFFile.Header.StartDateTime;
-                p_PreviewViewEndTime = p_PreviewViewStartTime + new TimeSpan(0, 0, 0, period ?? 0);
-            }
-        }
-        public void SetViewRange(int? start, int? period)
-        {
-            if (!p_PreviewUseAbsoluteTime)
-            {
-                p_PreviewViewStartTime = EpochtoDateTime(start ?? 0, LoadedEDFFile);
-                p_PreviewViewEndTime = p_PreviewViewStartTime + EpochPeriodtoTimeSpan(period ?? 0, LoadedEDFFile);
-            }
-        }
-
-        public DateTime GetViewStartTime()
-        {
-            return p_PreviewViewStartTime;
-        }
-        public DateTime GetViewEndTime()
-        {
-            return p_PreviewViewEndTime;
-        }
-        public int GetViewStartEpoch()
-        {
-            return DateTimetoEpoch(p_PreviewViewStartTime, LoadedEDFFile);
-        }
-        public int GetViewEndEpoch()
-        {
-            return DateTimetoEpoch(p_PreviewViewEndTime, LoadedEDFFile);
-        }
-        public int GetViewPeriod()
-        {
-            if (p_PreviewUseAbsoluteTime)
-                return (int)(p_PreviewViewEndTime - p_PreviewViewStartTime).TotalSeconds;
-            else
-                return TimeSpantoEpochPeriod(p_PreviewViewEndTime - p_PreviewViewStartTime, LoadedEDFFile);
-        }
-
-        public DateTime GetViewStartPickerAbsMin()
-        {
-            if (LoadedEDFFile != null)
-                return LoadedEDFFile.Header.StartDateTime;
-            else
-                return new DateTime();
-        }
-        public DateTime GetViewStartPickerAbsMax()
-        {
-            if (LoadedEDFFile != null)
-                return (LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)) - (p_PreviewViewEndTime - p_PreviewViewStartTime);
-            else
-                return new DateTime();
-        }
-        public int GetViewStartPickerEphMin()
-        {
-            if (LoadedEDFFile != null)
-                return DateTimetoEpoch(LoadedEDFFile.Header.StartDateTime, LoadedEDFFile);
-            else
-                return 0;
-        }
-        public int GetViewStartPickerEphMax()
-        {
-            if (LoadedEDFFile != null)
-                return DateTimetoEpoch((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)) - (p_PreviewViewEndTime - p_PreviewViewStartTime), LoadedEDFFile);
-            else
-                return 0;
-        }
-        public int GetViewPeriodMin()
-        {
-            if (LoadedEDFFile != null) // File Loaded
-                return 1;
-            else // No File Loaded
-                return 0;
-        }
-        public int GetViewPeriodMax()
-        {
-            if (LoadedEDFFile != null) // File Loaded
-            {
-                if (p_PreviewUseAbsoluteTime)
-                    return Math.Min(2 * 60 * 60, (int)((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)) - p_PreviewViewStartTime).TotalSeconds);
-                else
-                    return Math.Min((2 * 60 * 60) / (LoadedEDFFile == null ? 30 : LoadedEDFFile.Header.DurationOfDataRecordInSeconds), DateTimetoEpoch((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)), LoadedEDFFile) - DateTimetoEpoch(p_PreviewViewStartTime, LoadedEDFFile));
-            }
-            else // No File Loaded
-                return 0;
-        }
-
-        // Load EDF
-        private void BW_LoadEDFFile(object sender, DoWorkEventArgs e)
-        {
-            EDFFile temp = new EDFFile();
-            temp.readFile(e.Argument.ToString());
-            LoadedEDFFile = temp;
-
-            LoadCommonDerivativesFile();
-        }
-        private void BW_FinishLoad(object sender, RunWorkerCompletedEventArgs e)
-        {
-            RecentFiles_Add(LoadedEDFFileName);
-            p_window.EDFLoaded();
-        }
-        public void LoadEDFFile(string fileNameIn)
-        {
-            LoadedEDFFileName = fileNameIn;
-            BackgroundWorker bw = new BackgroundWorker();
-            bw.DoWork += BW_LoadEDFFile;
-            bw.RunWorkerCompleted += BW_FinishLoad;
-            bw.RunWorkerAsync(LoadedEDFFileName);
-        }
-        
-        // Create Chart
-        private void BW_CreateChart(object sender, DoWorkEventArgs e)
-        {
-            PreviewSignalPlot = new PlotModel();
-            PreviewSignalPlot.Series.Clear();
-            PreviewSignalPlot.Axes.Clear();
-
-            if (p_PreviewSelectedSignals.Count > 0)
-            {
-                DateTimeAxis xAxis = new DateTimeAxis();
-                xAxis.Key = "DateTime";
-                xAxis.Minimum = DateTimeAxis.ToDouble(p_PreviewViewStartTime);
-                xAxis.Maximum = DateTimeAxis.ToDouble(p_PreviewViewEndTime);
-                PreviewSignalPlot.Axes.Add(xAxis);
-
-                for (int x = 0; x < p_PreviewSelectedSignals.Count; x++)
-                {
-                    LineSeries series = new LineSeries();
-                    if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == p_PreviewSelectedSignals[x].Trim()) != null) // Normal EDF Signal
-                    {
-                        EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == p_PreviewSelectedSignals[x].Trim());
-
-                        float sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
-
-                        List<float> values = LoadedEDFFile.retrieveSignalSampleValues(edfsignal);
-
-                        int startIndex, indexCount;
-                        TimeSpan startPoint = p_PreviewViewStartTime - LoadedEDFFile.Header.StartDateTime;
-                        TimeSpan duration = p_PreviewViewEndTime - p_PreviewViewStartTime;
-                        startIndex = (int)(startPoint.TotalSeconds / sample_period);
-                        indexCount = (int)(duration.TotalSeconds / sample_period);
-
-                        for (int y = startIndex; y < indexCount + startIndex; y++)
-                        {
-                            series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
-                        }
-                    }
-                    else // Derivative Signal
-                    {
-                        string[] deriv_info = DerivedSignals.Find(temp => temp[0] == p_PreviewSelectedSignals[x]);
-                        EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[1].Trim());
-                        EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[2].Trim());
-
-                        List<float> values1;
-                        List<float> values2;
-                        float sample_period;
-                        if (edfsignal1.NumberOfSamplesPerDataRecord == edfsignal2.NumberOfSamplesPerDataRecord) // No resampling
-                        {
-                            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-                            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
-                            sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
-                        }
-                        else if (edfsignal1.NumberOfSamplesPerDataRecord > edfsignal2.NumberOfSamplesPerDataRecord) // Upsample signal 2
-                        {
-                            Processing proc = new Processing();
-                            MWArray[] input = new MWArray[2];
-                            input[0] = new MWNumericArray(LoadedEDFFile.retrieveSignalSampleValues(edfsignal2).ToArray());
-                            input[1] = edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord;
-
-                            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-                            values2 = (
-                                        (double[])(
-                                            (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
-                                        ).ToVector(MWArrayComponent.Real)
-                                      ).ToList().Select(temp => (float)temp).ToList();
-
-                            sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
-                        }
-                        else // Upsample signal 1
-                        {
-                            Processing proc = new Processing();
-                            MWArray[] input = new MWArray[2];
-                            input[0] = new MWNumericArray(LoadedEDFFile.retrieveSignalSampleValues(edfsignal1).ToArray());
-                            input[1] = edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord;
-
-                            values1 = (
-                                        (double[])(
-                                            (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
-                                        ).ToVector(MWArrayComponent.Real)
-                                      ).ToList().Select(temp => (float)temp).ToList();
-                            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
-
-                            sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal2.NumberOfSamplesPerDataRecord;
-                        }
-
-                        int startIndex, indexCount;
-                        TimeSpan startPoint = p_PreviewViewStartTime - LoadedEDFFile.Header.StartDateTime;
-                        TimeSpan duration = p_PreviewViewEndTime - p_PreviewViewStartTime;
-                        startIndex = (int)(startPoint.TotalSeconds / sample_period);
-                        indexCount = (int)(duration.TotalSeconds / sample_period);
-
-                        for (int y = startIndex; y < indexCount + startIndex; y++)
-                        {
-                            series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values1[y] - values2[y]));
-                        }
-                    }
-
-                    series.YAxisKey = p_PreviewSelectedSignals[x];
-                    series.XAxisKey = "DateTime";
-
-                    LinearAxis yAxis = new LinearAxis();
-                    yAxis.MajorGridlineStyle = LineStyle.Solid;
-                    yAxis.MinorGridlineStyle = LineStyle.Dot;
-                    yAxis.Title = p_PreviewSelectedSignals[x];
-                    yAxis.Key = p_PreviewSelectedSignals[x];
-                    yAxis.EndPosition = (double)1 - (double)x * ((double)1 / (double)p_PreviewSelectedSignals.Count);
-                    yAxis.StartPosition = (double)1 - (double)(x + 1) * ((double)1 / (double)p_PreviewSelectedSignals.Count);
-
-                    PreviewSignalPlot.Axes.Add(yAxis);
-                    PreviewSignalPlot.Series.Add(series);
-                }
-            }
-        }
-        private void BW_FinishChart(object sender, RunWorkerCompletedEventArgs e)
-        {
-            p_window.PreviewChartDrawn();
-        }
-        public void DrawChart()
-        {
-            BackgroundWorker bw = new BackgroundWorker();
-            bw.DoWork += BW_CreateChart;
-            bw.RunWorkerCompleted += BW_FinishChart;
-            bw.RunWorkerAsync();
-        }
-
-        /*********************************************** THIS PART IS OK *************************************/
-        
-        // Static Functions
-        private static DateTime EpochtoDateTime(int epoch, EDFFile file)
-        {
-            return file.Header.StartDateTime + new TimeSpan(0, 0, epoch * file.Header.DurationOfDataRecordInSeconds);
-        }
-        private static TimeSpan EpochPeriodtoTimeSpan(int period, EDFFile file)
-        {
-            return new TimeSpan(0, 0, 0, period * file.Header.DurationOfDataRecordInSeconds);
-        }
-        private static int DateTimetoEpoch(DateTime time, EDFFile file)
-        {
-            return (int)((time - file.Header.StartDateTime).TotalSeconds / (double)file.Header.DurationOfDataRecordInSeconds);
-        }
-        private static int TimeSpantoEpochPeriod(TimeSpan period, EDFFile file)
-        {
-            return (int)(period.TotalSeconds / file.Header.DurationOfDataRecordInSeconds);
-        }
-
-        // General Private Variables
-        private MainWindow p_window;
-        private EDFFile p_LoadedEDFFile = null;
-        private string p_LoadedEDFFileName = null;
-        private List<string> p_SignalCategories = new List<string>();
-        private List<List<string>> p_SignalCategoryContents = new List<List<string>>();
-
-        // Preview Private Variables
-        private int p_PreviewCurrentCategory = -1;
-        private List<string> p_PreviewSelectedSignals = new List<string>();
-        private bool p_PreviewUseAbsoluteTime = false;
-        private DateTime p_PreviewViewStartTime = new DateTime();
-        private DateTime p_PreviewViewEndTime = new DateTime();
-
-        // Loaded EDF Structure and File Name
-        public EDFFile LoadedEDFFile
-        {
-            get
-            {
-                return p_LoadedEDFFile;
-            }
-            set
-            {
-                p_LoadedEDFFile = value;
-                PreviewCurrentCategory = -1;
-
-                // Header
-                OnPropertyChanged(nameof(EDFStartTime));
-                OnPropertyChanged(nameof(EDFEndTime));
-                OnPropertyChanged(nameof(EDFRecordDuration));
-                OnPropertyChanged(nameof(EDFNumRecords));
-                OnPropertyChanged(nameof(EDFPatientName));
-                OnPropertyChanged(nameof(EDFPatientSex));
-                OnPropertyChanged(nameof(EDFPatientCode));
-                OnPropertyChanged(nameof(EDFPatientBirthDate));
-                OnPropertyChanged(nameof(EDFRecordEquipment));
-                OnPropertyChanged(nameof(EDFRecordCode));
-                OnPropertyChanged(nameof(EDFRecordTechnician));
-                OnPropertyChanged(nameof(EDFAllSignals));
-
-                // Misc
-                OnPropertyChanged(nameof(IsEDFLoaded));
-            }
-        }
-        public string LoadedEDFFileName
-        {
-            get
-            {
-                return p_LoadedEDFFileName ?? "No File Loaded";
-            }
-            set
-            {
-                p_LoadedEDFFileName = value;
-                OnPropertyChanged(nameof(LoadedEDFFileName));
-            }
-        }
-        public bool IsEDFLoaded
-        {
-            get
-            {
-                return LoadedEDFFile != null;
-            }
         }
 
         // EDF Header
@@ -834,58 +629,103 @@ namespace SleepApneaDiagnoser
             }
         }
 
-        // Preview Signal Selection
-        public int PreviewCurrentCategory
+        // Preview Category Management
+        public void LoadCategoriesFile()
         {
-            get
+            p_SignalCategories.Clear();
+            p_SignalCategoryContents.Clear();
+
+            if (File.Exists("signal_categories.txt"))
             {
-                return p_PreviewCurrentCategory;
-            }
-            set
-            {
-                p_PreviewCurrentCategory = value;
-                OnPropertyChanged(nameof(PreviewCurrentCategory));
-                OnPropertyChanged(nameof(PreviewCurrentCategoryName));
-                OnPropertyChanged(nameof(PreviewSignals));
-            }
-        }
-        public string PreviewCurrentCategoryName
-        {
-            get
-            {
-                if (PreviewCurrentCategory == -1)
-                    return "All";
-                else
-                    return p_SignalCategories[PreviewCurrentCategory];
-            }
-        }
-        public ReadOnlyCollection<string> PreviewSignals
-        {
-            get
-            {
-                if (IsEDFLoaded)
+                StreamReader sr = new StreamReader("signal_categories.txt");
+                string[] text = sr.ReadToEnd().Replace("\r\n", "\n").Split('\n');
+                
+                for (int x = 0; x < text.Length; x++)
                 {
-                    if (PreviewCurrentCategory != -1)
-                        return Array.AsReadOnly(p_SignalCategoryContents[PreviewCurrentCategory].ToArray());
-                    else
+                    string line = text[x];
+
+                    string category = line.Split(',')[0].Trim();
+                    List<string> category_signals = new List<string>();
+
+                    for (int y = 0; y < line.Split(',').Length; y++)
                     {
-                        List<string> output = new List<string>();
-                        output.AddRange(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray());
-                        output.AddRange(DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
-                        return Array.AsReadOnly(output.ToArray());
+                        if (EDFAllSignals.Contains(line.Split(',')[y].Trim()) || p_DerivedSignals.Find(temp => temp[0].Trim() == line.Split(',')[y].Trim()) != null)
+                        {
+                            category_signals.Add(line.Split(',')[y]);
+                        }
+                    }
+
+                    if (category_signals.Count > 0)
+                    {
+                        p_SignalCategories.Add((p_SignalCategories.Count + 1) + ". " + category);
+                        p_SignalCategoryContents.Add(category_signals);
                     }
                 }
-                else
-                {
-                    return Array.AsReadOnly(new string[0]);
-                }
+
+                sr.Close();
             }
         }
+        public void WriteToCategoriesFile()
+        {
+            List<string> temp_SignalCategories = new List<string>();
+            List<List<string>> temp_SignalCategoriesContents = new List<List<string>>();
 
-        // Category Management
+            if (File.Exists("signal_categories.txt"))
+            {
+                StreamReader sr = new StreamReader("signal_categories.txt");
+                string[] text = sr.ReadToEnd().Replace("\r\n", "\n").Split('\n');
+
+                for (int x = 0; x < text.Length; x++)
+                {
+                    string line = text[x];
+
+                    string category = line.Split(',')[0].Trim();
+                    List<string> category_signals = new List<string>();
+
+                    for (int y = 1; y < line.Split(',').Length; y++)
+                    {
+                        category_signals.Add(line.Split(',')[y]);
+                    }
+                    
+                    temp_SignalCategories.Add(category);
+                    temp_SignalCategoriesContents.Add(category_signals);
+                }
+
+                sr.Close(); 
+            }
+
+            for (int x = 0; x < p_SignalCategories.Count; x++)
+            {
+                if (temp_SignalCategories.Contains(p_SignalCategories[x].Substring(p_SignalCategories[x].IndexOf('.') + 2).Trim()))
+                {
+                    int u = temp_SignalCategories.IndexOf(p_SignalCategories[x].Substring(p_SignalCategories[x].IndexOf('.') + 2).Trim());
+                    temp_SignalCategoriesContents[u].AddRange(p_SignalCategoryContents[x].ToArray());
+                    temp_SignalCategoriesContents[u] = temp_SignalCategoriesContents[u].Distinct().ToList();
+                }
+                else
+                {
+                    temp_SignalCategories.Add(p_SignalCategories[x].Substring(p_SignalCategories[x].IndexOf('.') + 2).Trim());
+                    temp_SignalCategoriesContents.Add(p_SignalCategoryContents[x]);
+                }
+            }
+
+            StreamWriter sw = new StreamWriter("signal_categories.txt");
+            for (int x = 0; x < temp_SignalCategories.Count; x++)
+            {
+                string line = temp_SignalCategories[x].Trim();
+                if (line.Trim() != "")
+                {
+                    for (int y = 0; y < temp_SignalCategoriesContents[x].Count; y++)
+                        line += "," + temp_SignalCategoriesContents[x][y].Trim();
+
+                    sw.WriteLine(line);
+                }
+            }
+            sw.Close();
+        }
         public void ManageCategories()
         {
-            Dialog_Manage_Categories dlg = new Dialog_Manage_Categories(p_SignalCategories.ToArray(), p_SignalCategoryContents.Select(temp => temp.ToArray()).ToArray(), LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray(), DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+            Dialog_Manage_Categories dlg = new Dialog_Manage_Categories(p_SignalCategories.ToArray(), p_SignalCategoryContents.Select(temp => temp.ToArray()).ToArray(), LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray(), p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
             dlg.ShowDialog();
 
             PreviewCurrentCategory = -1;
@@ -906,11 +746,11 @@ namespace SleepApneaDiagnoser
             else
                 PreviewCurrentCategory--;
         }
-        
-        // Derivative Management
+
+        // Preview Derivative Management
         private void LoadCommonDerivativesFile()
         {
-            DerivedSignals.Clear();
+            p_DerivedSignals.Clear();
             if (File.Exists("common_derivatives.txt"))
             {
                 List<string> text = new StreamReader("common_derivatives.txt").ReadToEnd().Replace("\r\n", "\n").Split('\n').ToList();
@@ -926,9 +766,9 @@ namespace SleepApneaDiagnoser
                             {
                                 if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[0].Trim()) == null) // Unique Name
                                 {
-                                    if (DerivedSignals.Where(temp => temp[0].Trim() == new_entry[0].Trim()).ToList().Count == 0) // Unique Name
+                                    if (p_DerivedSignals.Where(temp => temp[0].Trim() == new_entry[0].Trim()).ToList().Count == 0) // Unique Name
                                     {
-                                        DerivedSignals.Add(new_entry);
+                                        p_DerivedSignals.Add(new_entry);
                                     }
                                 }
                             }
@@ -973,12 +813,12 @@ namespace SleepApneaDiagnoser
         }
         public void AddDerivative()
         {
-            Dialog_Add_Derivative dlg = new Dialog_Add_Derivative(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.Trim()).ToArray(), DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+            Dialog_Add_Derivative dlg = new Dialog_Add_Derivative(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.Trim()).ToArray(), p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
             dlg.ShowDialog();
 
             if (dlg.DialogResult == true)
             {
-                DerivedSignals.Add(new string[] { dlg.SignalName, dlg.Signal1, dlg.Signal2 });
+                p_DerivedSignals.Add(new string[] { dlg.SignalName, dlg.Signal1, dlg.Signal2 });
                 AddToCommonDerivativesFile(dlg.SignalName, dlg.Signal1, dlg.Signal2);
             }
 
@@ -986,15 +826,15 @@ namespace SleepApneaDiagnoser
         }
         public void RemoveDerivative()
         {
-            Dialog_Remove_Derivative dlg = new Dialog_Remove_Derivative(DerivedSignals.ToArray());
+            Dialog_Remove_Derivative dlg = new Dialog_Remove_Derivative(p_DerivedSignals.ToArray());
             dlg.ShowDialog();
 
             if (dlg.DialogResult == true)
             {
                 for (int x = 0; x < dlg.RemovedSignals.Length; x++)
                 {
-                    List<string[]> RemovedDerivatives = DerivedSignals.FindAll(temp => temp[0].Trim() == dlg.RemovedSignals[x].Trim()).ToList();
-                    DerivedSignals.RemoveAll(temp => temp[0].Trim() == dlg.RemovedSignals[x].Trim());
+                    List<string[]> RemovedDerivatives = p_DerivedSignals.FindAll(temp => temp[0].Trim() == dlg.RemovedSignals[x].Trim()).ToList();
+                    p_DerivedSignals.RemoveAll(temp => temp[0].Trim() == dlg.RemovedSignals[x].Trim());
                     RemoveFromCommonDerivativesFile(RemovedDerivatives);
 
                     if (p_PreviewSelectedSignals.Contains(dlg.RemovedSignals[x].Trim()))
@@ -1005,6 +845,311 @@ namespace SleepApneaDiagnoser
             }
 
             OnPropertyChanged(nameof(PreviewSignals));
+        }
+
+        // Preview Signal Selection
+        public int PreviewCurrentCategory
+        {
+            get
+            {
+                return p_PreviewCurrentCategory;
+            }
+            set
+            {
+                p_PreviewCurrentCategory = value;
+                OnPropertyChanged(nameof(PreviewCurrentCategory));
+                OnPropertyChanged(nameof(PreviewCurrentCategoryName));
+                OnPropertyChanged(nameof(PreviewSignals));
+            }
+        }
+        public string PreviewCurrentCategoryName
+        {
+            get
+            {
+                if (PreviewCurrentCategory == -1)
+                    return "All";
+                else
+                    return p_SignalCategories[PreviewCurrentCategory];
+            }
+        }
+        public ReadOnlyCollection<string> PreviewSignals
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                {
+                    if (PreviewCurrentCategory != -1)
+                        return Array.AsReadOnly(p_SignalCategoryContents[PreviewCurrentCategory].ToArray());
+                    else
+                    {
+                        List<string> output = new List<string>();
+                        output.AddRange(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray());
+                        output.AddRange(p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+                        return Array.AsReadOnly(output.ToArray());
+                    }
+                }
+                else
+                {
+                    return Array.AsReadOnly(new string[0]);
+                }
+            }
+        }
+        public void SetSelectedSignals(System.Collections.IList SelectedItems)
+        {
+            p_PreviewSelectedSignals.Clear();
+            for (int x = 0; x < SelectedItems.Count; x++)
+                p_PreviewSelectedSignals.Add(SelectedItems[x].ToString());
+
+            DrawChart();
+        }
+
+        // Preview Plot Range
+        public bool PreviewUseAbsoluteTime
+        {
+            get
+            {
+                return p_PreviewUseAbsoluteTime;
+            }
+            set
+            {
+                p_PreviewUseAbsoluteTime = value;
+
+                OnPropertyChanged(nameof(PreviewUseAbsoluteTime));
+                OnPropertyChanged(nameof(PreviewViewDuration));
+
+                OnPropertyChanged(nameof(PreviewViewStartTimeMax));
+                OnPropertyChanged(nameof(PreviewViewStartTimeMin));
+                OnPropertyChanged(nameof(PreviewViewStartRecordMax));
+                OnPropertyChanged(nameof(PreviewViewStartRecordMin));
+                OnPropertyChanged(nameof(PreviewViewDurationMax));
+                OnPropertyChanged(nameof(PreviewViewDurationMin));
+
+                DrawChart();
+            }
+        }
+        public DateTime? PreviewViewStartTime
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                {
+                    if (PreviewUseAbsoluteTime)
+                        return p_PreviewViewStartTime;
+                    else
+                        return RecordtoDateTime(p_PreviewViewStartRecord, LoadedEDFFile);
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            set
+            {
+                if (PreviewUseAbsoluteTime && IsEDFLoaded)
+                {
+                    p_PreviewViewStartTime = value ?? new DateTime();
+                    p_PreviewViewStartRecord = DateTimetoRecord(p_PreviewViewStartTime, LoadedEDFFile);
+
+                    OnPropertyChanged(nameof(PreviewViewStartRecord));
+                    OnPropertyChanged(nameof(PreviewViewStartTime));
+
+                    OnPropertyChanged(nameof(PreviewViewStartTimeMax));
+                    OnPropertyChanged(nameof(PreviewViewStartTimeMin));
+                    OnPropertyChanged(nameof(PreviewViewStartRecordMax));
+                    OnPropertyChanged(nameof(PreviewViewStartRecordMin));
+                    OnPropertyChanged(nameof(PreviewViewDurationMax));
+                    OnPropertyChanged(nameof(PreviewViewDurationMin));
+
+                    DrawChart();
+                }
+            }
+        }
+        public int? PreviewViewStartRecord
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                {
+                    if (PreviewUseAbsoluteTime)
+                        return DateTimetoRecord(PreviewViewStartTime ?? new DateTime(), LoadedEDFFile);
+                    else
+                        return p_PreviewViewStartRecord;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            set
+            {
+                if (!PreviewUseAbsoluteTime && IsEDFLoaded)
+                {
+                    p_PreviewViewStartRecord = value ?? 0;
+                    p_PreviewViewStartTime = RecordtoDateTime(p_PreviewViewStartRecord, LoadedEDFFile);
+
+                    OnPropertyChanged(nameof(PreviewViewStartRecord));
+                    OnPropertyChanged(nameof(PreviewViewStartTime));
+
+                    OnPropertyChanged(nameof(PreviewViewStartTimeMax));
+                    OnPropertyChanged(nameof(PreviewViewStartTimeMin));
+                    OnPropertyChanged(nameof(PreviewViewStartRecordMax));
+                    OnPropertyChanged(nameof(PreviewViewStartRecordMin));
+                    OnPropertyChanged(nameof(PreviewViewDurationMax));
+                    OnPropertyChanged(nameof(PreviewViewDurationMin));
+
+                    DrawChart();
+                }
+            }
+        }
+        public int? PreviewViewDuration
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                {
+                    if (PreviewUseAbsoluteTime)
+                        return p_PreviewViewDuration;
+                    else
+                        return TimeSpantoRecordPeriod(new TimeSpan(0, 0, p_PreviewViewDuration), LoadedEDFFile);
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            set
+            {
+                if (IsEDFLoaded)
+                {
+                    if (PreviewUseAbsoluteTime)
+                        p_PreviewViewDuration = value ?? 0;
+                    else
+                        p_PreviewViewDuration = (int)RecordPeriodtoTimeSpan((value ?? 0), LoadedEDFFile).TotalSeconds;
+                }
+                
+                OnPropertyChanged(nameof(PreviewViewDuration));
+
+                OnPropertyChanged(nameof(PreviewViewStartTimeMax));
+                OnPropertyChanged(nameof(PreviewViewStartTimeMin));
+                OnPropertyChanged(nameof(PreviewViewStartRecordMax));
+                OnPropertyChanged(nameof(PreviewViewStartRecordMin));
+                OnPropertyChanged(nameof(PreviewViewDurationMax));
+                OnPropertyChanged(nameof(PreviewViewDurationMin));
+
+                DrawChart();
+            }
+        }
+        public DateTime PreviewViewEndTime
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                {
+                    if (PreviewUseAbsoluteTime)
+                        return (PreviewViewStartTime ?? new DateTime()) + new TimeSpan(0, 0, 0, PreviewViewDuration ?? 0);
+                    else
+                        return (PreviewViewStartTime ?? new DateTime()) + RecordPeriodtoTimeSpan(PreviewViewDuration ?? 0, LoadedEDFFile);
+                }
+                else
+                {
+                    return new DateTime();
+                }
+            }
+        }
+
+        public DateTime PreviewViewStartTimeMax
+        {
+            get
+            {
+                if (LoadedEDFFile != null)
+                    return LoadedEDFFile.Header.StartDateTime // Start Time
+                        + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds) // Total Duration
+                        - new TimeSpan(0, 0, p_PreviewViewDuration); // View Duration
+                else
+                    return new DateTime();
+            }
+        }
+        public DateTime PreviewViewStartTimeMin
+        {
+            get
+            {
+                if (LoadedEDFFile != null)
+                    return LoadedEDFFile.Header.StartDateTime; // Start Time
+                else
+                    return new DateTime();
+            }
+        }
+        public int PreviewViewStartRecordMax
+        {
+            get
+            {
+                if (LoadedEDFFile != null)
+                    return DateTimetoRecord(PreviewViewStartTimeMax, LoadedEDFFile); // PreviewViewStartTimeMax to Record
+                else
+                    return 0;
+            }
+        }
+        public int PreviewViewStartRecordMin
+        {
+            get
+            {
+                return 0; // Record 0
+            }
+        }
+        public int PreviewViewDurationMax
+        {
+            get
+            {
+                if (LoadedEDFFile != null) // File Loaded
+                {
+                    if (p_PreviewUseAbsoluteTime)
+                        return Math.Min(2 * 60 * 60, (int)((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)) - (PreviewViewStartTime ?? new DateTime())).TotalSeconds);
+                    else
+                        return Math.Min((2 * 60 * 60) / (LoadedEDFFile == null ? 30 : LoadedEDFFile.Header.DurationOfDataRecordInSeconds), DateTimetoRecord((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)), LoadedEDFFile) - DateTimetoRecord((PreviewViewStartTime ?? new DateTime()), LoadedEDFFile));
+                }
+                else // No File Loaded
+                    return 0;
+            }
+        }
+        public int PreviewViewDurationMin
+        {
+            get
+            {
+                if (LoadedEDFFile != null) // File Loaded
+                    return 1;
+                else // No File Loaded
+                    return 0;
+            }
+        }
+
+        public bool PreviewNavigationEnabled
+        {
+            get
+            {
+                if (!IsEDFLoaded)
+                    return false;
+                else
+                    return p_PreviewNavigationEnabled;
+            }
+            set
+            {
+                p_PreviewNavigationEnabled = value;
+                OnPropertyChanged(nameof(PreviewNavigationEnabled));
+            }
+        }
+
+        // Preview Plot
+        public PlotModel PreviewSignalPlot
+        {
+            get
+            {
+                return p_PreviewSignalPlot;
+            }
+            set
+            {
+                p_PreviewSignalPlot = value;
+                OnPropertyChanged(nameof(PreviewSignalPlot));
+            }
         }
 
         // INotify Interface

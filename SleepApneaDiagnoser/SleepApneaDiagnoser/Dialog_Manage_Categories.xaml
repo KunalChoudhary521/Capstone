@@ -1,10 +1,11 @@
-﻿<Window x:Class="SleepApneaDiagnoser.Dialog_Manage_Categories"
+﻿<mtr:MetroWindow x:Class="SleepApneaDiagnoser.Dialog_Manage_Categories"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SleepApneaDiagnoser"
         mc:Ignorable="d"
+        xmlns:mtr="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         Title="Manage Signal Categories" Height="240" Width="300" ShowInTaskbar="False" ResizeMode="NoResize">
     <Grid>
 
@@ -18,4 +19,4 @@
         <Button x:Name="button_RemoveCategory" Content="Remove" Margin="78,0,0,16.667" VerticalAlignment="Bottom" Height="20" RenderTransformOrigin="1.188,0.643" HorizontalAlignment="Left" Width="64" Click="button_RemoveCategory_Click"/>
 
     </Grid>
-</Window>
+</mtr:MetroWindow>

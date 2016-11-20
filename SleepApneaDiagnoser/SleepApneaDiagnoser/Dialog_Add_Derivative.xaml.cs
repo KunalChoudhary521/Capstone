@@ -11,13 +11,14 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using MahApps.Metro.Controls.Dialogs;
 
 namespace SleepApneaDiagnoser
 {
     /// <summary>
     /// Interaction logic for Dialog_Derivative.xaml
     /// </summary>
-    public partial class Dialog_Add_Derivative : Window
+    public partial class Dialog_Add_Derivative
     {
         public string SignalName
         {
@@ -64,7 +65,7 @@ namespace SleepApneaDiagnoser
             {
                 if (Signals.ToList().Contains(textBox_SignalName.Text.Trim()) || DerivedSignals.ToList().Contains(textBox_SignalName.Text.Trim()))
                 {
-                    MessageBox.Show("Please select a unique signal name.");
+                    this.ShowMessageAsync("Error", "Please select a unique signal name.");
                 }
                 else
                 {
@@ -74,7 +75,7 @@ namespace SleepApneaDiagnoser
             }
             else
             {
-                MessageBox.Show("Please fill in empty fields.");
+                this.ShowMessageAsync("Error", "Please fill in empty fields.");
             }
         }
         private void button_Cancel_Click(object sender, RoutedEventArgs e)

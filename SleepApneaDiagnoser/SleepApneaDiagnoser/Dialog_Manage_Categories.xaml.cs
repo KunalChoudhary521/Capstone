@@ -19,7 +19,7 @@ namespace SleepApneaDiagnoser
     /// <summary>
     /// Interaction logic for Dialog_ManageCategories.xaml
     /// </summary>
-    public partial class Dialog_Manage_Categories : Window
+    public partial class Dialog_Manage_Categories
     {
         /// <summary>
         /// From stack overflow http://stackoverflow.com/questions/5181063/how-to-access-a-specific-item-in-a-listbox-with-datatemplate
