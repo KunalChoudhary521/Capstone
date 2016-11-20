@@ -92,15 +92,16 @@
                     <Label Content="Plot" FontSize="18" HorizontalAlignment="Left" Margin="265,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="42" Width="47"/>
                     <Grid Height="38" Margin="265,52,373,0" VerticalAlignment="Top">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="35*"/>
-                            <ColumnDefinition Width="9*"/>
+                            <ColumnDefinition Width="116*"/>
+                            <ColumnDefinition Width="85*"/>
+                            <ColumnDefinition Width="86*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Content="From" HorizontalAlignment="Left" Margin="5,0,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="28" Width="47" HorizontalContentAlignment="Center" FontSize="14"/>
-                        <xctk:DateTimeUpDown x:Name="timePicker_From_Abs" Margin="57,0,0,10" HorizontalAlignment="Left" Width="200" AllowTextInput="False" TextAlignment="Center" Value="{Binding PreviewViewStartTime, Delay=300}" Maximum="{Binding PreviewViewStartTimeMax}" Minimum="{Binding PreviewViewStartTimeMin}" IsEnabled="{Binding PreviewNavigationEnabled}"/>
-                        <xctk:IntegerUpDown x:Name="timePicker_From_Eph" Margin="57,0,0,10" HorizontalAlignment="Left" Width="200" AllowTextInput="True" TextAlignment="Center" Value="{Binding PreviewViewStartRecord, Delay=300}" Maximum="{Binding PreviewViewStartRecordMax}" Minimum="{Binding PreviewViewStartRecordMin}" IsEnabled="{Binding PreviewNavigationEnabled}" FontSize="14"/>
-                        <Label Content="Length" Margin="0,0,131,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="28" HorizontalAlignment="Right" Width="62" HorizontalContentAlignment="Center" FontSize="14"/>
-                        <xctk:IntegerUpDown x:Name="timePicker_Period" Margin="0,0,41,10" AllowTextInput="True" TextAlignment="Center" Value="{Binding PreviewViewDuration, Delay=300}" Maximum="{Binding PreviewViewDurationMax}" Minimum="{Binding PreviewViewDurationMin}" IsEnabled="{Binding PreviewNavigationEnabled}" FontSize="14" HorizontalAlignment="Right" Width="85"/>
-                        <ToggleButton x:Name="toggleButton_UseAbsoluteTime" Content="USE ABSOLUTE TIME" VerticalAlignment="Top" Height="28" IsChecked="{Binding PreviewUseAbsoluteTime}" IsEnabled="{Binding PreviewNavigationEnabled}" Checked="toggleButton_UseAbsoluteTime_Checked" Unchecked="toggleButton_UseAbsoluteTime_Unchecked" Grid.Column="1" Margin="5,0,0,0"/>
+                        <Label Content="From" HorizontalAlignment="Left" Margin="0,2,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="36" Width="47" HorizontalContentAlignment="Center" FontSize="14"/>
+                        <xctk:DateTimeUpDown x:Name="timePicker_From_Abs" Margin="47,2,15,8" AllowTextInput="False" TextAlignment="Center" Value="{Binding PreviewViewStartTime, Delay=300}" Maximum="{Binding PreviewViewStartTimeMax}" Minimum="{Binding PreviewViewStartTimeMin}" IsEnabled="{Binding PreviewNavigationEnabled}"/>
+                        <xctk:IntegerUpDown x:Name="timePicker_From_Eph" Margin="47,2,5,8" AllowTextInput="True" TextAlignment="Center" Value="{Binding PreviewViewStartRecord, Delay=300}" Maximum="{Binding PreviewViewStartRecordMax}" Minimum="{Binding PreviewViewStartRecordMin}" IsEnabled="{Binding PreviewNavigationEnabled}" FontSize="14"/>
+                        <Label Content="Length" Margin="0,2,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="36" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="1" HorizontalAlignment="Left" Width="62"/>
+                        <xctk:IntegerUpDown x:Name="timePicker_Period" Margin="62,2,10,8" AllowTextInput="True" TextAlignment="Center" Value="{Binding PreviewViewDuration, Delay=300}" Maximum="{Binding PreviewViewDurationMax}" Minimum="{Binding PreviewViewDurationMin}" IsEnabled="{Binding PreviewNavigationEnabled}" FontSize="14" Grid.Column="1"/>
+                        <ToggleButton x:Name="toggleButton_UseAbsoluteTime" Content="USE ABSOLUTE TIME" VerticalAlignment="Top" Height="28" IsChecked="{Binding PreviewUseAbsoluteTime}" IsEnabled="{Binding PreviewNavigationEnabled}" Checked="toggleButton_UseAbsoluteTime_Checked" Unchecked="toggleButton_UseAbsoluteTime_Unchecked" Grid.Column="2" Margin="10,2,10,0"/>
                     </Grid>
                     <oxy:PlotView x:Name="PlotView_signalPlot" Margin="265,90,373,30" Model="{Binding PreviewSignalPlot}"/>
                     <Button x:Name="button_AddDerivative" Content="Add Derivative" HorizontalAlignment="Left" Margin="10,0,0,46.667" Width="122" Height="32" VerticalAlignment="Bottom" IsEnabled="{Binding IsEDFLoaded}" Click="button_AddDerivative_Click" FontSize="10"/>
