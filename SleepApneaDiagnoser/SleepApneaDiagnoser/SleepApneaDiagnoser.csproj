@@ -111,6 +111,14 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Dialog_Error.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Dialog_Export_Previewed_Signals.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Dialog_Manage_Categories.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -130,12 +138,19 @@
     <Compile Include="Dialog_Add_Derivative.xaml.cs">
       <DependentUpon>Dialog_Add_Derivative.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Dialog_Error.xaml.cs">
+      <DependentUpon>Dialog_Error.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialog_Export_Previewed_Signals.xaml.cs">
+      <DependentUpon>Dialog_Export_Previewed_Signals.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Dialog_Manage_Categories.xaml.cs">
       <DependentUpon>Dialog_Manage_Categories.xaml</DependentUpon>
     </Compile>
     <Compile Include="Dialog_Remove_Derivative.xaml.cs">
       <DependentUpon>Dialog_Remove_Derivative.xaml</DependentUpon>
     </Compile>
+    <Compile Include="ExportSignalModel.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

@@ -1,0 +1,15 @@
+﻿<mtr:MetroWindow x:Class="SleepApneaDiagnoser.Dialog_Error"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SleepApneaDiagnoser"
+        mc:Ignorable="d"
+        xmlns:mtr="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
+        Title="Error" Height="211.652" Width="441.737">
+  <Grid>
+    <Button x:Name="button_close" Content="Close" HorizontalAlignment="Left" Height="38" Margin="313,118,0,0" VerticalAlignment="Top" Width="94" Background="IndianRed" FontSize="14" Click="button_close_Click"/>
+    <TextBox x:Name="textBox_message" HorizontalAlignment="Left" Height="54" Margin="32,36,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="375" FontSize="14" IsReadOnly="true"/>
+
+  </Grid>
+</mtr:MetroWindow>
