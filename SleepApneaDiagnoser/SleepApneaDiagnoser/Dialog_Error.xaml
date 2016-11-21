@@ -9,7 +9,7 @@
         Title="Error" Height="211.652" Width="441.737">
   <Grid>
     <Button x:Name="button_close" Content="Close" HorizontalAlignment="Left" Height="38" Margin="313,118,0,0" VerticalAlignment="Top" Width="94" Background="IndianRed" FontSize="14" Click="button_close_Click"/>
-    <TextBox x:Name="textBox_message" HorizontalAlignment="Left" Height="54" Margin="32,36,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="375" FontSize="14"/>
+    <TextBox x:Name="textBox_message" HorizontalAlignment="Left" Height="54" Margin="32,36,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="375" FontSize="14" IsReadOnly="true"/>
 
   </Grid>
 </mtr:MetroWindow>
