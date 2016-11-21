@@ -1,0 +1,22 @@
+﻿<mtr:MetroWindow x:Class="SleepApneaDiagnoser.Dialog_Export_Previewed_Signals"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SleepApneaDiagnoser"
+        mc:Ignorable="d"
+        xmlns:mtr="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
+        Title="Export Selected Signals" Height="342.558" Width="506.481">
+  <Grid>
+    <TextBox x:Name="textBox_signal_name" HorizontalAlignment="Left" Height="38" Margin="25,54,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="440" FontSize="10"/>
+    <TextBox x:Name="textBox_epochs_from" HorizontalAlignment="Left" Height="28" Margin="28,190,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="71"/>
+    <TextBox x:Name="textBox_epochs_to" HorizontalAlignment="Left" Height="28" Margin="136,190,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="71"/>
+    <Button x:Name="button_export_next_finish" Content="Next" HorizontalAlignment="Left" Height="43" Margin="375,249,0,0" VerticalAlignment="Top" Width="91" FontSize="14" Background="LightBlue" Click="button_export_next_finish_Click"/>
+    <Button x:Name="button_export_cancel" Content="Cancel" HorizontalAlignment="Left" Height="43" Margin="259,249,0,0" VerticalAlignment="Top" Width="91" FontSize="14" Background="IndianRed" Click="button_export_cancel_Click"/>
+    <Label x:Name="label_signal_name" Content="Signal" HorizontalAlignment="Left" Height="31" Margin="25,18,0,0" VerticalAlignment="Top" Width="84" FontSize="14"/>
+    <Label x:Name="label_epochs_from" Content="From" HorizontalAlignment="Left" Height="28" Margin="28,147,0,0" VerticalAlignment="Top" Width="84" FontSize="12" RenderTransformOrigin="0.472,1.404"/>
+    <Label x:Name="label_epochs_to" Content="To" HorizontalAlignment="Left" Height="28" Margin="136,147,0,0" VerticalAlignment="Top" Width="84" FontSize="12"/>
+    <Label x:Name="label_epochs" Content="Select Epochs" HorizontalAlignment="Left" Height="31" Margin="25,111,0,0" VerticalAlignment="Top" Width="96" FontSize="14"/>
+
+  </Grid>
+</mtr:MetroWindow>
