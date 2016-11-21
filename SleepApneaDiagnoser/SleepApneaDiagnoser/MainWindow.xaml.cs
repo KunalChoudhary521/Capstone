@@ -351,21 +351,22 @@ namespace SleepApneaDiagnoser
     /********************************************************************************************************************************/
 
     // Static Functions
-    private static DateTime RecordtoDateTime(int epoch, EDFFile file)
+    private static int EPOCH_SEC = 30;
+    private static DateTime EpochtoDateTime(int epoch, EDFFile file)
     {
-      return file.Header.StartDateTime + new TimeSpan(0, 0, epoch * file.Header.DurationOfDataRecordInSeconds);
+      return file.Header.StartDateTime + new TimeSpan(0, 0, epoch * EPOCH_SEC);
     }
-    private static TimeSpan RecordPeriodtoTimeSpan(int period, EDFFile file)
+    private static TimeSpan EpochPeriodtoTimeSpan(int period)
     {
-      return new TimeSpan(0, 0, 0, period * file.Header.DurationOfDataRecordInSeconds);
+      return new TimeSpan(0, 0, 0, period * EPOCH_SEC);
     }
-    private static int DateTimetoRecord(DateTime time, EDFFile file)
+    private static int DateTimetoEpoch(DateTime time, EDFFile file)
     {
-      return (int)((time - file.Header.StartDateTime).TotalSeconds / (double)file.Header.DurationOfDataRecordInSeconds);
+      return (int)((time - file.Header.StartDateTime).TotalSeconds / (double)EPOCH_SEC);
     }
-    private static int TimeSpantoRecordPeriod(TimeSpan period, EDFFile file)
+    private static int TimeSpantoEpochPeriod(TimeSpan period)
     {
-      return (int)(period.TotalSeconds / file.Header.DurationOfDataRecordInSeconds);
+      return (int)(period.TotalSeconds / (double)EPOCH_SEC);
     }
 
     // General Private Variables
@@ -941,7 +942,7 @@ namespace SleepApneaDiagnoser
           if (PreviewUseAbsoluteTime)
             return p_PreviewViewStartTime;
           else
-            return RecordtoDateTime(p_PreviewViewStartRecord, LoadedEDFFile);
+            return EpochtoDateTime(p_PreviewViewStartRecord, LoadedEDFFile);
         }
         else
         {
@@ -953,7 +954,7 @@ namespace SleepApneaDiagnoser
         if (PreviewUseAbsoluteTime && IsEDFLoaded)
         {
           p_PreviewViewStartTime = value ?? new DateTime();
-          p_PreviewViewStartRecord = DateTimetoRecord(p_PreviewViewStartTime, LoadedEDFFile);
+          p_PreviewViewStartRecord = DateTimetoEpoch(p_PreviewViewStartTime, LoadedEDFFile);
 
           OnPropertyChanged(nameof(PreviewViewStartRecord));
           OnPropertyChanged(nameof(PreviewViewStartTime));
@@ -976,7 +977,7 @@ namespace SleepApneaDiagnoser
         if (IsEDFLoaded)
         {
           if (PreviewUseAbsoluteTime)
-            return DateTimetoRecord(PreviewViewStartTime ?? new DateTime(), LoadedEDFFile);
+            return DateTimetoEpoch(PreviewViewStartTime ?? new DateTime(), LoadedEDFFile);
           else
             return p_PreviewViewStartRecord;
         }
@@ -990,7 +991,7 @@ namespace SleepApneaDiagnoser
         if (!PreviewUseAbsoluteTime && IsEDFLoaded)
         {
           p_PreviewViewStartRecord = value ?? 0;
-          p_PreviewViewStartTime = RecordtoDateTime(p_PreviewViewStartRecord, LoadedEDFFile);
+          p_PreviewViewStartTime = EpochtoDateTime(p_PreviewViewStartRecord, LoadedEDFFile);
 
           OnPropertyChanged(nameof(PreviewViewStartRecord));
           OnPropertyChanged(nameof(PreviewViewStartTime));
@@ -1015,7 +1016,7 @@ namespace SleepApneaDiagnoser
           if (PreviewUseAbsoluteTime)
             return p_PreviewViewDuration;
           else
-            return TimeSpantoRecordPeriod(new TimeSpan(0, 0, p_PreviewViewDuration), LoadedEDFFile);
+            return TimeSpantoEpochPeriod(new TimeSpan(0, 0, p_PreviewViewDuration));
         }
         else
         {
@@ -1029,7 +1030,7 @@ namespace SleepApneaDiagnoser
           if (PreviewUseAbsoluteTime)
             p_PreviewViewDuration = value ?? 0;
           else
-            p_PreviewViewDuration = (int)RecordPeriodtoTimeSpan((value ?? 0), LoadedEDFFile).TotalSeconds;
+            p_PreviewViewDuration = (int)EpochPeriodtoTimeSpan((value ?? 0)).TotalSeconds;
         }
 
         OnPropertyChanged(nameof(PreviewViewDuration));
@@ -1053,7 +1054,7 @@ namespace SleepApneaDiagnoser
           if (PreviewUseAbsoluteTime)
             return (PreviewViewStartTime ?? new DateTime()) + new TimeSpan(0, 0, 0, PreviewViewDuration ?? 0);
           else
-            return (PreviewViewStartTime ?? new DateTime()) + RecordPeriodtoTimeSpan(PreviewViewDuration ?? 0, LoadedEDFFile);
+            return (PreviewViewStartTime ?? new DateTime()) + EpochPeriodtoTimeSpan(PreviewViewDuration ?? 0);
         }
         else
         {
@@ -1089,7 +1090,7 @@ namespace SleepApneaDiagnoser
       get
       {
         if (LoadedEDFFile != null)
-          return DateTimetoRecord(PreviewViewStartTimeMax, LoadedEDFFile); // PreviewViewStartTimeMax to Record
+          return DateTimetoEpoch(PreviewViewStartTimeMax, LoadedEDFFile); // PreviewViewStartTimeMax to Record
         else
           return 0;
       }
@@ -1108,9 +1109,15 @@ namespace SleepApneaDiagnoser
         if (LoadedEDFFile != null) // File Loaded
         {
           if (p_PreviewUseAbsoluteTime)
-            return Math.Min(2 * 60 * 60, (int)((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)) - (PreviewViewStartTime ?? new DateTime())).TotalSeconds);
+            return Math.Min(
+                2 * 60 * 60, 
+                (int)((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)) - (PreviewViewStartTime ?? new DateTime())).TotalSeconds
+                );
           else
-            return Math.Min((2 * 60 * 60) / (LoadedEDFFile == null ? 30 : LoadedEDFFile.Header.DurationOfDataRecordInSeconds), DateTimetoRecord((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)), LoadedEDFFile) - DateTimetoRecord((PreviewViewStartTime ?? new DateTime()), LoadedEDFFile));
+            return Math.Min(
+                (int)((2 * 60 * 60) / ((double)EPOCH_SEC)), 
+                DateTimetoEpoch((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)), LoadedEDFFile) - DateTimetoEpoch((PreviewViewStartTime ?? new DateTime()), LoadedEDFFile)
+                );
         }
         else // No File Loaded
           return 0;
@@ -1182,8 +1189,7 @@ namespace SleepApneaDiagnoser
         }
       }
       else {
-        Dialog_Error dlg = new Dialog_Error("Please select at least one signal from the preview.");
-        dlg.ShowDialog();
+        p_window.ShowMessageAsync("Error", "Please select at least one signal from the preview.");
       }
     }
 

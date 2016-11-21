@@ -111,10 +111,6 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="Dialog_Error.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
     <Page Include="Dialog_Export_Previewed_Signals.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -137,9 +133,6 @@
     </Compile>
     <Compile Include="Dialog_Add_Derivative.xaml.cs">
       <DependentUpon>Dialog_Add_Derivative.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Dialog_Error.xaml.cs">
-      <DependentUpon>Dialog_Error.xaml</DependentUpon>
     </Compile>
     <Compile Include="Dialog_Export_Previewed_Signals.xaml.cs">
       <DependentUpon>Dialog_Export_Previewed_Signals.xaml</DependentUpon>
