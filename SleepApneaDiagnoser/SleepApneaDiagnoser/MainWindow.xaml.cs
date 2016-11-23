@@ -1171,7 +1171,12 @@ namespace SleepApneaDiagnoser
         Dialog_Export_Previewed_Signals dlg = new Dialog_Export_Previewed_Signals(p_PreviewSelectedSignals);
         if (dlg.ShowDialog() == true)
         {
-          List<ExportSignalModel> signals_to_export = new List<ExportSignalModel>(Dialog_Export_Previewed_Signals.signals_to_export);
+          ExportSignalModel signals_to_export = new ExportSignalModel(Dialog_Export_Previewed_Signals.signals_to_export);
+
+          SaveFileDialog file_location = new SaveFileDialog();
+          file_location.ShowDialog();          
+
+          string location = file_location.FileName;
 
           /*Processing proc = new Processing();
           MWArray[] input = new MWArray[2];

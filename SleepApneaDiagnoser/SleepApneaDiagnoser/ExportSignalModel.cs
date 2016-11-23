@@ -8,15 +8,22 @@ namespace SleepApneaDiagnoser
 {
   public class ExportSignalModel
   {
-    public string Signal_Name { get; }
-    public string Epochs_From { get; }
-    public string Epochs_To { get; }
+    public int Subject_ID { get; }
+    public int Epochs_From { get; }
+    public int Epochs_To { get; }
 
-    public ExportSignalModel(string signal_name, string epochs_from, string epochs_to)
+    public ExportSignalModel(int subject_id, int epochs_from, int epochs_to)
     {
-      this.Signal_Name = signal_name;
+      this.Subject_ID = subject_id;
       this.Epochs_From = epochs_from;
       this.Epochs_To = epochs_to;
+    }
+
+    public ExportSignalModel(ExportSignalModel signals_to_export)
+    {
+      this.Subject_ID = signals_to_export.Subject_ID;
+      this.Epochs_From = signals_to_export.Epochs_From;
+      this.Epochs_To = signals_to_export.Epochs_To;
     }
   }
 }
