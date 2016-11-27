@@ -133,7 +133,7 @@ namespace SleepApneaDiagnoser
       if (comboBox_SignalSelect.SelectedValue != null)
       {
         EDFSignal edfsignal = model.LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == comboBox_SignalSelect.SelectedValue.ToString().Trim());
-        textBox_SampRecord.Text = edfsignal.NumberOfSamplesPerDataRecord.ToString();
+        textBox_SampRecord.Text = ((int)((double)edfsignal.NumberOfSamplesPerDataRecord / (double)model.LoadedEDFFile.Header.DurationOfDataRecordInSeconds)).ToString();
       }
       else
       {
@@ -403,8 +403,6 @@ namespace SleepApneaDiagnoser
         // Header
         OnPropertyChanged(nameof(EDFStartTime));
         OnPropertyChanged(nameof(EDFEndTime));
-        OnPropertyChanged(nameof(EDFRecordDuration));
-        OnPropertyChanged(nameof(EDFNumRecords));
         OnPropertyChanged(nameof(EDFPatientName));
         OnPropertyChanged(nameof(EDFPatientSex));
         OnPropertyChanged(nameof(EDFPatientCode));
@@ -530,26 +528,6 @@ namespace SleepApneaDiagnoser
       {
         if (IsEDFLoaded)
           return (LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.DurationOfDataRecordInSeconds * LoadedEDFFile.Header.NumberOfDataRecords)).ToString();
-        else
-          return "";
-      }
-    }
-    public string EDFRecordDuration
-    {
-      get
-      {
-        if (IsEDFLoaded)
-          return LoadedEDFFile.Header.DurationOfDataRecordInSeconds.ToString();
-        else
-          return "";
-      }
-    }
-    public string EDFNumRecords
-    {
-      get
-      {
-        if (IsEDFLoaded)
-          return LoadedEDFFile.Header.NumberOfDataRecords.ToString();
         else
           return "";
       }
