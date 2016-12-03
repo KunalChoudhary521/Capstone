@@ -187,16 +187,14 @@ namespace SleepApneaDiagnoser
             EDFFile temp = new EDFFile();
             temp.readFile(e.Argument.ToString());
             LoadedEDFFile = temp;
-
+            
             // Load Settings Files
-            LoadCommonDerivativesFile();
-            LoadCategoriesFile();
-            LoadHiddenSignalsFile();
+            LoadSettings();
         }
         private async void BW_FinishLoad(object sender, RunWorkerCompletedEventArgs e)
         {
             RecentFiles_Add(LoadedEDFFileName);
-
+            
             await controller.CloseAsync();
             await p_window.ShowMessageAsync("Success!", "EDF file loaded");
         }
@@ -530,6 +528,10 @@ namespace SleepApneaDiagnoser
         public void ManageCategories()
         {
             Dialog_Manage_Categories dlg = new Dialog_Manage_Categories(p_SignalCategories.ToArray(), p_SignalCategoryContents.Select(temp => temp.ToArray()).ToArray(), LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray(), p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+            dlg.Top = p_window.Top + 60;
+            dlg.Left = p_window.Left + 60;
+            dlg.Width = p_window.Width - 120;
+            dlg.Height = p_window.Height - 120;
             dlg.ShowDialog();
 
             PreviewCurrentCategory = -1;
@@ -581,7 +583,6 @@ namespace SleepApneaDiagnoser
                     }
                 }
             }
-            OnPropertyChanged(nameof(PreviewSignals));
         }
         private void AddToCommonDerivativesFile(string name, string signal1, string signal2)
         {
@@ -619,6 +620,10 @@ namespace SleepApneaDiagnoser
         public void AddDerivative()
         {
             Dialog_Add_Derivative dlg = new Dialog_Add_Derivative(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.Trim()).ToArray(), p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+            dlg.Top = p_window.Top + 60;
+            dlg.Left = p_window.Left + 60;
+            dlg.Width = p_window.Width - 120;
+            dlg.Height = p_window.Height - 120;
             dlg.ShowDialog();
 
             if (dlg.DialogResult == true)
@@ -632,6 +637,10 @@ namespace SleepApneaDiagnoser
         public void RemoveDerivative()
         {
             Dialog_Remove_Derivative dlg = new Dialog_Remove_Derivative(p_DerivedSignals.ToArray());
+            dlg.Top = p_window.Top + 60;
+            dlg.Left = p_window.Left + 60;
+            dlg.Width = p_window.Width - 120;
+            dlg.Height = p_window.Height - 120;
             dlg.ShowDialog();
 
             if (dlg.DialogResult == true)
@@ -662,7 +671,6 @@ namespace SleepApneaDiagnoser
                 p_HiddenSignals = new StreamReader("hiddensignals.txt").ReadToEnd().Replace("\r\n", "\n").Split('\n').ToList();
                 p_HiddenSignals = p_HiddenSignals.Select(temp => temp.Trim()).ToList();
             }
-            OnPropertyChanged(nameof(PreviewSignals));
         }
         private void WriteToHiddenSignalsFile()
         {
@@ -684,12 +692,16 @@ namespace SleepApneaDiagnoser
                     input[x] = false;
             }
 
-            Dialog_Hide_Signals dialog = new Dialog_Hide_Signals(EDFAllSignals.ToArray(), input);
-            dialog.ShowDialog();
+            Dialog_Hide_Signals dlg = new Dialog_Hide_Signals(EDFAllSignals.ToArray(), input);
+            dlg.Top = p_window.Top + 60;
+            dlg.Left = p_window.Left + 60;
+            dlg.Width = p_window.Width - 120;
+            dlg.Height = p_window.Height - 120;
+            dlg.ShowDialog();
 
-            for (int x = 0; x < dialog.hide_signals_new.Length; x++)
+            for (int x = 0; x < dlg.hide_signals_new.Length; x++)
             {
-                if (dialog.hide_signals_new[x])
+                if (dlg.hide_signals_new[x])
                 {
                     if (!p_HiddenSignals.Contains(EDFAllSignals[x]))
                     {
@@ -712,6 +724,13 @@ namespace SleepApneaDiagnoser
         {
             WriteToHiddenSignalsFile();
             WriteToCategoriesFile();
+        }
+        public void LoadSettings()
+        {
+            LoadHiddenSignalsFile();
+            LoadCommonDerivativesFile();
+            LoadCategoriesFile();
+            OnPropertyChanged(nameof(PreviewSignals));
         }
 
         /******************************************************* STATIC FUNCTIONS *******************************************************/

@@ -19,7 +19,7 @@ namespace SleepApneaDiagnoser
     /// <summary>
     /// Interaction logic for Dialog_Hide_Signals.xaml
     /// </summary>
-    public partial class Dialog_Hide_Signals : MetroWindow
+    public partial class Dialog_Hide_Signals
     {
         public bool[] hide_signals_new
         {
