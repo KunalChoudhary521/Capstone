@@ -111,12 +111,12 @@
             </mtr:MetroTabItem>
 
             <mtr:MetroTabItem Header="Analysis" IsEnabled="{Binding IsEDFLoaded}">
-                <mtr:MetroTabControl>
-                    <mtr:MetroTabItem Header="EEG Signals" IsEnabled="{Binding IsEDFLoaded}" Margin="20,0,-20,0">
+                <mtr:MetroTabControl >
+                    <mtr:MetroTabItem Header="EEG" IsEnabled="{Binding IsEDFLoaded}" Margin="20,0,-20,0">
                     </mtr:MetroTabItem>
-                    <mtr:MetroTabItem Header="Respiratory Signals" IsEnabled="{Binding IsEDFLoaded}" Margin="40,0,-40,0">
+                    <mtr:MetroTabItem Header="Respiratory" IsEnabled="{Binding IsEDFLoaded}" Margin="20,0,-20,0">
                     </mtr:MetroTabItem>
-                    <mtr:MetroTabItem Header="Circulatory Signals" IsEnabled="{Binding IsEDFLoaded}" Margin="60,0,-60,0">
+                    <mtr:MetroTabItem Header="Circulatory" IsEnabled="{Binding IsEDFLoaded}" Margin="20,0,-20,0">
                     </mtr:MetroTabItem>
                 </mtr:MetroTabControl>
             </mtr:MetroTabItem>
