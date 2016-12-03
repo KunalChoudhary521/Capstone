@@ -83,7 +83,7 @@
                     <Label x:Name="label" Content="Signals" FontSize="18" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="42" Width="71"/>
                     <Label x:Name="label_CurrentCategory" Content="{Binding Path=PreviewCurrentCategoryName}" HorizontalContentAlignment="Center"  HorizontalAlignment="Left" Margin="47,52,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="33" Width="176" FontSize="14"/>
 
-                    <ListBox x:Name="listBox_SignalSelect"  HorizontalAlignment="Left" Margin="10,90,0,83.667" Width="250" SelectionMode="Multiple" SelectionChanged="listBox_SignalSelect_SelectionChanged" ItemsSource="{Binding PreviewSignals }" FontSize="14"/>
+                    <ListBox x:Name="listBox_SignalSelect"  HorizontalAlignment="Left" Margin="10,90,0,121" Width="250" SelectionMode="Multiple" SelectionChanged="listBox_SignalSelect_SelectionChanged" ItemsSource="{Binding PreviewSignals }" FontSize="14"/>
 
                     <Label Content="Plot" FontSize="18" HorizontalAlignment="Left" Margin="265,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="42" Width="47"/>
                     <Grid Height="38" Margin="265,52,373,0" VerticalAlignment="Top">
@@ -100,12 +100,13 @@
                         <ToggleButton x:Name="toggleButton_UseAbsoluteTime" Content="ABSOLUTE TIME" VerticalAlignment="Top" Height="28" IsChecked="{Binding PreviewUseAbsoluteTime}" IsEnabled="{Binding PreviewNavigationEnabled}" Checked="toggleButton_UseAbsoluteTime_Checked" Unchecked="toggleButton_UseAbsoluteTime_Unchecked" Grid.Column="2" Margin="5,0,0,0"/>
                     </Grid>
                     <oxy:PlotView x:Name="PlotView_signalPlot" Margin="265,90,341,10" Model="{Binding PreviewSignalPlot}"/>
+                    <Button x:Name="button_HideSignals" Content="Hide/Unhide Signals" HorizontalAlignment="Left" Margin="10,0,0,84" Width="122" Height="32" VerticalAlignment="Bottom" IsEnabled="{Binding IsEDFLoaded}" Click="button_HideSignals_Click" FontSize="10"/>
                     <Button x:Name="button_AddDerivative" Content="Add Derivative" HorizontalAlignment="Left" Margin="10,0,0,46.667" Width="122" Height="32" VerticalAlignment="Bottom" IsEnabled="{Binding IsEDFLoaded}" Click="button_AddDerivative_Click" FontSize="10"/>
                     <Button x:Name="button_RemoveDerivative" Content="Remove Derivative" HorizontalAlignment="Left" Margin="10,0,0,9.667" Width="122" Height="32" VerticalAlignment="Bottom" IsEnabled="{Binding IsEDFLoaded}" Click="button_RemoveDerivative_Click" FontSize="10"/>
-                    <Button x:Name="button_Categories" Content="Categories" HorizontalAlignment="Left" Margin="138,0,0,46.667" Width="122" Height="32" VerticalAlignment="Bottom" IsEnabled="{Binding IsEDFLoaded}" Click="button_Categories_Click" FontSize="10"/>
+                    <Button x:Name="button_Categories" Content="Categories" HorizontalAlignment="Left" Margin="138,0,0,84" Width="122" Height="32" VerticalAlignment="Bottom" IsEnabled="{Binding IsEDFLoaded}" Click="button_Categories_Click" FontSize="10"/>
                     <Button x:Name="button_Prev" Content="&lt;" HorizontalAlignment="Left" Margin="10,52,0,0" VerticalAlignment="Top" Width="32" Height="23" IsEnabled="{Binding IsEDFLoaded}" Click="button_Prev_Click"/>
                     <Button x:Name="button_Next" Content="&gt;" HorizontalAlignment="Left" Margin="228,52,0,0" VerticalAlignment="Top" Width="32" Height="23" IsEnabled="{Binding IsEDFLoaded}" Click="button_Next_Click"/>
-                    <Button x:Name="export_button" Margin="138,0,0,9.667" Background="LightBlue" Content="Export to Binary" IsEnabled="{Binding IsEDFLoaded}" Click="export_button_Click" HorizontalAlignment="Left" Width="122" Height="32" VerticalAlignment="Bottom"/>
+                    <Button x:Name="export_button" Margin="138,0,0,47" Background="LightBlue" Content="Export to Binary" IsEnabled="{Binding IsEDFLoaded}" Click="export_button_Click" HorizontalAlignment="Left" Width="122" Height="32" VerticalAlignment="Bottom"/>
                 </Grid>
             </mtr:MetroTabItem>
 

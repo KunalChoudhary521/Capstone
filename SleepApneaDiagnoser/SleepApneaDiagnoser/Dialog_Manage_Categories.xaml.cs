@@ -142,5 +142,10 @@ namespace SleepApneaDiagnoser
                     categories_signals[u].Add(listBox_Signals.SelectedItems[x].ToString());
             }
         }
+
+        private void button_Done_Click(object sender, RoutedEventArgs e)
+        {
+            this.Close();
+        }
     }
 }

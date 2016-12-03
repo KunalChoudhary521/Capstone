@@ -66,7 +66,7 @@ namespace SleepApneaDiagnoser
 
         private void Window_Closing(object sender, CancelEventArgs e)
         {
-            model.WriteToCategoriesFile();
+            model.WriteSettings();
         }
 
         // Home Tab Events
@@ -142,6 +142,10 @@ namespace SleepApneaDiagnoser
             timePicker_From_Eph.Visibility = Visibility.Visible;
         }
 
+        private void button_HideSignals_Click(object sender, RoutedEventArgs e)
+        {
+            model.HideSignals();
+        }
         private void button_AddDerivative_Click(object sender, RoutedEventArgs e)
         {
             model.AddDerivative();
@@ -167,6 +171,7 @@ namespace SleepApneaDiagnoser
         {
             model.ExportSignals();
         }
+        
     }
 
     public class ModelView : INotifyPropertyChanged
@@ -175,27 +180,25 @@ namespace SleepApneaDiagnoser
 
         // Load EDF File
         private ProgressDialogController controller;
-        private async void BW_LoadEDFFile(object sender, DoWorkEventArgs e)
+        private void BW_LoadEDFFile(object sender, DoWorkEventArgs e)
         {
             controller.SetCancelable(false);
 
             EDFFile temp = new EDFFile();
             temp.readFile(e.Argument.ToString());
             LoadedEDFFile = temp;
-            controller.SetProgress(.33);
-            LoadCommonDerivativesFile();
-            controller.SetProgress(.66);
-            LoadCategoriesFile();
-            controller.SetProgress(.100);
 
-            await controller.CloseAsync();
+            // Load Settings Files
+            LoadCommonDerivativesFile();
+            LoadCategoriesFile();
+            LoadHiddenSignalsFile();
         }
-        private void BW_FinishLoad(object sender, RunWorkerCompletedEventArgs e)
+        private async void BW_FinishLoad(object sender, RunWorkerCompletedEventArgs e)
         {
             RecentFiles_Add(LoadedEDFFileName);
 
-            p_window.ShowMessageAsync("Success!", "EDF file loaded");
-
+            await controller.CloseAsync();
+            await p_window.ShowMessageAsync("Success!", "EDF file loaded");
         }
         public async void LoadEDFFile(string fileNameIn)
         {
@@ -429,7 +432,9 @@ namespace SleepApneaDiagnoser
         }
 
         // Preview Category Management
-        public void LoadCategoriesFile()
+        private List<string> p_SignalCategories = new List<string>();
+        private List<List<string>> p_SignalCategoryContents = new List<List<string>>();
+        private void LoadCategoriesFile()
         {
             p_SignalCategories.Clear();
             p_SignalCategoryContents.Clear();
@@ -464,7 +469,7 @@ namespace SleepApneaDiagnoser
                 sr.Close();
             }
         }
-        public void WriteToCategoriesFile()
+        private void WriteToCategoriesFile()
         {
             List<string> temp_SignalCategories = new List<string>();
             List<List<string>> temp_SignalCategoriesContents = new List<List<string>>();
@@ -547,6 +552,7 @@ namespace SleepApneaDiagnoser
         }
 
         // Preview Derivative Management
+        private List<string[]> p_DerivedSignals = new List<string[]>();
         private void LoadCommonDerivativesFile()
         {
             p_DerivedSignals.Clear();
@@ -646,6 +652,68 @@ namespace SleepApneaDiagnoser
             OnPropertyChanged(nameof(PreviewSignals));
         }
 
+        // Hidden Signal Management
+        private List<string> p_HiddenSignals = new List<string>();
+        private void LoadHiddenSignalsFile()
+        {
+            p_HiddenSignals.Clear();
+            if (File.Exists("hiddensignals.txt"))
+            {
+                p_HiddenSignals = new StreamReader("hiddensignals.txt").ReadToEnd().Replace("\r\n", "\n").Split('\n').ToList();
+                p_HiddenSignals = p_HiddenSignals.Select(temp => temp.Trim()).ToList();
+            }
+            OnPropertyChanged(nameof(PreviewSignals));
+        }
+        private void WriteToHiddenSignalsFile()
+        {
+            StreamWriter sw = new StreamWriter("hiddensignals.txt");
+            for (int x = 0; x < p_HiddenSignals.Count; x++)
+            {
+                sw.WriteLine(p_HiddenSignals[x]);
+            }
+            sw.Close();
+        }
+        public void HideSignals()
+        {
+            bool[] input = new bool[EDFAllSignals.Count];
+            for (int x = 0; x < EDFAllSignals.Count; x++)
+            {
+                if (p_HiddenSignals.Contains(EDFAllSignals[x]))
+                    input[x] = true;
+                else
+                    input[x] = false;
+            }
+
+            Dialog_Hide_Signals dialog = new Dialog_Hide_Signals(EDFAllSignals.ToArray(), input);
+            dialog.ShowDialog();
+
+            for (int x = 0; x < dialog.hide_signals_new.Length; x++)
+            {
+                if (dialog.hide_signals_new[x])
+                {
+                    if (!p_HiddenSignals.Contains(EDFAllSignals[x]))
+                    {
+                        p_HiddenSignals.Add(EDFAllSignals[x]);
+                    }
+                }
+                else
+                {
+                    if (p_HiddenSignals.Contains(EDFAllSignals[x]))
+                    {
+                        p_HiddenSignals.Remove(EDFAllSignals[x]);
+                    }
+                }
+            }
+
+            OnPropertyChanged(nameof(PreviewSignals));
+        }
+
+        public void WriteSettings()
+        {
+            WriteToHiddenSignalsFile();
+            WriteToCategoriesFile();
+        }
+
         /******************************************************* STATIC FUNCTIONS *******************************************************/
 
         // Static Functions
@@ -673,14 +741,11 @@ namespace SleepApneaDiagnoser
         private MainWindow p_window;
         private EDFFile p_LoadedEDFFile = null;
         private string p_LoadedEDFFileName = null;
-        private List<string> p_SignalCategories = new List<string>();
-        private List<List<string>> p_SignalCategoryContents = new List<List<string>>();
-
+        
         // Preview Private Variables
         private int p_PreviewCurrentCategory = -1;
         private List<string> p_PreviewSelectedSignals = new List<string>();
-        private List<string[]> p_DerivedSignals = new List<string[]>();
-
+        
         private bool p_PreviewUseAbsoluteTime = false;
         private DateTime p_PreviewViewStartTime = new DateTime();
         private int p_PreviewViewStartRecord = 0;
@@ -928,11 +993,11 @@ namespace SleepApneaDiagnoser
                 if (IsEDFLoaded)
                 {
                     if (PreviewCurrentCategory != -1)
-                        return Array.AsReadOnly(p_SignalCategoryContents[PreviewCurrentCategory].ToArray());
+                        return Array.AsReadOnly(p_SignalCategoryContents[PreviewCurrentCategory].Where(temp => !p_HiddenSignals.Contains(temp)).ToArray());
                     else
                     {
                         List<string> output = new List<string>();
-                        output.AddRange(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray());
+                        output.AddRange(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).Where(temp => !p_HiddenSignals.Contains(temp)).ToArray());
                         output.AddRange(p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
                         return Array.AsReadOnly(output.ToArray());
                     }
