@@ -37,7 +37,7 @@
                 </Grid>
             </mtr:MetroTabItem>
 
-            <mtr:MetroTabItem Header="Preview" >
+            <mtr:MetroTabItem Header="Preview" IsEnabled="{Binding IsEDFLoaded}">
                 <Grid Margin="27,0,0,0">
 
                     <Label Content="EDF Header" FontSize="18" Margin="0,10,222,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="42" HorizontalAlignment="Right" Width="114"/>
@@ -88,13 +88,13 @@
                     <Label Content="Plot" FontSize="18" HorizontalAlignment="Left" Margin="265,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="42" Width="47"/>
                     <Grid Height="38" Margin="265,52,373,0" VerticalAlignment="Top">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="262*"/>
-                            <ColumnDefinition Width="193*"/>
-                            <ColumnDefinition Width="117*"/>
+                            <ColumnDefinition MaxWidth="250" Width="250*"/>
+                            <ColumnDefinition MaxWidth="250" Width="170*"/>
+                            <ColumnDefinition MaxWidth="125" Width="111*"/>
                         </Grid.ColumnDefinitions>
                         <Label Content="From" HorizontalAlignment="Left" Margin="5,0,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="28" Width="47" HorizontalContentAlignment="Center" FontSize="14"/>
-                        <xctk:DateTimeUpDown x:Name="timePicker_From_Abs" Margin="57,0,9.667,10" AllowTextInput="False" TextAlignment="Center" Value="{Binding PreviewViewStartTime, Delay=300}" Maximum="{Binding PreviewViewStartTimeMax}" Minimum="{Binding PreviewViewStartTimeMin}" IsEnabled="{Binding PreviewNavigationEnabled}"/>
-                        <xctk:IntegerUpDown x:Name="timePicker_From_Eph" Margin="57,0,9.667,10" AllowTextInput="True" TextAlignment="Center" Value="{Binding PreviewViewStartRecord, Delay=300}" Maximum="{Binding PreviewViewStartRecordMax}" Minimum="{Binding PreviewViewStartRecordMin}" IsEnabled="{Binding PreviewNavigationEnabled}" FontSize="14"/>
+                        <xctk:DateTimeUpDown x:Name="timePicker_From_Abs" Margin="57,0,10,10" AllowTextInput="False" TextAlignment="Center" Value="{Binding PreviewViewStartTime, Delay=300}" Maximum="{Binding PreviewViewStartTimeMax}" Minimum="{Binding PreviewViewStartTimeMin}" IsEnabled="{Binding PreviewNavigationEnabled}"/>
+                        <xctk:IntegerUpDown x:Name="timePicker_From_Eph" Margin="57,0,10,10" AllowTextInput="True" TextAlignment="Center" Value="{Binding PreviewViewStartRecord, Delay=300}" Maximum="{Binding PreviewViewStartRecordMax}" Minimum="{Binding PreviewViewStartRecordMin}" IsEnabled="{Binding PreviewNavigationEnabled}" FontSize="14"/>
                         <Label Content="Length" Margin="10,0,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="28" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="1" HorizontalAlignment="Left" Width="62"/>
                         <xctk:IntegerUpDown x:Name="timePicker_Period" Margin="77,0,10,10" AllowTextInput="True" TextAlignment="Center" Value="{Binding PreviewViewDuration, Delay=300}" Maximum="{Binding PreviewViewDurationMax}" Minimum="{Binding PreviewViewDurationMin}" IsEnabled="{Binding PreviewNavigationEnabled}" FontSize="14" Grid.Column="1"/>
                         <ToggleButton x:Name="toggleButton_UseAbsoluteTime" Content="ABSOLUTE TIME" VerticalAlignment="Top" Height="28" IsChecked="{Binding PreviewUseAbsoluteTime}" IsEnabled="{Binding PreviewNavigationEnabled}" Checked="toggleButton_UseAbsoluteTime_Checked" Unchecked="toggleButton_UseAbsoluteTime_Unchecked" Grid.Column="2" Margin="5,0,0,0"/>
@@ -108,6 +108,17 @@
                     <Button x:Name="button_Next" Content="&gt;" HorizontalAlignment="Left" Margin="228,52,0,0" VerticalAlignment="Top" Width="32" Height="23" IsEnabled="{Binding IsEDFLoaded}" Click="button_Next_Click"/>
                     <Button x:Name="export_button" Margin="138,0,0,47" Background="LightBlue" Content="Export to Binary" IsEnabled="{Binding IsEDFLoaded}" Click="export_button_Click" HorizontalAlignment="Left" Width="122" Height="32" VerticalAlignment="Bottom"/>
                 </Grid>
+            </mtr:MetroTabItem>
+
+            <mtr:MetroTabItem Header="Analysis" IsEnabled="{Binding IsEDFLoaded}">
+                <mtr:MetroTabControl>
+                    <mtr:MetroTabItem Header="EEG Signals" IsEnabled="{Binding IsEDFLoaded}" Margin="20,0,-20,0">
+                    </mtr:MetroTabItem>
+                    <mtr:MetroTabItem Header="Respiratory Signals" IsEnabled="{Binding IsEDFLoaded}" Margin="40,0,-40,0">
+                    </mtr:MetroTabItem>
+                    <mtr:MetroTabItem Header="Circulatory Signals" IsEnabled="{Binding IsEDFLoaded}" Margin="60,0,-60,0">
+                    </mtr:MetroTabItem>
+                </mtr:MetroTabControl>
             </mtr:MetroTabItem>
 
         </mtr:MetroAnimatedSingleRowTabControl>
