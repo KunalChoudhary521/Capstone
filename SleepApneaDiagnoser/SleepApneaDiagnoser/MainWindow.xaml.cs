@@ -528,11 +528,7 @@ namespace SleepApneaDiagnoser
         public void ManageCategories()
         {
             Dialog_Manage_Categories dlg = new Dialog_Manage_Categories(p_SignalCategories.ToArray(), p_SignalCategoryContents.Select(temp => temp.ToArray()).ToArray(), LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray(), p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
-            dlg.Top = p_window.Top + 60;
-            dlg.Left = p_window.Left + 60;
-            dlg.Width = p_window.Width - 120;
-            dlg.Height = p_window.Height - 120;
-            dlg.ShowDialog();
+            dlg.ShowModalDialogExternally();
 
             PreviewCurrentCategory = -1;
             p_SignalCategories = dlg.categories.ToList();
@@ -620,11 +616,7 @@ namespace SleepApneaDiagnoser
         public void AddDerivative()
         {
             Dialog_Add_Derivative dlg = new Dialog_Add_Derivative(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.Trim()).ToArray(), p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
-            dlg.Top = p_window.Top + 60;
-            dlg.Left = p_window.Left + 60;
-            dlg.Width = p_window.Width - 120;
-            dlg.Height = p_window.Height - 120;
-            dlg.ShowDialog();
+            dlg.ShowModalDialogExternally();
 
             if (dlg.DialogResult == true)
             {
@@ -637,11 +629,7 @@ namespace SleepApneaDiagnoser
         public void RemoveDerivative()
         {
             Dialog_Remove_Derivative dlg = new Dialog_Remove_Derivative(p_DerivedSignals.ToArray());
-            dlg.Top = p_window.Top + 60;
-            dlg.Left = p_window.Left + 60;
-            dlg.Width = p_window.Width - 120;
-            dlg.Height = p_window.Height - 120;
-            dlg.ShowDialog();
+            dlg.ShowModalDialogExternally();
 
             if (dlg.DialogResult == true)
             {
@@ -693,11 +681,7 @@ namespace SleepApneaDiagnoser
             }
 
             Dialog_Hide_Signals dlg = new Dialog_Hide_Signals(EDFAllSignals.ToArray(), input);
-            dlg.Top = p_window.Top + 60;
-            dlg.Left = p_window.Left + 60;
-            dlg.Width = p_window.Width - 120;
-            dlg.Height = p_window.Height - 120;
-            dlg.ShowDialog();
+            dlg.ShowModalDialogExternally();
 
             for (int x = 0; x < dlg.hide_signals_new.Length; x++)
             {

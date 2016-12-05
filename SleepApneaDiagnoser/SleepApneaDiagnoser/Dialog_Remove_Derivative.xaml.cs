@@ -33,7 +33,8 @@ namespace SleepApneaDiagnoser
                 return output;
             }
         }
-        
+        public bool DialogResult = false;
+
         public Dialog_Remove_Derivative(string[][] DerivedSignals)
         {
             InitializeComponent();
@@ -47,17 +48,18 @@ namespace SleepApneaDiagnoser
             if (listBox_DerivedSignals.SelectedItems.Count > 0)
             {
                 DialogResult = true;
-                this.Close();
+                this.RequestCloseAsync();
             }
             else
             {
-                this.ShowMessageAsync("Error", "Please select a signal.");
+                /* TODO FIND A WAY TO SHOW THIS MESSAGE */
+                // this.ShowMessageAsync("Error", "Please select a signal.");
             }
         }
         private void button_Cancel_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = false;
-            this.Close();
+            this.RequestCloseAsync();
         }
     }
 }

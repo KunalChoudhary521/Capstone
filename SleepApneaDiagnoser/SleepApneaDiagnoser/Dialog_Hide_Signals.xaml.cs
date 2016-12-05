@@ -50,7 +50,7 @@ namespace SleepApneaDiagnoser
 
         private void button_Done_Click(object sender, RoutedEventArgs e)
         {
-            this.Close();
+            this.RequestCloseAsync();
         }
     }
 }
