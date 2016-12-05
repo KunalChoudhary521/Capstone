@@ -38,15 +38,7 @@ namespace SleepApneaDiagnoser
   public partial class MainWindow : MetroWindow
   {
     ModelView model;
-
-    /// <summary>
-    /// Function called after new EDF file is loaded to populate right pane of Preview tab.
-    /// </summary>
-    public void EDFLoaded()
-    {
-      LoadRecent();
-      this.IsEnabled = true;
-    }
+        
     /// <summary>
     /// Function called to populate recent files list. Called when application is first loaded and if the recent files list changes.
     /// </summary>
@@ -88,7 +80,6 @@ namespace SleepApneaDiagnoser
 
       if (dialog.ShowDialog() == true)
       {
-        this.IsEnabled = false;
         model.LoadEDFFile(dialog.FileName);
       }
     }
@@ -102,7 +93,7 @@ namespace SleepApneaDiagnoser
       if (selected.Count == 0)
       {
         this.ShowMessageAsync("Error", "File not Found");
-        EDFLoaded();
+        LoadRecent();
       }
       else
       {
@@ -110,7 +101,6 @@ namespace SleepApneaDiagnoser
         {
           if (File.Exists(selected[x]))
           {
-            this.IsEnabled = false;
             model.LoadEDFFile(selected[x]);
             break;
           }
@@ -185,7 +175,7 @@ namespace SleepApneaDiagnoser
 
     // Load EDF
     private ProgressDialogController controller;
-    private async void BW_LoadEDFFile(object sender, DoWorkEventArgs e)
+    private void BW_LoadEDFFile(object sender, DoWorkEventArgs e)
     {
       controller.SetCancelable(false);
 
@@ -197,16 +187,14 @@ namespace SleepApneaDiagnoser
       controller.SetProgress(.66);
       LoadCategoriesFile();
       controller.SetProgress(.100);
-
-      await controller.CloseAsync();
     }
-    private void BW_FinishLoad(object sender, RunWorkerCompletedEventArgs e)
+    private async void BW_FinishLoad(object sender, RunWorkerCompletedEventArgs e)
     {
       RecentFiles_Add(LoadedEDFFileName);
 
-      p_window.EDFLoaded();
-      p_window.ShowMessageAsync("Success!", "EDF file loaded");
 
+      await controller.CloseAsync();
+      p_window.ShowMessageAsync("Success!", "EDF file loaded");
     }
     public async void LoadEDFFile(string fileNameIn)
     {
