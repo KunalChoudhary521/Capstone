@@ -9,14 +9,15 @@
         Title="Manage Signal Categories" Height="240" Width="300" ShowInTaskbar="False" ResizeMode="NoResize">
     <Grid>
 
-        <ListBox x:Name="listBox_Categories" Margin="10,50,0,41.667" HorizontalAlignment="Left" Width="132" SelectionChanged="listBox_Categories_SelectionChanged">
+        <ListBox x:Name="listBox_Categories" Margin="10,50,0,40" HorizontalAlignment="Left" Width="132" SelectionChanged="listBox_Categories_SelectionChanged">
         </ListBox>
 
-        <ListBox x:Name="listBox_Signals" SelectionMode="Multiple" Margin="151,50,0,18.667" HorizontalAlignment="Left" Width="132" SelectionChanged="listBox_Signals_SelectionChanged"/>
+        <ListBox x:Name="listBox_Signals" SelectionMode="Multiple" Margin="151,50,0,40" HorizontalAlignment="Left" Width="132" SelectionChanged="listBox_Signals_SelectionChanged"/>
         <Label Content="Categories" HorizontalAlignment="Left" Margin="10,19,0,0" VerticalAlignment="Top"/>
         <Label Content="Signals in Category" HorizontalAlignment="Left" Margin="151,18,0,0" VerticalAlignment="Top"/>
-        <Button x:Name="button_AddCategory" Content="Add" HorizontalAlignment="Left" Margin="10,0,0,16.667" Width="64" Height="20" VerticalAlignment="Bottom" Click="button_AddCategory_Click"/>
-        <Button x:Name="button_RemoveCategory" Content="Remove" Margin="78,0,0,16.667" VerticalAlignment="Bottom" Height="20" RenderTransformOrigin="1.188,0.643" HorizontalAlignment="Left" Width="64" Click="button_RemoveCategory_Click"/>
+        <Button x:Name="button_AddCategory" Content="Add" HorizontalAlignment="Left" Margin="9,0,0,10" Width="64" Height="20" VerticalAlignment="Bottom" Click="button_AddCategory_Click"/>
+        <Button x:Name="button_RemoveCategory" Content="Remove" Margin="78,0,0,10" VerticalAlignment="Bottom" Height="20" RenderTransformOrigin="1.188,0.643" HorizontalAlignment="Left" Width="64" Click="button_RemoveCategory_Click"/>
+        <Button x:Name="button_Done" Content="Done" Margin="0,0,10,10" VerticalAlignment="Bottom" Height="20" RenderTransformOrigin="1.188,0.643" Click="button_Done_Click" HorizontalAlignment="Right" Width="64"/>
 
     </Grid>
 </mtr:MetroWindow>
