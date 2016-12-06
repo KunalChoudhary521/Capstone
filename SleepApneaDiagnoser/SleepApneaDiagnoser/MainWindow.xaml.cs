@@ -226,6 +226,9 @@ namespace SleepApneaDiagnoser
 
                 for (int x = 0; x < p_PreviewSelectedSignals.Count; x++)
                 {
+                    double? min_y = null;
+                    double? max_y = null;
+
                     LineSeries series = new LineSeries();
                     if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == p_PreviewSelectedSignals[x].Trim()) != null) // Normal EDF Signal
                     {
@@ -240,7 +243,33 @@ namespace SleepApneaDiagnoser
                         TimeSpan duration = PreviewViewEndTime - (PreviewViewStartTime ?? new DateTime());
                         startIndex = (int)(startPoint.TotalSeconds / sample_period);
                         indexCount = (int)(duration.TotalSeconds / sample_period);
+                        
+                        min_y = GetMinSignalValue(p_PreviewSelectedSignals[x]);
+                        if (min_y == null)
+                        {
+                            int j = 1;
+                            while (min_y == null)
+                            {
+                                j++;
+                                min_y = GetPercentileValue(values.ToArray(), 3, j);
+                            }
+                            if (min_y != null)
+                                SetMinSignalValue(p_PreviewSelectedSignals[x], min_y ?? 0);
+                        }
 
+                        max_y = GetMaxSignalValue(p_PreviewSelectedSignals[x]);
+                        if (max_y == null)
+                        {
+                            int j = 1;
+                            while (max_y == null)
+                            {
+                                j++;
+                                max_y = GetPercentileValue(values.ToArray(), 97, j);
+                            }
+                            if (max_y != null)
+                                SetMaxSignalValue(p_PreviewSelectedSignals[x], max_y ?? 0);
+                        }
+                        
                         for (int y = startIndex; y < indexCount + startIndex; y++)
                         {
                             series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
@@ -300,6 +329,32 @@ namespace SleepApneaDiagnoser
                         startIndex = (int)(startPoint.TotalSeconds / sample_period);
                         indexCount = (int)(duration.TotalSeconds / sample_period);
 
+                        min_y = GetMinSignalValue(p_PreviewSelectedSignals[x]);
+                        if (min_y == null)
+                        {
+                            int j = 1;
+                            while (min_y == null)
+                            {
+                                j++;
+                                min_y = GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), 3, j);
+                            }
+                            if (min_y != null)
+                                SetMinSignalValue(p_PreviewSelectedSignals[x], min_y ?? 0);
+                        }
+
+                        max_y = GetMaxSignalValue(p_PreviewSelectedSignals[x]);
+                        if (max_y == null)
+                        {
+                            int j = 1;
+                            while (max_y == null)
+                            {
+                                j++;
+                                max_y = GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), 97, j);
+                            }
+                            if (max_y != null)
+                                SetMaxSignalValue(p_PreviewSelectedSignals[x], max_y ?? 0);
+                        }
+
                         for (int y = startIndex; y < indexCount + startIndex; y++)
                         {
                             series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values1[y] - values2[y]));
@@ -316,6 +371,8 @@ namespace SleepApneaDiagnoser
                     yAxis.Key = p_PreviewSelectedSignals[x];
                     yAxis.EndPosition = (double)1 - (double)x * ((double)1 / (double)p_PreviewSelectedSignals.Count);
                     yAxis.StartPosition = (double)1 - (double)(x + 1) * ((double)1 / (double)p_PreviewSelectedSignals.Count);
+                    yAxis.Maximum = max_y ?? Double.NaN;
+                    yAxis.Minimum = min_y ?? Double.NaN;
 
                     temp_PreviewSignalPlot.Axes.Add(yAxis);
                     temp_PreviewSignalPlot.Series.Add(series);
@@ -643,9 +700,13 @@ namespace SleepApneaDiagnoser
                     {
                         p_PreviewSelectedSignals.Remove(dlg.RemovedSignals[x].Trim());
                     }
+
+                    // Remove Potentially Saved Min/Max Values
+                    p_SignalsMaxValues.RemoveAll(temp => temp[0].Trim() == dlg.RemovedSignals[x].Trim());
+                    p_SignalsMinValues.RemoveAll(temp => temp[0].Trim() == dlg.RemovedSignals[x].Trim());
                 }
             }
-
+            
             OnPropertyChanged(nameof(PreviewSignals));
         }
 
@@ -704,6 +765,49 @@ namespace SleepApneaDiagnoser
             OnPropertyChanged(nameof(PreviewSignals));
         }
 
+        private List<string[]> p_SignalsMinValues = new List<string[]>();
+        private List<string[]> p_SignalsMaxValues = new List<string[]>();
+        private double? GetMaxSignalValue(string Signal)
+        {
+            string[] find = p_SignalsMaxValues.Find(temp => temp[0].Trim() == Signal.Trim());
+
+            if (find != null)
+                return Double.Parse(find[1]);
+            else
+                return null;
+        }
+        private double? GetMinSignalValue(string Signal)
+        {
+            string[] find = p_SignalsMinValues.Find(temp => temp[0].Trim() == Signal.Trim());
+
+            if (find != null)
+                return Double.Parse(find[1]);
+            else
+                return null;
+        }
+        private void SetMaxSignalValue(string Signal, double Value)
+        {
+            string[] find = p_SignalsMaxValues.Find(temp => temp[0].Trim() == Signal.Trim());
+
+            if (find != null)
+            {
+                p_SignalsMaxValues.Remove(find);
+            }
+
+            p_SignalsMaxValues.Add(new string[] { Signal.Trim(), Value.ToString() });
+        }
+        private void SetMinSignalValue(string Signal, double Value)
+        {
+            string[] find = p_SignalsMinValues.Find(temp => temp[0].Trim() == Signal.Trim());
+
+            if (find != null)
+            {
+                p_SignalsMinValues.Remove(find);
+            }
+
+            p_SignalsMinValues.Add(new string[] { Signal.Trim(), Value.ToString() });
+        }
+
         public void WriteSettings()
         {
             WriteToHiddenSignalsFile();
@@ -738,8 +842,29 @@ namespace SleepApneaDiagnoser
             return (int)(period.TotalSeconds / (double)EPOCH_SEC);
         }
 
+        private static double? GetPercentileValue(float[] values_array, int percentile, int tolerance)
+        {
+            List<float> values = values_array.ToList();
+            values.Sort();
+
+            int index = (int)((double)percentile/(double)100 * (double)values.Count);
+
+            return values[index];
+         }
+        private static double? GetPercentileValueDeriv(float[] values_array_1, float[] values_array_2, int percentile, int tolerance)
+        {
+            List<float> values1 = values_array_1.ToList();
+            List<float> values2 = values_array_2.ToList();
+
+            List<float> values = new List<float>();
+            for (int x = 0; x < Math.Min(values_array_1.Length, values_array_2.Length); x++)
+                values.Add(values_array_1[x] - values_array_2[x]);
+
+            return GetPercentileValue(values.ToArray(), percentile, tolerance);
+       }
+
         /*********************************************************** MEMBERS ************************************************************/
-        
+
         // General Private Variables
         private MainWindow p_window;
         private EDFFile p_LoadedEDFFile = null;
