@@ -171,11 +171,161 @@ namespace SleepApneaDiagnoser
         {
             model.ExportSignals();
         }
-        
+
+        private void button_PerformRespiratoryAnalysis_Click(object sender, RoutedEventArgs e)
+        {
+            model.PerformRespiratoryAnalysisEDF();
+        }
     }
 
     public class ModelView : INotifyPropertyChanged
     {
+        /******************************************************* STATIC FUNCTIONS *******************************************************/
+
+        // Static Functions
+        private static int EPOCH_SEC = 30;
+        private static DateTime EpochtoDateTime(int epoch, EDFFile file)
+        {
+            return file.Header.StartDateTime + new TimeSpan(0, 0, epoch * EPOCH_SEC);
+        }
+        private static TimeSpan EpochPeriodtoTimeSpan(int period)
+        {
+            return new TimeSpan(0, 0, 0, period * EPOCH_SEC);
+        }
+        private static int DateTimetoEpoch(DateTime time, EDFFile file)
+        {
+            return (int)((time - file.Header.StartDateTime).TotalSeconds / (double)EPOCH_SEC);
+        }
+        private static int TimeSpantoEpochPeriod(TimeSpan period)
+        {
+            return (int)(period.TotalSeconds / (double)EPOCH_SEC);
+        }
+
+        private static double? GetPercentileValue(float[] values_array, int percentile, int tolerance)
+        {
+            List<float> values = values_array.ToList();
+            values.Sort();
+
+            int index = (int)((double)percentile / (double)100 * (double)values.Count);
+
+            return values[index];
+        }
+        private static double? GetPercentileValueDeriv(float[] values_array_1, float[] values_array_2, int percentile, int tolerance)
+        {
+            List<float> values1 = values_array_1.ToList();
+            List<float> values2 = values_array_2.ToList();
+
+            List<float> values = new List<float>();
+            for (int x = 0; x < Math.Min(values_array_1.Length, values_array_2.Length); x++)
+                values.Add(values_array_1[x] - values_array_2[x]);
+
+            return GetPercentileValue(values.ToArray(), percentile, tolerance);
+        }
+        
+        /****************************************************** HELPER FUNCTIONS *******************************************************/
+
+        private LineSeries GetSeriesFromSignalName(out double? max_y, out double? min_y, string Signal, DateTime StartTime, DateTime EndTime)
+        {
+            // Variable To Return
+            LineSeries series = new LineSeries();
+
+            if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal.Trim()) != null) // Normal EDF Signal
+            {
+                // Get Signal
+                EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal);
+
+                // Determine Array Portion
+                float sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
+                int startIndex, indexCount;
+                TimeSpan startPoint = StartTime - LoadedEDFFile.Header.StartDateTime;
+                TimeSpan duration = EndTime - StartTime;
+                startIndex = (int)(startPoint.TotalSeconds / sample_period);
+                indexCount = (int)(duration.TotalSeconds / sample_period);
+
+                // Get Array
+                List<float> values = LoadedEDFFile.retrieveSignalSampleValues(edfsignal);
+
+                // Determine Y Axis Bounds
+                min_y = GetMinSignalValue(Signal, values);
+                max_y = GetMaxSignalValue(Signal, values);
+                
+                // Add Points to Series
+                for (int y = startIndex; y < indexCount + startIndex; y++)
+                {
+                    series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
+                }
+            }
+            else // Derivative Signal
+            {
+                // Get Signals
+                string[] deriv_info = p_DerivedSignals.Find(temp => temp[0] == Signal);
+                EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[1].Trim());
+                EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[2].Trim());
+
+                // Get Arrays and Perform Resampling if needed
+                List<float> values1;
+                List<float> values2;
+                float sample_period;
+                if (edfsignal1.NumberOfSamplesPerDataRecord == edfsignal2.NumberOfSamplesPerDataRecord) // No resampling
+                {
+                    values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
+                    values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
+                    sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
+                }
+                else if (edfsignal1.NumberOfSamplesPerDataRecord > edfsignal2.NumberOfSamplesPerDataRecord) // Upsample signal 2
+                {
+                    Processing proc = new Processing();
+                    MWArray[] input = new MWArray[2];
+                    input[0] = new MWNumericArray(LoadedEDFFile.retrieveSignalSampleValues(edfsignal2).ToArray());
+                    input[1] = edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord;
+
+                    values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
+                    values2 = (
+                                (double[])(
+                                    (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
+                                ).ToVector(MWArrayComponent.Real)
+                              ).ToList().Select(temp => (float)temp).ToList();
+
+                    sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
+                }
+                else // Upsample signal 1
+                {
+                    Processing proc = new Processing();
+                    MWArray[] input = new MWArray[2];
+                    input[0] = new MWNumericArray(LoadedEDFFile.retrieveSignalSampleValues(edfsignal1).ToArray());
+                    input[1] = edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord;
+
+                    values1 = (
+                                (double[])(
+                                    (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
+                                ).ToVector(MWArrayComponent.Real)
+                              ).ToList().Select(temp => (float)temp).ToList();
+                    values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
+
+                    sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal2.NumberOfSamplesPerDataRecord;
+                }
+
+                // Determine Array Portions
+                int startIndex, indexCount;
+                TimeSpan startPoint = StartTime - LoadedEDFFile.Header.StartDateTime;
+                TimeSpan duration = EndTime - StartTime;
+                startIndex = (int)(startPoint.TotalSeconds / sample_period);
+                indexCount = (int)(duration.TotalSeconds / sample_period);
+
+                // Get Y Axis Bounds
+                min_y = GetMinSignalValue(Signal, values1, values2);
+                max_y = GetMaxSignalValue(Signal, values1, values2);
+
+                // Add Points to Series
+                for (int y = startIndex; y < indexCount + startIndex; y++)
+                {
+                    series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values1[y] - values2[y]));
+                }
+            }
+
+            return series;
+        }
+
         /*********************************************************** ACTIONS ***********************************************************/
 
         // Load EDF File
@@ -223,143 +373,16 @@ namespace SleepApneaDiagnoser
                 xAxis.Minimum = DateTimeAxis.ToDouble(PreviewViewStartTime);
                 xAxis.Maximum = DateTimeAxis.ToDouble(PreviewViewEndTime);
                 temp_PreviewSignalPlot.Axes.Add(xAxis);
-
+                
                 for (int x = 0; x < p_PreviewSelectedSignals.Count; x++)
                 {
-                    double? min_y = null;
-                    double? max_y = null;
-
-                    LineSeries series = new LineSeries();
-                    if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == p_PreviewSelectedSignals[x].Trim()) != null) // Normal EDF Signal
-                    {
-                        EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == p_PreviewSelectedSignals[x].Trim());
-
-                        float sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
-
-                        List<float> values = LoadedEDFFile.retrieveSignalSampleValues(edfsignal);
-
-                        int startIndex, indexCount;
-                        TimeSpan startPoint = (PreviewViewStartTime ?? new DateTime()) - LoadedEDFFile.Header.StartDateTime;
-                        TimeSpan duration = PreviewViewEndTime - (PreviewViewStartTime ?? new DateTime());
-                        startIndex = (int)(startPoint.TotalSeconds / sample_period);
-                        indexCount = (int)(duration.TotalSeconds / sample_period);
-                        
-                        min_y = GetMinSignalValue(p_PreviewSelectedSignals[x]);
-                        if (min_y == null)
-                        {
-                            int j = 1;
-                            while (min_y == null)
-                            {
-                                j++;
-                                min_y = GetPercentileValue(values.ToArray(), 3, j);
-                            }
-                            if (min_y != null)
-                                SetMinSignalValue(p_PreviewSelectedSignals[x], min_y ?? 0);
-                        }
-
-                        max_y = GetMaxSignalValue(p_PreviewSelectedSignals[x]);
-                        if (max_y == null)
-                        {
-                            int j = 1;
-                            while (max_y == null)
-                            {
-                                j++;
-                                max_y = GetPercentileValue(values.ToArray(), 97, j);
-                            }
-                            if (max_y != null)
-                                SetMaxSignalValue(p_PreviewSelectedSignals[x], max_y ?? 0);
-                        }
-                        
-                        for (int y = startIndex; y < indexCount + startIndex; y++)
-                        {
-                            series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
-                        }
-                    }
-                    else // Derivative Signal
-                    {
-                        string[] deriv_info = p_DerivedSignals.Find(temp => temp[0] == p_PreviewSelectedSignals[x]);
-                        EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[1].Trim());
-                        EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[2].Trim());
-
-                        List<float> values1;
-                        List<float> values2;
-                        float sample_period;
-                        if (edfsignal1.NumberOfSamplesPerDataRecord == edfsignal2.NumberOfSamplesPerDataRecord) // No resampling
-                        {
-                            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-                            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
-                            sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
-                        }
-                        else if (edfsignal1.NumberOfSamplesPerDataRecord > edfsignal2.NumberOfSamplesPerDataRecord) // Upsample signal 2
-                        {
-                            Processing proc = new Processing();
-                            MWArray[] input = new MWArray[2];
-                            input[0] = new MWNumericArray(LoadedEDFFile.retrieveSignalSampleValues(edfsignal2).ToArray());
-                            input[1] = edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord;
-
-                            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-                            values2 = (
-                                        (double[])(
-                                            (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
-                                        ).ToVector(MWArrayComponent.Real)
-                                      ).ToList().Select(temp => (float)temp).ToList();
-
-                            sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
-                        }
-                        else // Upsample signal 1
-                        {
-                            Processing proc = new Processing();
-                            MWArray[] input = new MWArray[2];
-                            input[0] = new MWNumericArray(LoadedEDFFile.retrieveSignalSampleValues(edfsignal1).ToArray());
-                            input[1] = edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord;
-
-                            values1 = (
-                                        (double[])(
-                                            (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
-                                        ).ToVector(MWArrayComponent.Real)
-                                      ).ToList().Select(temp => (float)temp).ToList();
-                            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
-
-                            sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal2.NumberOfSamplesPerDataRecord;
-                        }
-
-                        int startIndex, indexCount;
-                        TimeSpan startPoint = (PreviewViewStartTime ?? new DateTime()) - LoadedEDFFile.Header.StartDateTime;
-                        TimeSpan duration = PreviewViewEndTime - (PreviewViewStartTime ?? new DateTime());
-                        startIndex = (int)(startPoint.TotalSeconds / sample_period);
-                        indexCount = (int)(duration.TotalSeconds / sample_period);
-
-                        min_y = GetMinSignalValue(p_PreviewSelectedSignals[x]);
-                        if (min_y == null)
-                        {
-                            int j = 1;
-                            while (min_y == null)
-                            {
-                                j++;
-                                min_y = GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), 3, j);
-                            }
-                            if (min_y != null)
-                                SetMinSignalValue(p_PreviewSelectedSignals[x], min_y ?? 0);
-                        }
-
-                        max_y = GetMaxSignalValue(p_PreviewSelectedSignals[x]);
-                        if (max_y == null)
-                        {
-                            int j = 1;
-                            while (max_y == null)
-                            {
-                                j++;
-                                max_y = GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), 97, j);
-                            }
-                            if (max_y != null)
-                                SetMaxSignalValue(p_PreviewSelectedSignals[x], max_y ?? 0);
-                        }
-
-                        for (int y = startIndex; y < indexCount + startIndex; y++)
-                        {
-                            series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values1[y] - values2[y]));
-                        }
-                    }
+                    double? min_y, max_y;
+                    LineSeries series = GetSeriesFromSignalName(out max_y, 
+                                                                out min_y, 
+                                                                p_PreviewSelectedSignals[x], 
+                                                                (PreviewViewStartTime ?? new DateTime()), 
+                                                                PreviewViewEndTime
+                                                                );
 
                     series.YAxisKey = p_PreviewSelectedSignals[x];
                     series.XAxisKey = "DateTime";
@@ -424,6 +447,54 @@ namespace SleepApneaDiagnoser
             {
                 p_window.ShowMessageAsync("Error", "Please select at least one signal from the preview.");
             }
+        }
+        
+        // Respiratory Analysis From EDF File
+        private void BW_RespiratoryAnalysisEDF(object sender, DoWorkEventArgs e)
+        {
+            PlotModel temp_SignalPlot = new PlotModel();
+            temp_SignalPlot.Series.Clear();
+            temp_SignalPlot.Axes.Clear();
+
+            double? max_y, min_y;
+            LineSeries series = GetSeriesFromSignalName(out max_y, 
+                                                        out min_y, 
+                                                        RespiratoryEDFSelectedSignal, 
+                                                        EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile), 
+                                                        EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile) + EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 0)
+                                                        );
+
+            series.YAxisKey = RespiratoryEDFSelectedSignal;
+            series.XAxisKey = "DateTime";
+
+            DateTimeAxis xAxis = new DateTimeAxis();
+            xAxis.Key = "DateTime";
+            xAxis.Minimum = DateTimeAxis.ToDouble(EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile));
+            xAxis.Maximum = DateTimeAxis.ToDouble(EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile) + EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 0));
+            temp_SignalPlot.Axes.Add(xAxis);
+
+            LinearAxis yAxis = new LinearAxis();
+            yAxis.MajorGridlineStyle = LineStyle.Solid;
+            yAxis.MinorGridlineStyle = LineStyle.Dot;
+            yAxis.Title = RespiratoryEDFSelectedSignal;
+            yAxis.Key = RespiratoryEDFSelectedSignal;
+            yAxis.Maximum = max_y ?? Double.NaN;
+            yAxis.Minimum = min_y ?? Double.NaN;
+
+            temp_SignalPlot.Axes.Add(yAxis);
+            temp_SignalPlot.Series.Add(series);
+
+            RespiratorySignalPlot = temp_SignalPlot;
+        }
+        private void BW_FinishRespiratoryAnalysisEDF(object sender, RunWorkerCompletedEventArgs e)
+        {
+        }
+        public void PerformRespiratoryAnalysisEDF()
+        {
+            BackgroundWorker bw = new BackgroundWorker();
+            bw.DoWork += BW_RespiratoryAnalysisEDF;
+            bw.RunWorkerCompleted += BW_FinishRespiratoryAnalysisEDF;
+            bw.RunWorkerAsync();
         }
 
         /*********************************************************** SETTINGS ***********************************************************/
@@ -682,6 +753,7 @@ namespace SleepApneaDiagnoser
             }
 
             OnPropertyChanged(nameof(PreviewSignals));
+            OnPropertyChanged(nameof(AllNonHiddenSignals));
         }
         public void RemoveDerivative()
         {
@@ -708,6 +780,7 @@ namespace SleepApneaDiagnoser
             }
             
             OnPropertyChanged(nameof(PreviewSignals));
+            OnPropertyChanged(nameof(AllNonHiddenSignals));
         }
 
         // Hidden Signal Management
@@ -763,28 +836,96 @@ namespace SleepApneaDiagnoser
             }
 
             OnPropertyChanged(nameof(PreviewSignals));
+            OnPropertyChanged(nameof(AllNonHiddenSignals));
         }
 
         private List<string[]> p_SignalsMinValues = new List<string[]>();
         private List<string[]> p_SignalsMaxValues = new List<string[]>();
-        private double? GetMaxSignalValue(string Signal)
+        private double? GetMaxSignalValue(string Signal, List<float> values)
         {
             string[] find = p_SignalsMaxValues.Find(temp => temp[0].Trim() == Signal.Trim());
 
             if (find != null)
                 return Double.Parse(find[1]);
             else
-                return null;
+            {
+                double? value = null; 
+
+                int j = 1;
+                while (value == null && j < 100)
+                {
+                    j++;
+                    value = GetPercentileValue(values.ToArray(), 97, j);
+                }
+                
+                SetMaxSignalValue(Signal, value ?? 0);
+                return value;
+            }
         }
-        private double? GetMinSignalValue(string Signal)
+        private double? GetMinSignalValue(string Signal, List<float> values)
         {
             string[] find = p_SignalsMinValues.Find(temp => temp[0].Trim() == Signal.Trim());
 
             if (find != null)
                 return Double.Parse(find[1]);
             else
-                return null;
+            {
+                double? value = null;
+                 
+                int j = 1;
+                while (value == null && j < 100)
+                {
+                    j++;
+                    value = GetPercentileValue(values.ToArray(), 3, j);
+                }
+
+                SetMinSignalValue(Signal, value ?? 0);
+                return value;
+            }
         }
+        private double? GetMaxSignalValue(string Signal, List<float> values1, List<float> values2)
+        {
+            string[] find = p_SignalsMaxValues.Find(temp => temp[0].Trim() == Signal.Trim());
+
+            if (find != null)
+                return Double.Parse(find[1]);
+            else
+            {
+                double? value = null;
+                
+                int j = 1;
+                while (value == null && j < 100)
+                {
+                    j++;
+                    value = GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), 97, j);
+                }
+
+                SetMaxSignalValue(Signal, value ?? 0);
+                return value;
+            }
+        }
+        private double? GetMinSignalValue(string Signal, List<float> values1, List<float> values2)
+        {
+            string[] find = p_SignalsMinValues.Find(temp => temp[0].Trim() == Signal.Trim());
+
+            if (find != null)
+                return Double.Parse(find[1]);
+            else
+            {
+                double? value = null;
+                
+                int j = 1;
+                while (value == null && j < 100)
+                {
+                    j++;
+                    value = GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), 3, j);
+                }
+
+                SetMinSignalValue(Signal, value ?? 0);
+                return value;
+            }
+        }
+        
         private void SetMaxSignalValue(string Signal, double Value)
         {
             string[] find = p_SignalsMaxValues.Find(temp => temp[0].Trim() == Signal.Trim());
@@ -819,50 +960,9 @@ namespace SleepApneaDiagnoser
             LoadCommonDerivativesFile();
             LoadCategoriesFile();
             OnPropertyChanged(nameof(PreviewSignals));
+            OnPropertyChanged(nameof(AllNonHiddenSignals));
         }
-
-        /******************************************************* STATIC FUNCTIONS *******************************************************/
-
-        // Static Functions
-        private static int EPOCH_SEC = 30;
-        private static DateTime EpochtoDateTime(int epoch, EDFFile file)
-        {
-            return file.Header.StartDateTime + new TimeSpan(0, 0, epoch * EPOCH_SEC);
-        }
-        private static TimeSpan EpochPeriodtoTimeSpan(int period)
-        {
-            return new TimeSpan(0, 0, 0, period * EPOCH_SEC);
-        }
-        private static int DateTimetoEpoch(DateTime time, EDFFile file)
-        {
-            return (int)((time - file.Header.StartDateTime).TotalSeconds / (double)EPOCH_SEC);
-        }
-        private static int TimeSpantoEpochPeriod(TimeSpan period)
-        {
-            return (int)(period.TotalSeconds / (double)EPOCH_SEC);
-        }
-
-        private static double? GetPercentileValue(float[] values_array, int percentile, int tolerance)
-        {
-            List<float> values = values_array.ToList();
-            values.Sort();
-
-            int index = (int)((double)percentile/(double)100 * (double)values.Count);
-
-            return values[index];
-         }
-        private static double? GetPercentileValueDeriv(float[] values_array_1, float[] values_array_2, int percentile, int tolerance)
-        {
-            List<float> values1 = values_array_1.ToList();
-            List<float> values2 = values_array_2.ToList();
-
-            List<float> values = new List<float>();
-            for (int x = 0; x < Math.Min(values_array_1.Length, values_array_2.Length); x++)
-                values.Add(values_array_1[x] - values_array_2[x]);
-
-            return GetPercentileValue(values.ToArray(), percentile, tolerance);
-       }
-
+        
         /*********************************************************** MEMBERS ************************************************************/
 
         // General Private Variables
@@ -880,6 +980,12 @@ namespace SleepApneaDiagnoser
         private int p_PreviewViewDuration = 0;
         private PlotModel p_PreviewSignalPlot = null;
         private bool p_PreviewNavigationEnabled = false;
+
+        // Respiratory Private Variables
+        private string p_RespiratoryEDFSelectedSignal;
+        private int p_RespiratoryEDFStartRecord;
+        private int p_RespiratoryEDFDuration;
+        private PlotModel p_RespiratorySignalPlot = null;
 
         /********************************************************** PROPERTIES **********************************************************/
 
@@ -1089,7 +1195,24 @@ namespace SleepApneaDiagnoser
                     return Array.AsReadOnly(new string[0]);
             }
         }
-        
+        public ReadOnlyCollection<string> AllNonHiddenSignals
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                {
+                    List<string> output = new List<string>();
+                    output.AddRange(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).Where(temp => !p_HiddenSignals.Contains(temp)).ToArray());
+                    output.AddRange(p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+                    return Array.AsReadOnly(output.ToArray());
+                }
+                else
+                {
+                    return Array.AsReadOnly(new string[0]);
+                }
+            }
+        }
+
         // Preview Signal Selection
         public int PreviewCurrentCategory
         {
@@ -1355,6 +1478,56 @@ namespace SleepApneaDiagnoser
             {
                 p_PreviewSignalPlot = value;
                 OnPropertyChanged(nameof(PreviewSignalPlot));
+            }
+        }
+
+        // Respiratory Analysis
+        public string RespiratoryEDFSelectedSignal
+        {
+            get
+            {
+                return p_RespiratoryEDFSelectedSignal;
+            }
+            set
+            {
+                p_RespiratoryEDFSelectedSignal = value;
+                OnPropertyChanged(nameof(RespiratoryEDFSelectedSignal));
+            }
+        }
+        public int? RespiratoryEDFStartRecord
+        {
+            get
+            {
+                return p_RespiratoryEDFStartRecord;
+            }
+            set
+            {
+                p_RespiratoryEDFStartRecord = value ?? 0;
+                OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
+            }
+        }
+        public int? RespiratoryEDFDuration
+        {
+            get
+            {
+                return p_RespiratoryEDFDuration;
+            }
+            set
+            {
+                p_RespiratoryEDFDuration = value ?? 0;
+                OnPropertyChanged(nameof(RespiratoryEDFDuration));
+            }
+        }
+        public PlotModel RespiratorySignalPlot
+        {
+            get
+            {
+                return p_RespiratorySignalPlot;
+            }
+            set
+            {
+                p_RespiratorySignalPlot = value;
+                OnPropertyChanged(nameof(RespiratorySignalPlot));
             }
         }
 
