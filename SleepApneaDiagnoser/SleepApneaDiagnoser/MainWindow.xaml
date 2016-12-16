@@ -9,13 +9,13 @@
         xmlns:mwt="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero"
         xmlns:mtr="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         mc:Ignorable="d"
-        Title="Sleep Apnea Diagnoser" Height="768" Width="1366" Closing="Window_Closing" WindowState="Maximized">
+        Title="Sleep Apnea Diagnoser" Height="768" Width="1366" Closing="Window_Closing" WindowState="Maximized" MinWidth="1200" MinHeight="650">
     <Grid Margin="0,10,0,0">
 
-        <mtr:MetroAnimatedSingleRowTabControl Margin="10,10,10,30" TabStripPlacement="Left">
+        <mtr:MetroAnimatedSingleRowTabControl Margin="10,10,10,30">
 
-            <mtr:MetroTabItem Header="Home">
-                <Grid Margin="27,0,0,0">
+            <mtr:MetroTabItem Header="Home" Height="40">
+                <Grid>
                     <Grid HorizontalAlignment="Left" Width="299" Background="White" Margin="0,0">
                         <TextBlock Text="Start" Height="34" Width="94" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="18"  Margin="10,15,0,0"/>
                         <TextBlock x:Name="TextBlock_OpenEDF" TextDecorations="Underline" Height="34" Width="94" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10,49,0,0" FontSize="14">
@@ -38,8 +38,7 @@
             </mtr:MetroTabItem>
 
             <mtr:MetroTabItem Header="Preview" IsEnabled="{Binding IsEDFLoaded}">
-                <Grid Margin="27,0,0,0">
-
+                <Grid>
                     <Label Content="EDF Header" FontSize="18" Margin="0,10,178.333,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="42" HorizontalAlignment="Right" Width="114"/>
                     <Grid HorizontalAlignment="Right" Width="292" Margin="0,35,0.333,26.667">
                         <Label x:Name="label5" Content="General Information" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="136" FontSize="14"/>
@@ -113,26 +112,114 @@
             </mtr:MetroTabItem>
 
             <mtr:MetroTabItem Header="Analysis" IsEnabled="{Binding IsEDFLoaded}">
-                <mtr:MetroAnimatedSingleRowTabControl TabStripPlacement="Left">
-                    <mtr:MetroTabItem Header="Respiratory" IsEnabled="{Binding IsEDFLoaded}" Width="190">
+                <mtr:MetroAnimatedSingleRowTabControl  Margin="10,10,10,10">
+                    <mtr:MetroTabItem Header="Respiratory" IsEnabled="{Binding IsEDFLoaded}" Width="190" Height="40">
                         <Grid>
-                            <Label Content="From Binary File" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="10,10,0,0"/>
-                            <Button x:Name="button_RespLoadBin" Content="Open" Height="28" Width="122" Margin="215,10,707,645"/>
-                            
-                            <Label Content="From Loaded EDF File" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="10,47,0,0"/>
-                            <Label Content="Signal" HorizontalAlignment="Left" Margin="213,47,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="28" Width="47" HorizontalContentAlignment="Center" FontSize="14"/>
-                            <ComboBox Height="28" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="265,47,0,0" RenderTransformOrigin="1.025,1.5"/>
-                            <Label Content="From" HorizontalAlignment="Left" Margin="481,47,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="28" Width="47" HorizontalContentAlignment="Center" FontSize="14"/>
-                            <xctk:IntegerUpDown Margin="533,47,328,612" AllowTextInput="True" TextAlignment="Center" FontSize="14"/>
-                            <Label Content="Length" Margin="725,47,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="28" HorizontalContentAlignment="Center" FontSize="14" HorizontalAlignment="Left" Width="62"/>
-                            <xctk:IntegerUpDown Margin="792,47,145,612" AllowTextInput="True" TextAlignment="Center" FontSize="14"/>
-                            <Button Content="Go" VerticalAlignment="Top" Height="28" Margin="914,47,10,0"/>
-                            
-                            <oxy:PlotView x:Name="PlotView_RespPlot" Margin="10,87,350,10" Model="{Binding PreviewSignalPlot}"/>
+                            <Grid Height="40" VerticalAlignment="Top" Margin="0,10,10,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="225"/>
+                                    <ColumnDefinition Width="830*"/>
+                                </Grid.ColumnDefinitions>
+                                <Label Content="From Binary File" FontSize="18" Margin="0,4,20,4"/>
+                                <Button Content="Open" Width="122" Margin="10,6,0,6" HorizontalAlignment="Left" Grid.Column="1"/>
+                            </Grid>
+
+                            <Grid Height="40" VerticalAlignment="Top" Margin="0,50,10,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="225"/>
+                                    <ColumnDefinition MaxWidth="250" Width="250*"/>
+                                    <ColumnDefinition MaxWidth="200" Width="200*"/>
+                                    <ColumnDefinition MaxWidth="200" Width="200*"/>
+                                    <ColumnDefinition Width="120*"/>
+                                </Grid.ColumnDefinitions>
+                                <Label Content="From Loaded EDF File" FontSize="18" Margin="0,4,20,4"/>
+                                <Label Content="Signal" HorizontalAlignment="Left" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" Width="47" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="1"/>
+                                <ComboBox Margin="62,6,10,6" RenderTransformOrigin="1.025,1.5" Grid.Column="1"/>
+                                <Label Content="From" HorizontalAlignment="Left" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" Width="47" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="2"/>
+                                <mtr:NumericUpDown Margin="62,6,10,6" TextAlignment="Center" FontSize="14" Grid.Column="2"/>
+                                <Label Content="Length" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" HorizontalContentAlignment="Center" FontSize="14" HorizontalAlignment="Left" Width="62" Grid.Column="3"/>
+                                <mtr:NumericUpDown Margin="77,6,10,6"  TextAlignment="Center" FontSize="14" Grid.Column="3"/>
+                                <Button Content="Go" Margin="7,6,0,6" HorizontalAlignment="Left" Width="91" Grid.Column="4"/>
+                            </Grid>
+
+                            <Label Content="Plot" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="0,98,0,0"/>
+                            <oxy:PlotView Margin="10,135,350,10"/>
+
+                            <Label Content="Analysis" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Right" Width="200" Margin="0,98,145,0"/>
+                            <Grid HorizontalAlignment="Right" Width="335" Margin="0,135,10,10"/>
                         </Grid>
                     </mtr:MetroTabItem>
-                    <mtr:MetroTabItem Header="Circulatory" IsEnabled="{Binding IsEDFLoaded}" Width="190"/>
+                    <mtr:MetroTabItem Header="Circulatory" IsEnabled="{Binding IsEDFLoaded}" Width="190">
+                        <Grid>
+                            <Grid Height="40" VerticalAlignment="Top" Margin="0,10,10,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="225"/>
+                                    <ColumnDefinition Width="831*"/>
+                                </Grid.ColumnDefinitions>
+                                <Label Content="From Binary File" FontSize="18" Margin="0,4,20,4"/>
+                                <Button Content="Open" Width="122" Margin="10,6,0,6" HorizontalAlignment="Left" Grid.Column="1"/>
+                            </Grid>
+
+                            <Grid Height="40" VerticalAlignment="Top" Margin="0,50,10,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="225"/>
+                                    <ColumnDefinition MaxWidth="250" Width="250*"/>
+                                    <ColumnDefinition MaxWidth="200" Width="200*"/>
+                                    <ColumnDefinition MaxWidth="200" Width="200*"/>
+                                    <ColumnDefinition Width="120*"/>
+                                </Grid.ColumnDefinitions>
+                                <Label Content="From Loaded EDF File" FontSize="18" Margin="0,4,20,4"/>
+                                <Label Content="Signal" HorizontalAlignment="Left" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" Width="47" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="1"/>
+                                <ComboBox Margin="62,6,10,6" RenderTransformOrigin="1.025,1.5" Grid.Column="1"/>
+                                <Label Content="From" HorizontalAlignment="Left" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" Width="47" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="2"/>
+                                <mtr:NumericUpDown Margin="62,6,10,6" TextAlignment="Center" FontSize="14" Grid.Column="2"/>
+                                <Label Content="Length" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" HorizontalContentAlignment="Center" FontSize="14" HorizontalAlignment="Left" Width="62" Grid.Column="3"/>
+                                <mtr:NumericUpDown Margin="77,6,10,6"  TextAlignment="Center" FontSize="14" Grid.Column="3"/>
+                                <Button Content="Go" Margin="7,6,0,6" HorizontalAlignment="Left" Width="91" Grid.Column="4"/>
+                            </Grid>
+
+                            <Label Content="Plot" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="0,98,0,0"/>
+                            <oxy:PlotView Margin="10,135,350,10"/>
+
+                            <Label Content="Analysis" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Right" Width="200" Margin="0,98,145,0"/>
+                            <Grid HorizontalAlignment="Right" Width="335" Margin="0,135,10,10"/>
+                        </Grid>
+                    </mtr:MetroTabItem>
                     <mtr:MetroTabItem Header="EEG" IsEnabled="{Binding IsEDFLoaded}" Width="190">
+                        <Grid>
+                            <Grid Height="40" VerticalAlignment="Top" Margin="0,10,10,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="225"/>
+                                    <ColumnDefinition Width="831*"/>
+                                </Grid.ColumnDefinitions>
+                                <Label Content="From Binary File" FontSize="18" Margin="0,4,20,4"/>
+                                <Button Content="Open" Width="122" Margin="10,6,0,6" HorizontalAlignment="Left" Grid.Column="1"/>
+                            </Grid>
+
+                            <Grid Height="40" VerticalAlignment="Top" Margin="0,50,10,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="225"/>
+                                    <ColumnDefinition MaxWidth="250" Width="250*"/>
+                                    <ColumnDefinition MaxWidth="200" Width="200*"/>
+                                    <ColumnDefinition MaxWidth="200" Width="200*"/>
+                                    <ColumnDefinition Width="120*"/>
+                                </Grid.ColumnDefinitions>
+                                <Label Content="From Loaded EDF File" FontSize="18" Margin="0,4,20,4"/>
+                                <Label Content="Signal" HorizontalAlignment="Left" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" Width="47" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="1"/>
+                                <ComboBox Margin="62,6,10,6" RenderTransformOrigin="1.025,1.5" Grid.Column="1"/>
+                                <Label Content="From" HorizontalAlignment="Left" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" Width="47" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="2"/>
+                                <mtr:NumericUpDown Margin="62,6,10,6" TextAlignment="Center" FontSize="14" Grid.Column="2"/>
+                                <Label Content="Length" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" HorizontalContentAlignment="Center" FontSize="14" HorizontalAlignment="Left" Width="62" Grid.Column="3"/>
+                                <mtr:NumericUpDown Margin="77,6,10,6"  TextAlignment="Center" FontSize="14" Grid.Column="3"/>
+                                <Button Content="Go" Margin="7,6,0,6" HorizontalAlignment="Left" Width="91" Grid.Column="4"/>
+                            </Grid>
+
+                            <Label Content="Plot" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="0,98,0,0"/>
+                            <oxy:PlotView Margin="10,135,350,10"/>
+
+                            <Label Content="Analysis" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Right" Width="200" Margin="0,98,145,0"/>
+                            <Grid HorizontalAlignment="Right" Width="335" Margin="0,135,10,10"/>
+                        </Grid>
                     </mtr:MetroTabItem>
                 </mtr:MetroAnimatedSingleRowTabControl>
             </mtr:MetroTabItem>
