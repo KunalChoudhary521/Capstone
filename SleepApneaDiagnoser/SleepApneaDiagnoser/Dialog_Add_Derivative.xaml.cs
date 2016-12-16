@@ -41,6 +41,7 @@ namespace SleepApneaDiagnoser
                 return comboBox_Signal2.Text;
             }
         }
+        public bool DialogResult = false;
 
         private string[] DerivedSignals;
         private string[] Signals;
@@ -65,23 +66,25 @@ namespace SleepApneaDiagnoser
             {
                 if (Signals.ToList().Contains(textBox_SignalName.Text.Trim()) || DerivedSignals.ToList().Contains(textBox_SignalName.Text.Trim()))
                 {
-                    this.ShowMessageAsync("Error", "Please select a unique signal name.");
+                    /* TODO FIND A WAY TO SHOW THIS MESSAGE */
+                    // this.ShowMessageAsync("Error", "Please select a unique signal name.");
                 }
                 else
                 {
                     this.DialogResult = true;
-                    this.Close();
+                    this.RequestCloseAsync();
                 }
             }
             else
             {
-                this.ShowMessageAsync("Error", "Please fill in empty fields.");
+                /* TODO FIND A WAY TO SHOW THIS MESSAGE */
+                //this.ShowMessageAsync("Error", "Please fill in empty fields.");
             }
         }
         private void button_Cancel_Click(object sender, RoutedEventArgs e)
         {
             this.DialogResult = false;
-            this.Close();
+            this.RequestCloseAsync();
         }
         private void comboBox_Signal1_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
