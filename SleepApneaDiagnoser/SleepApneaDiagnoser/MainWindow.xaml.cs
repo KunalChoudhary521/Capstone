@@ -464,8 +464,56 @@ namespace SleepApneaDiagnoser
                                                         EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile) + EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 0)
                                                         );
 
+            // Plot Insets of Respiration Expiration
+
+            // Calculate Bias
+            double bias = 0;
+            for (int x = 0; x < series.Points.Count; x++)
+            {
+                bias += series.Points[x].Y / (double)series.Points.Count;
+            }
+            // Find Normalized Flow Signal and Insets (Zero Crossings)
+            LineSeries series_norm = new LineSeries();
+            ScatterSeries series_insets = new ScatterSeries();
+            ScatterSeries series_onsets = new ScatterSeries();
+            for (int x = 5; x < series.Points.Count - 5; x+=5)
+            {
+                double running_average = (0.1 * series.Points[x - 5].Y +
+                                         0.2 * series.Points[x - 4].Y +
+                                         0.3 * series.Points[x - 3].Y +
+                                         0.4 * series.Points[x - 2].Y +
+                                         0.5 * series.Points[x - 1].Y +
+                                         0.6 * series.Points[x].Y +
+                                         0.5 * series.Points[x + 1].Y +
+                                         0.4 * series.Points[x + 2].Y +
+                                         0.3 * series.Points[x + 3].Y +
+                                         0.2 * series.Points[x + 4].Y +
+                                         0.1 * series.Points[x + 5].Y) / 3.6;
+
+                series_norm.Points.Add(new DataPoint(series.Points[x].X, running_average - bias));
+            }
+            for (int x = 0; x < series_norm.Points.Count; x++)
+            {
+                if (x > 0)
+                {
+                    if ((series_norm.Points[x - 1].Y >= 0 && series_norm.Points[x].Y <= 0) ||
+                        (series_norm.Points[x - 1].Y <= 0 && series_norm.Points[x].Y >= 0)) // Zero Crossing
+                    {
+                        if (series_norm.Points[x - 1].Y > series_norm.Points[x].Y)
+                            series_insets.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
+                        else
+                            series_onsets.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
+                    }
+                }
+            }
+            series = series_norm;
+            
             series.YAxisKey = RespiratoryEDFSelectedSignal;
             series.XAxisKey = "DateTime";
+            series_onsets.YAxisKey = RespiratoryEDFSelectedSignal;
+            series_onsets.XAxisKey = "DateTime";
+            series_insets.YAxisKey = RespiratoryEDFSelectedSignal;
+            series_insets.XAxisKey = "DateTime";
 
             DateTimeAxis xAxis = new DateTimeAxis();
             xAxis.Key = "DateTime";
@@ -478,11 +526,13 @@ namespace SleepApneaDiagnoser
             yAxis.MinorGridlineStyle = LineStyle.Dot;
             yAxis.Title = RespiratoryEDFSelectedSignal;
             yAxis.Key = RespiratoryEDFSelectedSignal;
-            yAxis.Maximum = max_y ?? Double.NaN;
-            yAxis.Minimum = min_y ?? Double.NaN;
+            yAxis.Maximum = (max_y ?? Double.NaN) - bias;
+            yAxis.Minimum = (min_y ?? Double.NaN) - bias;
 
             temp_SignalPlot.Axes.Add(yAxis);
             temp_SignalPlot.Series.Add(series);
+            temp_SignalPlot.Series.Add(series_onsets);
+            temp_SignalPlot.Series.Add(series_insets);
 
             RespiratorySignalPlot = temp_SignalPlot;
         }
