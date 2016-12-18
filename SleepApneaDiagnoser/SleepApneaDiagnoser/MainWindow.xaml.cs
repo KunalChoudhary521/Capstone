@@ -224,7 +224,7 @@ namespace SleepApneaDiagnoser
         
         /****************************************************** HELPER FUNCTIONS *******************************************************/
 
-        private LineSeries GetSeriesFromSignalName(out double? max_y, out double? min_y, string Signal, DateTime StartTime, DateTime EndTime)
+        private LineSeries GetSeriesFromSignalName(out float sample_period, out double? max_y, out double? min_y, string Signal, DateTime StartTime, DateTime EndTime)
         {
             // Variable To Return
             LineSeries series = new LineSeries();
@@ -235,7 +235,7 @@ namespace SleepApneaDiagnoser
                 EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal);
 
                 // Determine Array Portion
-                float sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
+                sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
                 int startIndex, indexCount;
                 TimeSpan startPoint = StartTime - LoadedEDFFile.Header.StartDateTime;
                 TimeSpan duration = EndTime - StartTime;
@@ -265,7 +265,6 @@ namespace SleepApneaDiagnoser
                 // Get Arrays and Perform Resampling if needed
                 List<float> values1;
                 List<float> values2;
-                float sample_period;
                 if (edfsignal1.NumberOfSamplesPerDataRecord == edfsignal2.NumberOfSamplesPerDataRecord) // No resampling
                 {
                     values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
@@ -377,7 +376,9 @@ namespace SleepApneaDiagnoser
                 for (int x = 0; x < p_PreviewSelectedSignals.Count; x++)
                 {
                     double? min_y, max_y;
-                    LineSeries series = GetSeriesFromSignalName(out max_y, 
+                    float sample_period;
+                    LineSeries series = GetSeriesFromSignalName(out sample_period, 
+                                                                out max_y, 
                                                                 out min_y, 
                                                                 p_PreviewSelectedSignals[x], 
                                                                 (PreviewViewStartTime ?? new DateTime()), 
@@ -457,7 +458,9 @@ namespace SleepApneaDiagnoser
             temp_SignalPlot.Axes.Clear();
 
             double? max_y, min_y;
-            LineSeries series = GetSeriesFromSignalName(out max_y, 
+            float sample_period;
+            LineSeries series = GetSeriesFromSignalName(out sample_period, 
+                                                        out max_y, 
                                                         out min_y, 
                                                         RespiratoryEDFSelectedSignal, 
                                                         EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile), 
@@ -495,17 +498,39 @@ namespace SleepApneaDiagnoser
             }
 
             // Find Zero Crossings
+            int cool_down_in = 0;
+            int cool_down_on = 0;
             ScatterSeries series_insets = new ScatterSeries();
             ScatterSeries series_onsets = new ScatterSeries();
             for (int x = 1; x < series_norm.Points.Count; x++)
             {
-                if ((series_norm.Points[x - 1].Y >= 0 && series_norm.Points[x].Y <= 0) ||
-                    (series_norm.Points[x - 1].Y <= 0 && series_norm.Points[x].Y >= 0)) // Zero Crossing
+                if (cool_down_in != 0)
+                    cool_down_in--;
+                else
                 {
-                    if (Math.Abs(series_norm.Points[x - 1].Y) > Math.Abs(series_norm.Points[x].Y))
-                        series_insets.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
-                    else
-                        series_onsets.Points.Add(new ScatterPoint(series_norm.Points[x-1].X, series_norm.Points[x-1].Y));
+                    if ((series_norm.Points[x - 1].Y >= 0 && series_norm.Points[x].Y <= 0))
+                    {
+                        if (Math.Abs(series_norm.Points[x - 1].Y) > Math.Abs(series_norm.Points[x].Y))
+                            series_insets.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
+                        else
+                            series_insets.Points.Add(new ScatterPoint(series_norm.Points[x - 1].X, series_norm.Points[x - 1].Y));
+
+                        cool_down_in = (int) (0.5 / sample_period);
+                    }
+                }
+                if (cool_down_on != 0)
+                    cool_down_on--;
+                else
+                {
+                    if ((series_norm.Points[x - 1].Y <= 0 && series_norm.Points[x].Y >= 0))
+                    {
+                        if (Math.Abs(series_norm.Points[x - 1].Y) > Math.Abs(series_norm.Points[x].Y))
+                            series_onsets.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
+                        else
+                            series_onsets.Points.Add(new ScatterPoint(series_norm.Points[x - 1].X, series_norm.Points[x - 1].Y));
+
+                        cool_down_on = (int)(0.5 / sample_period);
+                    }
                 }
             }
 
