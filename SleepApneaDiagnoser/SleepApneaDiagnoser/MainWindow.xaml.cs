@@ -534,12 +534,62 @@ namespace SleepApneaDiagnoser
                 }
             }
 
+            // Find Peaks
+            int cool_down_pos = 0;
+            int cool_down_neg = 0;
+            ScatterSeries series_pos_peaks = new ScatterSeries();
+            ScatterSeries series_neg_peaks = new ScatterSeries();
+            for (int x = 1; x < series_norm.Points.Count - 1; x++)
+            {
+                if (cool_down_pos != 0)
+                    cool_down_pos--;
+                
+                if (series_norm.Points[x - 1].Y <= series_norm.Points[x].Y && series_norm.Points[x + 1].Y <= series_norm.Points[x].Y)
+                {
+                    if (cool_down_pos == 0)
+                    {
+                        series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
+                        cool_down_pos = (int)(0.5 / sample_period);
+                    }
+                    if (cool_down_pos != 0 && series_norm.Points[x].Y > series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].Y)
+                    {
+                        series_pos_peaks.Points.Remove(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1]);
+                        series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
+                        cool_down_pos = (int)(0.5 / sample_period);
+                    }
+                }
+
+                if (cool_down_neg != 0)
+                    cool_down_neg--;
+
+                if (series_norm.Points[x - 1].Y >= series_norm.Points[x].Y && series_norm.Points[x + 1].Y >= series_norm.Points[x].Y)
+                {
+                    if (cool_down_neg == 0)
+                    {
+                        series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
+                        cool_down_neg = (int)(0.5 / sample_period);
+                    }
+                    if (cool_down_neg != 0 && series_norm.Points[x].Y < series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].Y)
+                    {
+                        series_neg_peaks.Points.Remove(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1]);
+                        series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
+                        cool_down_neg = (int)(0.5 / sample_period);
+                    }
+                }
+                
+            }
+
+
             series_norm.YAxisKey = RespiratoryEDFSelectedSignal;
             series_norm.XAxisKey = "DateTime";
             series_onsets.YAxisKey = RespiratoryEDFSelectedSignal;
             series_onsets.XAxisKey = "DateTime";
             series_insets.YAxisKey = RespiratoryEDFSelectedSignal;
             series_insets.XAxisKey = "DateTime";
+            series_pos_peaks.YAxisKey = RespiratoryEDFSelectedSignal;
+            series_pos_peaks.XAxisKey = "DateTime";
+            series_neg_peaks.YAxisKey = RespiratoryEDFSelectedSignal;
+            series_neg_peaks.XAxisKey = "DateTime";
 
             DateTimeAxis xAxis = new DateTimeAxis();
             xAxis.Key = "DateTime";
@@ -559,6 +609,8 @@ namespace SleepApneaDiagnoser
             temp_SignalPlot.Series.Add(series_norm);
             temp_SignalPlot.Series.Add(series_onsets);
             temp_SignalPlot.Series.Add(series_insets);
+            temp_SignalPlot.Series.Add(series_pos_peaks);
+            temp_SignalPlot.Series.Add(series_neg_peaks);
 
             RespiratorySignalPlot = temp_SignalPlot;
         }
