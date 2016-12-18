@@ -470,46 +470,47 @@ namespace SleepApneaDiagnoser
             double bias = 0;
             for (int x = 0; x < series.Points.Count; x++)
             {
-                bias += series.Points[x].Y / (double)series.Points.Count;
+                double point_1 = series.Points[x].Y;
+                double point_2 = x + 1 < series.Points.Count ? series.Points[x + 1].Y : series.Points[x].Y;
+                double average = (point_1 + point_2) / 2;
+                bias += average / (double)series.Points.Count;
             }
-            // Find Normalized Flow Signal and Insets (Zero Crossings)
+            
+            // Weighted Running Average (Smoothing) and Normalization
             LineSeries series_norm = new LineSeries();
+            int LENGTH = 50;
+            for (int x = 0; x < series.Points.Count; x+=5)
+            {
+                double sum = 0;
+                double weight_sum = 0;
+                for (int y = -LENGTH/2; y <= LENGTH/2; y++)
+                {
+                    double weight = (LENGTH / 2 + 1) - Math.Abs(y);
+                    weight_sum += weight;
+                    sum += weight * series.Points[Math.Min(series.Points.Count - 1, Math.Max(0, x - y))].Y;
+                }
+                double average = sum / weight_sum;
+
+                series_norm.Points.Add(new DataPoint(series.Points[x].X, average - bias));
+            }
+
+            // Find Zero Crossings
             ScatterSeries series_insets = new ScatterSeries();
             ScatterSeries series_onsets = new ScatterSeries();
-            for (int x = 5; x < series.Points.Count - 5; x+=5)
+            for (int x = 1; x < series_norm.Points.Count; x++)
             {
-                double running_average = (0.1 * series.Points[x - 5].Y +
-                                         0.2 * series.Points[x - 4].Y +
-                                         0.3 * series.Points[x - 3].Y +
-                                         0.4 * series.Points[x - 2].Y +
-                                         0.5 * series.Points[x - 1].Y +
-                                         0.6 * series.Points[x].Y +
-                                         0.5 * series.Points[x + 1].Y +
-                                         0.4 * series.Points[x + 2].Y +
-                                         0.3 * series.Points[x + 3].Y +
-                                         0.2 * series.Points[x + 4].Y +
-                                         0.1 * series.Points[x + 5].Y) / 3.6;
-
-                series_norm.Points.Add(new DataPoint(series.Points[x].X, running_average - bias));
-            }
-            for (int x = 0; x < series_norm.Points.Count; x++)
-            {
-                if (x > 0)
+                if ((series_norm.Points[x - 1].Y >= 0 && series_norm.Points[x].Y <= 0) ||
+                    (series_norm.Points[x - 1].Y <= 0 && series_norm.Points[x].Y >= 0)) // Zero Crossing
                 {
-                    if ((series_norm.Points[x - 1].Y >= 0 && series_norm.Points[x].Y <= 0) ||
-                        (series_norm.Points[x - 1].Y <= 0 && series_norm.Points[x].Y >= 0)) // Zero Crossing
-                    {
-                        if (series_norm.Points[x - 1].Y > series_norm.Points[x].Y)
-                            series_insets.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
-                        else
-                            series_onsets.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
-                    }
+                    if (Math.Abs(series_norm.Points[x - 1].Y) > Math.Abs(series_norm.Points[x].Y))
+                        series_insets.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
+                    else
+                        series_onsets.Points.Add(new ScatterPoint(series_norm.Points[x-1].X, series_norm.Points[x-1].Y));
                 }
             }
-            series = series_norm;
-            
-            series.YAxisKey = RespiratoryEDFSelectedSignal;
-            series.XAxisKey = "DateTime";
+
+            series_norm.YAxisKey = RespiratoryEDFSelectedSignal;
+            series_norm.XAxisKey = "DateTime";
             series_onsets.YAxisKey = RespiratoryEDFSelectedSignal;
             series_onsets.XAxisKey = "DateTime";
             series_insets.YAxisKey = RespiratoryEDFSelectedSignal;
@@ -530,7 +531,7 @@ namespace SleepApneaDiagnoser
             yAxis.Minimum = (min_y ?? Double.NaN) - bias;
 
             temp_SignalPlot.Axes.Add(yAxis);
-            temp_SignalPlot.Series.Add(series);
+            temp_SignalPlot.Series.Add(series_norm);
             temp_SignalPlot.Series.Add(series_onsets);
             temp_SignalPlot.Series.Add(series_insets);
 
