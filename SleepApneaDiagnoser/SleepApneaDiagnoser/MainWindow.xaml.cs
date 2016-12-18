@@ -482,7 +482,7 @@ namespace SleepApneaDiagnoser
             // Weighted Running Average (Smoothing) and Normalization
             LineSeries series_norm = new LineSeries();
             int LENGTH = 50;
-            for (int x = 0; x < series.Points.Count; x+=5)
+            for (int x = 0; x < series.Points.Count; x++)
             {
                 double sum = 0;
                 double weight_sum = 0;
@@ -515,7 +515,7 @@ namespace SleepApneaDiagnoser
                         else
                             series_insets.Points.Add(new ScatterPoint(series_norm.Points[x - 1].X, series_norm.Points[x - 1].Y));
 
-                        cool_down_in = (int) (0.5 / sample_period);
+                        cool_down_in = (int) (1 / sample_period);
                     }
                 }
                 if (cool_down_on != 0)
@@ -529,7 +529,7 @@ namespace SleepApneaDiagnoser
                         else
                             series_onsets.Points.Add(new ScatterPoint(series_norm.Points[x - 1].X, series_norm.Points[x - 1].Y));
 
-                        cool_down_on = (int)(0.5 / sample_period);
+                        cool_down_on = (int)(1 / sample_period);
                     }
                 }
             }
@@ -549,13 +549,13 @@ namespace SleepApneaDiagnoser
                     if (cool_down_pos == 0)
                     {
                         series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
-                        cool_down_pos = (int)(0.5 / sample_period);
+                        cool_down_pos = (int)(2 / sample_period);
                     }
                     if (cool_down_pos != 0 && series_norm.Points[x].Y > series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].Y)
                     {
                         series_pos_peaks.Points.Remove(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1]);
                         series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
-                        cool_down_pos = (int)(0.5 / sample_period);
+                        cool_down_pos = (int)(2 / sample_period);
                     }
                 }
 
@@ -567,13 +567,13 @@ namespace SleepApneaDiagnoser
                     if (cool_down_neg == 0)
                     {
                         series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
-                        cool_down_neg = (int)(0.5 / sample_period);
+                        cool_down_neg = (int)(2 / sample_period);
                     }
                     if (cool_down_neg != 0 && series_norm.Points[x].Y < series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].Y)
                     {
                         series_neg_peaks.Points.Remove(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1]);
                         series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
-                        cool_down_neg = (int)(0.5 / sample_period);
+                        cool_down_neg = (int)(2 / sample_period);
                     }
                 }
                 
