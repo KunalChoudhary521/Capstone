@@ -496,90 +496,60 @@ namespace SleepApneaDiagnoser
 
                 series_norm.Points.Add(new DataPoint(series.Points[x].X, average - bias));
             }
-
-            // Find Zero Crossings
-            int cool_down_in = 0;
-            int cool_down_on = 0;
-            ScatterSeries series_insets = new ScatterSeries();
-            ScatterSeries series_onsets = new ScatterSeries();
-            for (int x = 1; x < series_norm.Points.Count; x++)
-            {
-                if (cool_down_in != 0)
-                    cool_down_in--;
-                else
-                {
-                    if ((series_norm.Points[x - 1].Y >= 0 && series_norm.Points[x].Y <= 0))
-                    {
-                        if (Math.Abs(series_norm.Points[x - 1].Y) > Math.Abs(series_norm.Points[x].Y))
-                            series_insets.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
-                        else
-                            series_insets.Points.Add(new ScatterPoint(series_norm.Points[x - 1].X, series_norm.Points[x - 1].Y));
-
-                        cool_down_in = (int) (1 / sample_period);
-                    }
-                }
-                if (cool_down_on != 0)
-                    cool_down_on--;
-                else
-                {
-                    if ((series_norm.Points[x - 1].Y <= 0 && series_norm.Points[x].Y >= 0))
-                    {
-                        if (Math.Abs(series_norm.Points[x - 1].Y) > Math.Abs(series_norm.Points[x].Y))
-                            series_onsets.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
-                        else
-                            series_onsets.Points.Add(new ScatterPoint(series_norm.Points[x - 1].X, series_norm.Points[x - 1].Y));
-
-                        cool_down_on = (int)(1 / sample_period);
-                    }
-                }
-            }
-
-            // Find Peaks
-            int cool_down_pos = 0;
-            int cool_down_neg = 0;
+            
+            // Find Peaks and Zero Crossings
+            int min_spike_length = (int)(1 / sample_period);
+            int spike_length = 0;
+            int maxima = 0;
+            bool? positive = null;
             ScatterSeries series_pos_peaks = new ScatterSeries();
             ScatterSeries series_neg_peaks = new ScatterSeries();
-            for (int x = 1; x < series_norm.Points.Count - 1; x++)
+            ScatterSeries series_insets = new ScatterSeries();
+            ScatterSeries series_onsets = new ScatterSeries();
+            for (int x = 0; x < series_norm.Points.Count; x++)
             {
-                if (cool_down_pos != 0)
-                    cool_down_pos--;
-                
-                if (series_norm.Points[x - 1].Y <= series_norm.Points[x].Y && series_norm.Points[x + 1].Y <= series_norm.Points[x].Y)
+                if (positive != false)
                 {
-                    if (cool_down_pos == 0)
+                    if (series_norm.Points[x].Y < 0)
                     {
-                        series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
-                        cool_down_pos = (int)(2 / sample_period);
+                        if (maxima != 0 && spike_length > min_spike_length)
+                        { 
+                            series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
+                            series_insets.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
+                        }
+                    positive = false;
+                        spike_length = 1;
+                        maxima = x;
                     }
-                    if (cool_down_pos != 0 && series_norm.Points[x].Y > series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].Y)
+                    else
                     {
-                        series_pos_peaks.Points.Remove(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1]);
-                        series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
-                        cool_down_pos = (int)(2 / sample_period);
+                        if (Math.Abs(series_norm.Points[x].Y) > Math.Abs(series_norm.Points[maxima].Y))
+                            maxima = x;
+                        spike_length++;
                     }
                 }
-
-                if (cool_down_neg != 0)
-                    cool_down_neg--;
-
-                if (series_norm.Points[x - 1].Y >= series_norm.Points[x].Y && series_norm.Points[x + 1].Y >= series_norm.Points[x].Y)
+                else
                 {
-                    if (cool_down_neg == 0)
+                    if (series_norm.Points[x].Y > 0)
                     {
-                        series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
-                        cool_down_neg = (int)(2 / sample_period);
+                        if (maxima != 0 && spike_length > min_spike_length)
+                        {
+                            series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
+                            series_onsets.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
+                        }
+                        positive = true;
+                        spike_length = 1;
+                        maxima = x;
                     }
-                    if (cool_down_neg != 0 && series_norm.Points[x].Y < series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].Y)
+                    else
                     {
-                        series_neg_peaks.Points.Remove(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1]);
-                        series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
-                        cool_down_neg = (int)(2 / sample_period);
+                        if (Math.Abs(series_norm.Points[x].Y) > Math.Abs(series_norm.Points[maxima].Y))
+                            maxima = x;
+                        spike_length++;
                     }
                 }
-                
             }
-
-
+          
             series_norm.YAxisKey = RespiratoryEDFSelectedSignal;
             series_norm.XAxisKey = "DateTime";
             series_onsets.YAxisKey = RespiratoryEDFSelectedSignal;
