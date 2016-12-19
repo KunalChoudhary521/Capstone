@@ -454,6 +454,7 @@ namespace SleepApneaDiagnoser
         private void BW_RespiratoryAnalysisEDF(object sender, DoWorkEventArgs e)
         {
             PlotModel temp_SignalPlot = new PlotModel();
+
             temp_SignalPlot.Series.Clear();
             temp_SignalPlot.Axes.Clear();
 
@@ -1087,6 +1088,7 @@ namespace SleepApneaDiagnoser
         private int p_RespiratoryEDFStartRecord;
         private int p_RespiratoryEDFDuration;
         private PlotModel p_RespiratorySignalPlot = null;
+        private string p_RespiratoryBreathingRate;
 
         /********************************************************** PROPERTIES **********************************************************/
 
@@ -1103,6 +1105,12 @@ namespace SleepApneaDiagnoser
                 PreviewViewStartRecord = null;
                 PreviewViewDuration = null;
                 LoadedEDFFileName = null;
+
+                RespiratoryBreathingRate = "";
+                RespiratorySignalPlot = null;
+                RespiratoryEDFSelectedSignal = null;
+                RespiratoryEDFDuration = null;
+                RespiratoryEDFStartRecord = null;
             }
             else
             {
@@ -1110,6 +1118,12 @@ namespace SleepApneaDiagnoser
                 PreviewViewStartTime = LoadedEDFFile.Header.StartDateTime;
                 PreviewViewStartRecord = 0;
                 PreviewViewDuration = 5;
+
+                RespiratoryBreathingRate = "";
+                RespiratoryEDFSelectedSignal = null;
+                RespiratorySignalPlot = null;
+                RespiratoryEDFDuration = 1;
+                RespiratoryEDFStartRecord = 0;
             }
             OnPropertyChanged(nameof(PreviewNavigationEnabled));
 
@@ -1629,6 +1643,18 @@ namespace SleepApneaDiagnoser
             {
                 p_RespiratorySignalPlot = value;
                 OnPropertyChanged(nameof(RespiratorySignalPlot));
+            }
+        }
+        public string RespiratoryBreathingRate
+        {
+            get
+            {
+                return p_RespiratoryBreathingRate;
+            }
+            set
+            {
+                p_RespiratoryBreathingRate = value;
+                OnPropertyChanged(nameof(RespiratoryBreathingRate));
             }
         }
 

@@ -133,14 +133,17 @@
                                 <mtr:NumericUpDown Margin="62,6,10,6" TextAlignment="Center" FontSize="14" Grid.Column="2" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding RespiratoryEDFStartRecord}"/>
                                 <Label Content="Length" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" HorizontalContentAlignment="Center" FontSize="14" HorizontalAlignment="Left" Width="62" Grid.Column="3"/>
                                 <mtr:NumericUpDown Margin="77,6,10,6"  TextAlignment="Center" FontSize="14" Grid.Column="3" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding RespiratoryEDFDuration}"/>
-                                <Button x:Name="button_PerformRespiratoryAnalysis" Content="Go" Margin="7,6,0,6" HorizontalAlignment="Left" Width="91" Grid.Column="4" IsEnabled="{Binding IsEDFLoaded}" Click="button_PerformRespiratoryAnalysis_Click"/>
+                                <Button x:Name="button_PerformRespiratoryAnalysis" Content="Go" Margin="7,6,0,6" HorizontalAlignment="Left" Width="91" Grid.Column="4" IsEnabled="{Binding IsEDFLoaded}" Click="button_PerformRespiratoryAnalysis_Click" />
                             </Grid>
 
                             <Label Content="Plot" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="0,98,0,0"/>
                             <oxy:PlotView Margin="10,135,350,10" Model="{Binding RespiratorySignalPlot}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
 
                             <Label Content="Analysis" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Right" Width="200" Margin="0,98,145,0"/>
-                            <Grid HorizontalAlignment="Right" Width="335" Margin="0,135,10,10"/>
+                            <Grid HorizontalAlignment="Right" Width="335" Margin="0,135,10,10">
+                                <Label Content="Breathing Rate" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
+                                <TextBox x:Name="textBox_RespBreathingRate" Height="23" Margin="103,11,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryBreathingRate}" VerticalAlignment="Top"/>
+                            </Grid>
                         </Grid>
                     </mtr:MetroTabItem>
                     <mtr:MetroTabItem Header="Circulatory" >
