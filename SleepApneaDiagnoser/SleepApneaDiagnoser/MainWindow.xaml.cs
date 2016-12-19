@@ -498,9 +498,10 @@ namespace SleepApneaDiagnoser
             }
             
             // Find Peaks and Zero Crossings
-            int min_spike_length = (int)(1 / sample_period);
+            int min_spike_length = (int)(0.5 / sample_period);
             int spike_length = 0;
             int maxima = 0;
+            int start = 0;
             bool? positive = null;
             ScatterSeries series_pos_peaks = new ScatterSeries();
             ScatterSeries series_neg_peaks = new ScatterSeries();
@@ -510,16 +511,17 @@ namespace SleepApneaDiagnoser
             {
                 if (positive != false)
                 {
-                    if (series_norm.Points[x].Y < 0)
+                    if (series_norm.Points[x].Y < 0 || x == series_norm.Points.Count - 1)
                     {
                         if (maxima != 0 && spike_length > min_spike_length)
                         { 
                             series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
-                            series_insets.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
+                            series_onsets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
                         }
-                    positive = false;
+                        positive = false;
                         spike_length = 1;
                         maxima = x;
+                        start = x;
                     }
                     else
                     {
@@ -530,16 +532,17 @@ namespace SleepApneaDiagnoser
                 }
                 else
                 {
-                    if (series_norm.Points[x].Y > 0)
+                    if (series_norm.Points[x].Y > 0 || x == series_norm.Points.Count - 1)
                     {
                         if (maxima != 0 && spike_length > min_spike_length)
                         {
                             series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
-                            series_onsets.Points.Add(new ScatterPoint(series_norm.Points[x].X, series_norm.Points[x].Y));
+                            series_insets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
                         }
                         positive = true;
                         spike_length = 1;
                         maxima = x;
+                        start = x;
                     }
                     else
                     {
