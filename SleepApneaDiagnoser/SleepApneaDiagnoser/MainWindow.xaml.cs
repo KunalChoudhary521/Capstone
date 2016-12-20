@@ -587,6 +587,23 @@ namespace SleepApneaDiagnoser
             temp_SignalPlot.Series.Add(series_neg_peaks);
 
             RespiratorySignalPlot = temp_SignalPlot;
+
+            // Find Breathing Rate
+            List<double> breathing_periods = new List<double>();
+            for (int x = 1; x < series_insets.Points.Count; x++)
+                breathing_periods.Add((DateTimeAxis.ToDateTime(series_insets.Points[x].X) - DateTimeAxis.ToDateTime(series_insets.Points[x - 1].X)).TotalSeconds);
+            for (int x = 1; x < series_onsets.Points.Count; x++)
+                breathing_periods.Add((DateTimeAxis.ToDateTime(series_onsets.Points[x].X) - DateTimeAxis.ToDateTime(series_onsets.Points[x - 1].X)).TotalSeconds);
+            for (int x = 1; x < series_pos_peaks.Points.Count; x++)
+                breathing_periods.Add((DateTimeAxis.ToDateTime(series_pos_peaks.Points[x].X) - DateTimeAxis.ToDateTime(series_pos_peaks.Points[x - 1].X)).TotalSeconds);
+            for (int x = 1; x < series_neg_peaks.Points.Count; x++)
+                breathing_periods.Add((DateTimeAxis.ToDateTime(series_neg_peaks.Points[x].X) - DateTimeAxis.ToDateTime(series_neg_peaks.Points[x - 1].X)).TotalSeconds);
+            breathing_periods = breathing_periods.Select(temp => Math.Round(temp, 3)).ToList();
+
+            breathing_periods.Sort();
+            RespiratoryBreathingPeriodMean = (breathing_periods.Average()).ToString("0.## sec/breath");
+            RespiratoryBreathingPeriodMedian = (breathing_periods[breathing_periods.Count / 2 - 1]).ToString("0.## sec/breath");
+           
         }
         private void BW_FinishRespiratoryAnalysisEDF(object sender, RunWorkerCompletedEventArgs e)
         {
@@ -1088,7 +1105,8 @@ namespace SleepApneaDiagnoser
         private int p_RespiratoryEDFStartRecord;
         private int p_RespiratoryEDFDuration;
         private PlotModel p_RespiratorySignalPlot = null;
-        private string p_RespiratoryBreathingRate;
+        private string p_RespiratoryBreathingPeriodMean;
+        private string p_RespiratoryBreathingPeriodMedian;
 
         /********************************************************** PROPERTIES **********************************************************/
 
@@ -1106,7 +1124,8 @@ namespace SleepApneaDiagnoser
                 PreviewViewDuration = null;
                 LoadedEDFFileName = null;
 
-                RespiratoryBreathingRate = "";
+                RespiratoryBreathingPeriodMean = "";
+                RespiratoryBreathingPeriodMedian = "";
                 RespiratorySignalPlot = null;
                 RespiratoryEDFSelectedSignal = null;
                 RespiratoryEDFDuration = null;
@@ -1119,7 +1138,8 @@ namespace SleepApneaDiagnoser
                 PreviewViewStartRecord = 0;
                 PreviewViewDuration = 5;
 
-                RespiratoryBreathingRate = "";
+                RespiratoryBreathingPeriodMean = "";
+                RespiratoryBreathingPeriodMedian = "";
                 RespiratoryEDFSelectedSignal = null;
                 RespiratorySignalPlot = null;
                 RespiratoryEDFDuration = 1;
@@ -1645,16 +1665,28 @@ namespace SleepApneaDiagnoser
                 OnPropertyChanged(nameof(RespiratorySignalPlot));
             }
         }
-        public string RespiratoryBreathingRate
+        public string RespiratoryBreathingPeriodMean
         {
             get
             {
-                return p_RespiratoryBreathingRate;
+                return p_RespiratoryBreathingPeriodMean;
             }
             set
             {
-                p_RespiratoryBreathingRate = value;
-                OnPropertyChanged(nameof(RespiratoryBreathingRate));
+                p_RespiratoryBreathingPeriodMean = value;
+                OnPropertyChanged(nameof(RespiratoryBreathingPeriodMean));
+            }
+        }
+        public string RespiratoryBreathingPeriodMedian
+        {
+            get
+            {
+                return p_RespiratoryBreathingPeriodMedian;
+            }
+            set
+            {
+                p_RespiratoryBreathingPeriodMedian = value;
+                OnPropertyChanged(nameof(RespiratoryBreathingPeriodMedian));
             }
         }
 

@@ -137,12 +137,15 @@
                             </Grid>
 
                             <Label Content="Plot" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="0,98,0,0"/>
-                            <oxy:PlotView Margin="10,135,350,10" Model="{Binding RespiratorySignalPlot}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
+                            <oxy:PlotView Margin="10,135,286.333,10" Model="{Binding RespiratorySignalPlot}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
 
-                            <Label Content="Analysis" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Right" Width="200" Margin="0,98,145,0"/>
-                            <Grid HorizontalAlignment="Right" Width="335" Margin="0,135,10,10">
-                                <Label Content="Breathing Rate" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
-                                <TextBox x:Name="textBox_RespBreathingRate" Height="23" Margin="103,11,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryBreathingRate}" VerticalAlignment="Top"/>
+                            <Label Content="Analysis" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Right" Width="200" Margin="0,98,81.333,0"/>
+                            <Grid HorizontalAlignment="Right" Width="271" Margin="0,135,10.333,10">
+                                <Label Content="Breathing Period" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
+                                <Label Content="Mean" HorizontalAlignment="Left" Margin="50,42,0,0" VerticalAlignment="Top"/>
+                                <Label Content="Median" HorizontalAlignment="Left" Margin="50,73,0,0" VerticalAlignment="Top"/>
+                                <TextBox Height="23" Margin="120,42,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryBreathingPeriodMean}" VerticalAlignment="Top"/>
+                                <TextBox Height="23" Margin="120,73,7,0" TextWrapping="Wrap" Text="{Binding RespiratoryBreathingPeriodMedian}" VerticalAlignment="Top"/>
                             </Grid>
                         </Grid>
                     </mtr:MetroTabItem>
