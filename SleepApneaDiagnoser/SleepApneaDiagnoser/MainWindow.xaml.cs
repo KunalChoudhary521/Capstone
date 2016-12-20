@@ -598,8 +598,7 @@ namespace SleepApneaDiagnoser
                 breathing_periods.Add((DateTimeAxis.ToDateTime(series_pos_peaks.Points[x].X) - DateTimeAxis.ToDateTime(series_pos_peaks.Points[x - 1].X)).TotalSeconds);
             for (int x = 1; x < series_neg_peaks.Points.Count; x++)
                 breathing_periods.Add((DateTimeAxis.ToDateTime(series_neg_peaks.Points[x].X) - DateTimeAxis.ToDateTime(series_neg_peaks.Points[x - 1].X)).TotalSeconds);
-            breathing_periods = breathing_periods.Select(temp => Math.Round(temp, 3)).ToList();
-
+         
             breathing_periods.Sort();
             RespiratoryBreathingPeriodMean = (breathing_periods.Average()).ToString("0.## sec/breath");
             RespiratoryBreathingPeriodMedian = (breathing_periods[breathing_periods.Count / 2 - 1]).ToString("0.## sec/breath");
