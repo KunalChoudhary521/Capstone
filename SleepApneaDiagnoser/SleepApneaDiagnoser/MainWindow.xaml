@@ -11,8 +11,22 @@
         xmlns:ControlzEx="clr-namespace:ControlzEx;assembly=MahApps.Metro" x:Class="SleepApneaDiagnoser.MainWindow"
         mc:Ignorable="d"
         Title="Sleep Apnea Diagnoser" Height="768" Width="1366" Closing="Window_Closing" WindowState="Maximized" MinWidth="1200" MinHeight="650">
-    <Grid Margin="0,10,0,0">
 
+    <mtr:MetroWindow.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+        </Style>
+        <Style TargetType="Label">
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+    </mtr:MetroWindow.Resources>
+
+    <mtr:MetroWindow.WindowButtonCommands>
+        <mtr:WindowButtonCommands Style="{DynamicResource MahApps.Metro.Styles.WindowButtonCommands.Win10}" Template="{DynamicResource MahApps.Metro.Templates.WindowButtonCommands.Win10}"/>
+    </mtr:MetroWindow.WindowButtonCommands>
+
+    <Grid Margin="0,10,0,0">
         <mtr:MetroAnimatedSingleRowTabControl Margin="10,10,10,30">
 
             <mtr:MetroTabItem Header="Home" Height="40">
@@ -140,12 +154,19 @@
                             <oxy:PlotView Margin="10,135,286.333,10" Model="{Binding RespiratorySignalPlot}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
 
                             <Label Content="Analysis" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Right" Width="200" Margin="0,98,81.333,0"/>
-                            <Grid HorizontalAlignment="Right" Width="271" Margin="0,135,10.333,10">
+                            <Grid HorizontalAlignment="Right" Width="271" Margin="0,135,10,0" Height="113" VerticalAlignment="Top">
                                 <Label Content="Breathing Period" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
                                 <Label Content="Mean" HorizontalAlignment="Left" Margin="50,42,0,0" VerticalAlignment="Top"/>
                                 <Label Content="Median" HorizontalAlignment="Left" Margin="50,73,0,0" VerticalAlignment="Top"/>
                                 <TextBox Height="23" Margin="120,42,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryBreathingPeriodMean}" VerticalAlignment="Top"/>
                                 <TextBox Height="23" Margin="120,73,7,0" TextWrapping="Wrap" Text="{Binding RespiratoryBreathingPeriodMedian}" VerticalAlignment="Top"/>
+                            </Grid>
+                            <Label Content="Analysis Settings" FontSize="18" Height="35" VerticalAlignment="Top" HorizontalAlignment="Right" Width="200" Margin="0,253,81,0"/>
+                            <Grid HorizontalAlignment="Right" Width="271" Margin="0,293,10,10">
+                                <Label Content="Peak Detection Sensitivity" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
+                                <mtr:NumericUpDown Height="23" Margin="20,39,20,0" VerticalAlignment="Top"/>
+                                <Label Content="Allow Multiple Peaks" HorizontalAlignment="Left" Margin="10,70,0,0" VerticalAlignment="Top"/>
+                                <mtr:ToggleSwitch Margin="20,99,20,148" FontFamily="Segoi UI" FontSize="14" ></mtr:ToggleSwitch>
                             </Grid>
                         </Grid>
                     </mtr:MetroTabItem>

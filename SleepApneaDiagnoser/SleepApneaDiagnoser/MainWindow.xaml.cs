@@ -178,8 +178,32 @@ namespace SleepApneaDiagnoser
         }
     }
 
+    public class PreviewModel
+    {
+        public int PreviewCurrentCategory = -1;
+        public List<string> PreviewSelectedSignals = new List<string>();
+
+        public bool PreviewUseAbsoluteTime = false;
+        public DateTime PreviewViewStartTime = new DateTime();
+        public int PreviewViewStartRecord = 0;
+        public int PreviewViewDuration = 0;
+        public PlotModel PreviewSignalPlot = null;
+        public bool PreviewNavigationEnabled = false;
+    }
+    public class RespiratoryModel
+    {
+        public string RespiratoryEDFSelectedSignal;
+        public int RespiratoryEDFStartRecord;
+        public int RespiratoryEDFDuration;
+        public PlotModel RespiratorySignalPlot = null;
+        public string RespiratoryBreathingPeriodMean;
+        public string RespiratoryBreathingPeriodMedian;
+    }
+
     public class ModelView : INotifyPropertyChanged
     {
+        #region HELPER FUNCTIONS 
+
         /******************************************************* STATIC FUNCTIONS *******************************************************/
 
         // Static Functions
@@ -222,7 +246,7 @@ namespace SleepApneaDiagnoser
             return GetPercentileValue(values.ToArray(), percentile, tolerance);
         }
         
-        /****************************************************** HELPER FUNCTIONS *******************************************************/
+        /***************************************************** NON-STATIC FUNCTIONS *****************************************************/
 
         private LineSeries GetSeriesFromSignalName(out float sample_period, out double? max_y, out double? min_y, string Signal, DateTime StartTime, DateTime EndTime)
         {
@@ -325,7 +349,9 @@ namespace SleepApneaDiagnoser
             return series;
         }
 
-        /*********************************************************** ACTIONS ***********************************************************/
+        #endregion
+
+        #region ACTIONS
 
         // Load EDF File
         private ProgressDialogController controller;
@@ -365,7 +391,7 @@ namespace SleepApneaDiagnoser
             temp_PreviewSignalPlot.Series.Clear();
             temp_PreviewSignalPlot.Axes.Clear();
 
-            if (p_PreviewSelectedSignals.Count > 0)
+            if (pm.PreviewSelectedSignals.Count > 0)
             {
                 DateTimeAxis xAxis = new DateTimeAxis();
                 xAxis.Key = "DateTime";
@@ -373,28 +399,28 @@ namespace SleepApneaDiagnoser
                 xAxis.Maximum = DateTimeAxis.ToDouble(PreviewViewEndTime);
                 temp_PreviewSignalPlot.Axes.Add(xAxis);
                 
-                for (int x = 0; x < p_PreviewSelectedSignals.Count; x++)
+                for (int x = 0; x < pm.PreviewSelectedSignals.Count; x++)
                 {
                     double? min_y, max_y;
                     float sample_period;
                     LineSeries series = GetSeriesFromSignalName(out sample_period, 
                                                                 out max_y, 
-                                                                out min_y, 
-                                                                p_PreviewSelectedSignals[x], 
+                                                                out min_y,
+                                                                pm.PreviewSelectedSignals[x], 
                                                                 (PreviewViewStartTime ?? new DateTime()), 
                                                                 PreviewViewEndTime
                                                                 );
 
-                    series.YAxisKey = p_PreviewSelectedSignals[x];
+                    series.YAxisKey = pm.PreviewSelectedSignals[x];
                     series.XAxisKey = "DateTime";
 
                     LinearAxis yAxis = new LinearAxis();
                     yAxis.MajorGridlineStyle = LineStyle.Solid;
                     yAxis.MinorGridlineStyle = LineStyle.Dot;
-                    yAxis.Title = p_PreviewSelectedSignals[x];
-                    yAxis.Key = p_PreviewSelectedSignals[x];
-                    yAxis.EndPosition = (double)1 - (double)x * ((double)1 / (double)p_PreviewSelectedSignals.Count);
-                    yAxis.StartPosition = (double)1 - (double)(x + 1) * ((double)1 / (double)p_PreviewSelectedSignals.Count);
+                    yAxis.Title = pm.PreviewSelectedSignals[x];
+                    yAxis.Key = pm.PreviewSelectedSignals[x];
+                    yAxis.EndPosition = (double)1 - (double)x * ((double)1 / (double)pm.PreviewSelectedSignals.Count);
+                    yAxis.StartPosition = (double)1 - (double)(x + 1) * ((double)1 / (double)pm.PreviewSelectedSignals.Count);
                     yAxis.Maximum = max_y ?? Double.NaN;
                     yAxis.Minimum = min_y ?? Double.NaN;
 
@@ -422,9 +448,9 @@ namespace SleepApneaDiagnoser
         // Export Previewed/Selected Signals Wizard
         public void ExportSignals()
         {
-            if (p_PreviewSelectedSignals.Count > 0)
+            if (pm.PreviewSelectedSignals.Count > 0)
             {
-                Dialog_Export_Previewed_Signals dlg = new Dialog_Export_Previewed_Signals(p_PreviewSelectedSignals);
+                Dialog_Export_Previewed_Signals dlg = new Dialog_Export_Previewed_Signals(pm.PreviewSelectedSignals.ToList());
                 if (dlg.ShowDialog() == true)
                 {
                     List<ExportSignalModel> signals_to_export = new List<ExportSignalModel>(Dialog_Export_Previewed_Signals.signals_to_export);
@@ -615,7 +641,9 @@ namespace SleepApneaDiagnoser
             bw.RunWorkerAsync();
         }
 
-        /*********************************************************** SETTINGS ***********************************************************/
+        #endregion
+
+        #region SETTINGS
 
         // Recent File List and Functions. 
         public ReadOnlyCollection<string> RecentFiles
@@ -733,6 +761,15 @@ namespace SleepApneaDiagnoser
                     for (int y = 1; y < line.Split(',').Length; y++)
                     {
                         category_signals.Add(line.Split(',')[y]);
+                    }
+
+                    if (!p_SignalCategories.Contains(category))
+                    {
+                        for (int y = 0; y < AllSignals.Count; y++)
+                        {
+                            if (category_signals.Contains(AllSignals[y]))
+                                category_signals.Remove(AllSignals[y]);
+                        }
                     }
 
                     temp_SignalCategories.Add(category);
@@ -886,9 +923,9 @@ namespace SleepApneaDiagnoser
                     p_DerivedSignals.RemoveAll(temp => temp[0].Trim() == dlg.RemovedSignals[x].Trim());
                     RemoveFromCommonDerivativesFile(RemovedDerivatives);
 
-                    if (p_PreviewSelectedSignals.Contains(dlg.RemovedSignals[x].Trim()))
+                    if (pm.PreviewSelectedSignals.Contains(dlg.RemovedSignals[x].Trim()))
                     {
-                        p_PreviewSelectedSignals.Remove(dlg.RemovedSignals[x].Trim());
+                        pm.PreviewSelectedSignals.Remove(dlg.RemovedSignals[x].Trim());
                     }
 
                     // Remove Potentially Saved Min/Max Values
@@ -1080,34 +1117,25 @@ namespace SleepApneaDiagnoser
             OnPropertyChanged(nameof(PreviewSignals));
             OnPropertyChanged(nameof(AllNonHiddenSignals));
         }
-        
-        /*********************************************************** MEMBERS ************************************************************/
+
+        #endregion
+
+        #region MEMBERS
 
         // General Private Variables
         private MainWindow p_window;
         private EDFFile p_LoadedEDFFile = null;
         private string p_LoadedEDFFileName = null;
-        
-        // Preview Private Variables
-        private int p_PreviewCurrentCategory = -1;
-        private List<string> p_PreviewSelectedSignals = new List<string>();
-        
-        private bool p_PreviewUseAbsoluteTime = false;
-        private DateTime p_PreviewViewStartTime = new DateTime();
-        private int p_PreviewViewStartRecord = 0;
-        private int p_PreviewViewDuration = 0;
-        private PlotModel p_PreviewSignalPlot = null;
-        private bool p_PreviewNavigationEnabled = false;
 
-        // Respiratory Private Variables
-        private string p_RespiratoryEDFSelectedSignal;
-        private int p_RespiratoryEDFStartRecord;
-        private int p_RespiratoryEDFDuration;
-        private PlotModel p_RespiratorySignalPlot = null;
-        private string p_RespiratoryBreathingPeriodMean;
-        private string p_RespiratoryBreathingPeriodMedian;
+        // Preview Model
+        private PreviewModel pm = new PreviewModel();
 
-        /********************************************************** PROPERTIES **********************************************************/
+        // Respiratory Model
+        private RespiratoryModel rm = new RespiratoryModel();
+
+        #endregion
+
+        #region PROPERTIES 
 
         // Update Actions
         private void LoadedEDFFile_Changed()
@@ -1319,6 +1347,23 @@ namespace SleepApneaDiagnoser
                     return "";
             }
         }
+        public ReadOnlyCollection<string> AllSignals
+        {
+            get
+            {
+                if (IsEDFLoaded)
+                {
+                    List<string> output = new List<string>();
+                    output.AddRange(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray());
+                    output.AddRange(p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+                    return Array.AsReadOnly(output.ToArray());
+                }
+                else
+                {
+                    return Array.AsReadOnly(new string[0]);
+                }
+            }
+        }
         public ReadOnlyCollection<string> EDFAllSignals
         {
             get
@@ -1352,11 +1397,11 @@ namespace SleepApneaDiagnoser
         {
             get
             {
-                return p_PreviewCurrentCategory;
+                return pm.PreviewCurrentCategory;
             }
             set
             {
-                p_PreviewCurrentCategory = value;
+                pm.PreviewCurrentCategory = value;
                 OnPropertyChanged(nameof(PreviewCurrentCategory));
                 PreviewCurrentCategory_Changed();
             }
@@ -1395,9 +1440,9 @@ namespace SleepApneaDiagnoser
         }
         public void SetSelectedSignals(System.Collections.IList SelectedItems)
         {
-            p_PreviewSelectedSignals.Clear();
+            pm.PreviewSelectedSignals.Clear();
             for (int x = 0; x < SelectedItems.Count; x++)
-                p_PreviewSelectedSignals.Add(SelectedItems[x].ToString());
+                pm.PreviewSelectedSignals.Add(SelectedItems[x].ToString());
 
             DrawChart();
         }
@@ -1407,11 +1452,11 @@ namespace SleepApneaDiagnoser
         {
             get
             {
-                return p_PreviewUseAbsoluteTime;
+                return pm.PreviewUseAbsoluteTime;
             }
             set
             {
-                p_PreviewUseAbsoluteTime = value;
+                pm.PreviewUseAbsoluteTime = value;
                 OnPropertyChanged(nameof(PreviewUseAbsoluteTime));
                 PreviewUseAbsoluteTime_Changed();
             }
@@ -1423,9 +1468,9 @@ namespace SleepApneaDiagnoser
                 if (IsEDFLoaded)
                 {
                     if (PreviewUseAbsoluteTime)
-                        return p_PreviewViewStartTime;
+                        return pm.PreviewViewStartTime;
                     else
-                        return EpochtoDateTime(p_PreviewViewStartRecord, LoadedEDFFile);
+                        return EpochtoDateTime(pm.PreviewViewStartRecord, LoadedEDFFile);
                 }
                 else
                 {
@@ -1436,8 +1481,8 @@ namespace SleepApneaDiagnoser
             {
                 if (PreviewUseAbsoluteTime && IsEDFLoaded)
                 {
-                    p_PreviewViewStartTime = value ?? new DateTime();
-                    p_PreviewViewStartRecord = DateTimetoEpoch(p_PreviewViewStartTime, LoadedEDFFile);
+                    pm.PreviewViewStartTime = value ?? new DateTime();
+                    pm.PreviewViewStartRecord = DateTimetoEpoch(pm.PreviewViewStartTime, LoadedEDFFile);
                     PreviewView_Changed();
                 }
             }
@@ -1451,7 +1496,7 @@ namespace SleepApneaDiagnoser
                     if (PreviewUseAbsoluteTime)
                         return DateTimetoEpoch(PreviewViewStartTime ?? new DateTime(), LoadedEDFFile);
                     else
-                        return p_PreviewViewStartRecord;
+                        return pm.PreviewViewStartRecord;
                 }
                 else
                 {
@@ -1462,8 +1507,8 @@ namespace SleepApneaDiagnoser
             {
                 if (!PreviewUseAbsoluteTime && IsEDFLoaded)
                 {
-                    p_PreviewViewStartRecord = value ?? 0;
-                    p_PreviewViewStartTime = EpochtoDateTime(p_PreviewViewStartRecord, LoadedEDFFile);
+                    pm.PreviewViewStartRecord = value ?? 0;
+                    pm.PreviewViewStartTime = EpochtoDateTime(pm.PreviewViewStartRecord, LoadedEDFFile);
                     PreviewView_Changed();
                 }
             }
@@ -1475,9 +1520,9 @@ namespace SleepApneaDiagnoser
                 if (IsEDFLoaded)
                 {
                     if (PreviewUseAbsoluteTime)
-                        return p_PreviewViewDuration;
+                        return pm.PreviewViewDuration;
                     else
-                        return TimeSpantoEpochPeriod(new TimeSpan(0, 0, p_PreviewViewDuration));
+                        return TimeSpantoEpochPeriod(new TimeSpan(0, 0, pm.PreviewViewDuration));
                 }
                 else
                 {
@@ -1489,9 +1534,9 @@ namespace SleepApneaDiagnoser
                 if (IsEDFLoaded)
                 {
                     if (PreviewUseAbsoluteTime)
-                        p_PreviewViewDuration = value ?? 0;
+                        pm.PreviewViewDuration = value ?? 0;
                     else
-                        p_PreviewViewDuration = (int)EpochPeriodtoTimeSpan((value ?? 0)).TotalSeconds;
+                        pm.PreviewViewDuration = (int)EpochPeriodtoTimeSpan((value ?? 0)).TotalSeconds;
                 }
 
                 PreviewView_Changed();
@@ -1522,7 +1567,7 @@ namespace SleepApneaDiagnoser
                 if (LoadedEDFFile != null)
                     return LoadedEDFFile.Header.StartDateTime // Start Time
                         + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds) // Total Duration
-                        - new TimeSpan(0, 0, p_PreviewViewDuration); // View Duration
+                        - new TimeSpan(0, 0, pm.PreviewViewDuration); // View Duration
                 else
                     return new DateTime();
             }
@@ -1560,7 +1605,7 @@ namespace SleepApneaDiagnoser
             {
                 if (LoadedEDFFile != null) // File Loaded
                 {
-                    if (p_PreviewUseAbsoluteTime)
+                    if (pm.PreviewUseAbsoluteTime)
                         return Math.Min(
                             2 * 60 * 60,
                             (int)((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)) - (PreviewViewStartTime ?? new DateTime())).TotalSeconds
@@ -1592,11 +1637,11 @@ namespace SleepApneaDiagnoser
                 if (!IsEDFLoaded)
                     return false;
                 else
-                    return p_PreviewNavigationEnabled;
+                    return pm.PreviewNavigationEnabled;
             }
             set
             {
-                p_PreviewNavigationEnabled = value;
+                pm.PreviewNavigationEnabled = value;
                 OnPropertyChanged(nameof(PreviewNavigationEnabled));
             }
         }
@@ -1606,11 +1651,11 @@ namespace SleepApneaDiagnoser
         {
             get
             {
-                return p_PreviewSignalPlot;
+                return pm.PreviewSignalPlot;
             }
             set
             {
-                p_PreviewSignalPlot = value;
+                pm.PreviewSignalPlot = value;
                 OnPropertyChanged(nameof(PreviewSignalPlot));
             }
         }
@@ -1620,11 +1665,11 @@ namespace SleepApneaDiagnoser
         {
             get
             {
-                return p_RespiratoryEDFSelectedSignal;
+                return rm.RespiratoryEDFSelectedSignal;
             }
             set
             {
-                p_RespiratoryEDFSelectedSignal = value;
+                rm.RespiratoryEDFSelectedSignal = value;
                 OnPropertyChanged(nameof(RespiratoryEDFSelectedSignal));
             }
         }
@@ -1632,11 +1677,11 @@ namespace SleepApneaDiagnoser
         {
             get
             {
-                return p_RespiratoryEDFStartRecord;
+                return rm.RespiratoryEDFStartRecord;
             }
             set
             {
-                p_RespiratoryEDFStartRecord = value ?? 0;
+                rm.RespiratoryEDFStartRecord = value ?? 0;
                 OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
             }
         }
@@ -1644,11 +1689,11 @@ namespace SleepApneaDiagnoser
         {
             get
             {
-                return p_RespiratoryEDFDuration;
+                return rm.RespiratoryEDFDuration;
             }
             set
             {
-                p_RespiratoryEDFDuration = value ?? 0;
+                rm.RespiratoryEDFDuration = value ?? 0;
                 OnPropertyChanged(nameof(RespiratoryEDFDuration));
             }
         }
@@ -1656,11 +1701,11 @@ namespace SleepApneaDiagnoser
         {
             get
             {
-                return p_RespiratorySignalPlot;
+                return rm.RespiratorySignalPlot;
             }
             set
             {
-                p_RespiratorySignalPlot = value;
+                rm.RespiratorySignalPlot = value;
                 OnPropertyChanged(nameof(RespiratorySignalPlot));
             }
         }
@@ -1668,11 +1713,11 @@ namespace SleepApneaDiagnoser
         {
             get
             {
-                return p_RespiratoryBreathingPeriodMean;
+                return rm.RespiratoryBreathingPeriodMean;
             }
             set
             {
-                p_RespiratoryBreathingPeriodMean = value;
+                rm.RespiratoryBreathingPeriodMean = value;
                 OnPropertyChanged(nameof(RespiratoryBreathingPeriodMean));
             }
         }
@@ -1680,16 +1725,18 @@ namespace SleepApneaDiagnoser
         {
             get
             {
-                return p_RespiratoryBreathingPeriodMedian;
+                return rm.RespiratoryBreathingPeriodMedian;
             }
             set
             {
-                p_RespiratoryBreathingPeriodMedian = value;
+                rm.RespiratoryBreathingPeriodMedian = value;
                 OnPropertyChanged(nameof(RespiratoryBreathingPeriodMedian));
             }
         }
 
-        /************************************************************* ETC. *************************************************************/
+        #endregion
+
+        #region ETC
 
         // INotify Interface
         public event PropertyChangedEventHandler PropertyChanged;
@@ -1697,6 +1744,8 @@ namespace SleepApneaDiagnoser
         {
             PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
         }
+
+        #endregion 
 
         public ModelView(MainWindow i_window)
         {
