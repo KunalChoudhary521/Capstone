@@ -33,12 +33,12 @@
                 <Grid>
                     <Grid HorizontalAlignment="Left" Width="299" Background="White" Margin="0,0">
                         <TextBlock Text="Start" Height="34" Width="94" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="18"  Margin="10,15,0,0"/>
-                        <TextBlock x:Name="TextBlock_OpenEDF" TextDecorations="Underline" Height="34" Width="94" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10,49,0,0" FontSize="14"><Hyperlink Click="TextBlock_OpenEDF_Click"><Run Text="Open EDF..."/></Hyperlink></TextBlock>
+                        <TextBlock x:Name="TextBlock_OpenEDF" TextDecorations="Underline" Height="34" Width="94" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10,49,0,0" FontSize="14"><Hyperlink Click="TextBlock_OpenEDF_Click" FontSize="14"><Run Text="Open EDF..."/></Hyperlink></TextBlock>
                         <TextBlock Text="Recent" Height="34" Width="94" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="18" Margin="10,136,0,0"/>
                         <ItemsControl x:Name="itemControl_RecentEDF" Foreground="Blue" BorderBrush="Transparent" Margin="10,170,10,10" FontSize="14">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <TextBlock TextDecorations="Underline" HorizontalAlignment="Left"  x:Name="tb"><Hyperlink Click="TextBlock_Recent_Click"><InlineUIContainer>
+                                    <TextBlock FontSize="14" TextDecorations="Underline" HorizontalAlignment="Left"  x:Name="tb"><Hyperlink Click="TextBlock_Recent_Click"><InlineUIContainer>
                                                 <TextBlock Text="{Binding}"/>
                                             </InlineUIContainer></Hyperlink></TextBlock>
                                 </DataTemplate>
@@ -167,7 +167,7 @@
                                 <mtr:NumericUpDown Height="23" Margin="20,39,20,0" VerticalAlignment="Top" Value="{Binding RespiratoryMinimumPeakWidth}"/>
                                 <Label Content="Allow Multiple Subsequent Peaks" HorizontalAlignment="Left" Margin="10,70,0,0" VerticalAlignment="Top"/>
                                 <mtr:ToggleSwitchButton Margin="181,100,20,0" FontFamily="Segoi UI" FontSize="14" IsChecked="{Binding RespiratoryRemoveMultiplePeaks}" VerticalAlignment="Top" />
-                                <TextBlock Name="TextBlock_RespPendingChanges" Text="Changes applied when plot is redrawn." HorizontalAlignment="Left" Margin="10,0,0,10" Height="29" VerticalAlignment="Bottom" Foreground="Blue" Visibility="Hidden" Width="251" FontSize="14"/>
+                                <TextBlock Name="TextBlock_RespPendingChanges" Text="Changes applied when plot is redrawn." HorizontalAlignment="Left" Margin="10,140,0,0" Foreground="Blue"  Width="251" FontSize="14" Height="29" VerticalAlignment="Top"/>
                                 <TextBlock Name="TextBlock_RespAllowMultiplePeaks" Text="Yes" HorizontalAlignment="Left" Margin="20,104,0,0" TextAlignment="Center" FontSize="14" Height="31" Width="35" VerticalAlignment="Top"/>
                             </Grid>
                         </Grid>
