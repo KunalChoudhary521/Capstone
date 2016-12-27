@@ -469,9 +469,11 @@ namespace SleepApneaDiagnoser
           }
           else
           {
-            await p_window.ShowMessageAsync("Choose Folder", "Choose a folder location to store exported signals or cancel");
+            await p_window.ShowMessageAsync("Cancelled", "Action was cancelled.");
 
-            return;
+            await controller.CloseAsync();
+
+            return;                                   
           }
 
           ExportSignalModel signals_data = Dialog_Export_Previewed_Signals.signals_to_export;
