@@ -177,6 +177,11 @@ namespace SleepApneaDiagnoser
         {
             model.PerformRespiratoryAnalysisEDF();
         }
+
+        private void button_PerformEEGAnalysis_Click(object sender, RoutedEventArgs e)
+        {
+            model.PerformEEGAnalysisEDF();
+        }
     }
 
     #region Models
@@ -202,6 +207,13 @@ namespace SleepApneaDiagnoser
         public string RespiratoryBreathingPeriodMedian;
         public int RespiratoryMinimumPeakWidth = 500;
         public bool RespiratoryRemoveMultiplePeaks = true;
+    }
+    public class EEGModel
+    {
+        public string EEGEDFSelectedSignal;
+        public int EEGEDFStartRecord;
+        public int EEGEDFDuration;
+        public PlotModel EEGSignalPlot = null;
     }
     public class SettingsModel
     {
@@ -567,16 +579,18 @@ namespace SleepApneaDiagnoser
 
                     string location;
 
-                    if (folder_dialog.ShowDialog() == DialogResult.OK)
-                    {
-                        location = folder_dialog.SelectedPath;
-                    }
-                    else
-                    {
-                        await p_window.ShowMessageAsync("Choose Folder", "Choose a folder location to store exported signals or cancel");
+          if (folder_dialog.ShowDialog() == DialogResult.OK)
+          {
+            location = folder_dialog.SelectedPath;
+          }
+          else
+          {
+            await p_window.ShowMessageAsync("Cancelled", "Action was cancelled.");
 
-                        return;
-                    }
+            await controller.CloseAsync();
+
+            return;                                   
+          }
 
                     ExportSignalModel signals_data = Dialog_Export_Previewed_Signals.signals_to_export;
 
@@ -879,6 +893,22 @@ namespace SleepApneaDiagnoser
             bw.RunWorkerAsync();
         }
 
+        //EEG Analysis From EDF File
+        private void BW_EEGAnalysisEDF(object sender, DoWorkEventArgs e)
+        {
+
+        }
+        private void BW_FinishEEGAnalysisEDF(object sender, RunWorkerCompletedEventArgs e)
+        {
+
+        }
+        public void PerformEEGAnalysisEDF()
+        {
+            BackgroundWorker bw = new BackgroundWorker();
+            bw.DoWork += BW_EEGAnalysisEDF;
+            bw.RunWorkerCompleted += BW_FinishEEGAnalysisEDF;
+            bw.RunWorkerAsync();
+        }
         #endregion
 
         #region SETTINGS
@@ -1367,7 +1397,10 @@ namespace SleepApneaDiagnoser
         private SettingsModel sm = new SettingsModel();
         private PreviewModel pm = new PreviewModel();
         private RespiratoryModel rm = new RespiratoryModel();
-        
+
+        //EEG Model
+        private EEGModel eegm = new EEGModel();
+
         #endregion
 
         #region PROPERTIES 
@@ -2000,6 +2033,58 @@ namespace SleepApneaDiagnoser
 
             }
         }
+
+        //EEG Anaylsis
+        public string EEGEDFSelectedSignal
+        {
+            get
+            {
+                return eegm.EEGEDFSelectedSignal;
+            }
+            set
+            {
+                eegm.EEGEDFSelectedSignal = value;
+                OnPropertyChanged(nameof(EEGEDFSelectedSignal));
+            }
+        }
+        public int? EEGEDFStartRecord
+        {
+            get
+            {
+                return eegm.EEGEDFStartRecord;
+            }
+            set
+            {
+                eegm.EEGEDFStartRecord = value ?? 0;
+                OnPropertyChanged(nameof(EEGEDFStartRecord));
+            }
+        }
+        public int? EEGEDFDuration
+        {
+            get
+            {
+                return eegm.EEGEDFDuration;
+            }
+            set
+            {
+                eegm.EEGEDFDuration = value ?? 0;
+                OnPropertyChanged(nameof(EEGEDFDuration));
+            }
+        }
+        public PlotModel EEGSignalPlot
+        {
+            get
+            {
+                return eegm.EEGSignalPlot;
+            }
+            set
+            {
+                eegm.EEGSignalPlot = value;
+                OnPropertyChanged(nameof(EEGSignalPlot));
+                p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
+            }
+        }
+        /****************************/
         #endregion
 
         #region INotify Interface

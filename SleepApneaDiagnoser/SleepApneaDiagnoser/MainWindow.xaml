@@ -229,16 +229,16 @@
                                 </Grid.ColumnDefinitions>
                                 <Label Content="From Loaded EDF File" FontSize="18" Margin="0,4,20,4"/>
                                 <Label Content="Signal" HorizontalAlignment="Left" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" Width="47" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="1"/>
-                                <ComboBox Margin="62,6,10,6" RenderTransformOrigin="1.025,1.5" Grid.Column="1" IsEnabled="{Binding IsEDFLoaded}"/>
+                                <ComboBox Margin="62,6,10,6" RenderTransformOrigin="1.025,1.5" Grid.Column="1" IsEnabled="{Binding IsEDFLoaded}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding EEGEDFSelectedSignal}"/>
                                 <Label Content="From" HorizontalAlignment="Left" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" Width="47" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="2"/>
-                                <mtr:NumericUpDown Margin="62,6,10,6" TextAlignment="Center" FontSize="14" Grid.Column="2" IsEnabled="{Binding IsEDFLoaded}"/>
+                                <mtr:NumericUpDown Margin="62,6,10,6" TextAlignment="Center" FontSize="14" Grid.Column="2" IsEnabled="{Binding IsEDFLoaded}" Value ="{Binding EEGEDFStartRecord}"/>
                                 <Label Content="Length" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" HorizontalContentAlignment="Center" FontSize="14" HorizontalAlignment="Left" Width="62" Grid.Column="3"/>
-                                <mtr:NumericUpDown Margin="77,6,10,6"  TextAlignment="Center" FontSize="14" Grid.Column="3" IsEnabled="{Binding IsEDFLoaded}" />
-                                <Button Content="Go" Margin="7,6,0,6" HorizontalAlignment="Left" Width="91" Grid.Column="4" IsEnabled="{Binding IsEDFLoaded}" />
+                                <mtr:NumericUpDown Margin="77,6,10,6"  TextAlignment="Center" FontSize="14" Grid.Column="3" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding EEGEDFDuration}" />
+                                <Button x:Name="button_PerformEEGAnalysis" Content="Go" Margin="7,6,0,6" HorizontalAlignment="Left" Width="91" Grid.Column="4" IsEnabled="{Binding IsEDFLoaded}" Click="button_PerformEEGAnalysis_Click" />
                             </Grid>
 
                             <Label Content="Plot" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="0,98,0,0"/>
-                            <oxy:PlotView Margin="10,135,350,10" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
+                            <oxy:PlotView Margin="10,135,350,10"  Model ="{Binding EEGSignalPlot}"  ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
 
                             <Label Content="Analysis" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Right" Width="200" Margin="0,98,145,0"/>
                             <Grid HorizontalAlignment="Right" Width="335" Margin="0,135,10,10"/>
