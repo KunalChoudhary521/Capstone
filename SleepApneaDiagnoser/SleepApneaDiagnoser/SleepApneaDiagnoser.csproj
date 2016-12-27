@@ -115,6 +115,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Dialog_Hide_Signals.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Dialog_Manage_Categories.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -136,6 +140,9 @@
     </Compile>
     <Compile Include="Dialog_Export_Previewed_Signals.xaml.cs">
       <DependentUpon>Dialog_Export_Previewed_Signals.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialog_Hide_Signals.xaml.cs">
+      <DependentUpon>Dialog_Hide_Signals.xaml</DependentUpon>
     </Compile>
     <Compile Include="Dialog_Manage_Categories.xaml.cs">
       <DependentUpon>Dialog_Manage_Categories.xaml</DependentUpon>
