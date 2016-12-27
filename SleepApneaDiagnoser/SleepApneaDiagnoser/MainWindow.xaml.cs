@@ -179,6 +179,7 @@ namespace SleepApneaDiagnoser
         }
     }
 
+    #region Models
     public class PreviewModel
     {
         public int PreviewCurrentCategory = -1;
@@ -199,7 +200,10 @@ namespace SleepApneaDiagnoser
         public PlotModel RespiratorySignalPlot = null;
         public string RespiratoryBreathingPeriodMean;
         public string RespiratoryBreathingPeriodMedian;
+        public int RespiratoryMinimumPeakWidth = 500;
+        public bool RespiratoryRemoveMultiplePeaks = true;
     }
+    #endregion 
 
     public class ModelView : INotifyPropertyChanged
     {
@@ -603,7 +607,7 @@ namespace SleepApneaDiagnoser
             }
             
             // Find Peaks and Zero Crossings
-            int min_spike_length = (int)(0.5 / sample_period);
+            int min_spike_length = (int)((double)((double) RespiratoryMinimumPeakWidth / (double) 1000) / (double)sample_period);
             int spike_length = 0;
             int maxima = 0;
             int start = 0;
@@ -619,9 +623,28 @@ namespace SleepApneaDiagnoser
                     if (series_norm.Points[x].Y < 0 || x == series_norm.Points.Count - 1)
                     {
                         if (maxima != 0 && spike_length > min_spike_length)
-                        { 
-                            series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
-                            series_onsets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
+                        {
+                            if (!RespiratoryRemoveMultiplePeaks || series_pos_peaks.Points.Count == 0 || series_neg_peaks.Points.Count == 0 ||
+                                (DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) > DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))) // Last Peak Was Negative
+                            {
+                                series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
+                                series_onsets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
+                            }
+                            else
+                            {
+                                if (series_norm.Points[maxima].Y < series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].Y) // This Peak is Less than the previous
+                                {
+                                    // Do Nothing
+                                }
+                                else
+                                {
+                                    series_pos_peaks.Points.Remove(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1]);
+                                    series_onsets.Points.Remove(series_onsets.Points[series_onsets.Points.Count - 1]);
+
+                                    series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
+                                    series_onsets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
+                                }
+                            }
                         }
                         positive = false;
                         spike_length = 1;
@@ -641,8 +664,27 @@ namespace SleepApneaDiagnoser
                     {
                         if (maxima != 0 && spike_length > min_spike_length)
                         {
-                            series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
-                            series_insets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
+                            if (!RespiratoryRemoveMultiplePeaks || series_pos_peaks.Points.Count == 0 || series_neg_peaks.Points.Count == 0 ||
+                                (DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) < DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))) // Last Peak Was Positive
+                            {
+                                series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
+                                series_insets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
+                            }
+                            else
+                            {
+                                if (series_norm.Points[maxima].Y > series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].Y) // This Peak is Less than the previous
+                                {
+                                    // Do Nothing
+                                }
+                                else // Remove Previous Peak
+                                {
+                                    series_neg_peaks.Points.Remove(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1]);
+                                    series_insets.Points.Remove(series_insets.Points[series_insets.Points.Count - 1]);
+
+                                    series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
+                                    series_insets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
+                                }
+                            }
                         }
                         positive = true;
                         spike_length = 1;
@@ -683,6 +725,11 @@ namespace SleepApneaDiagnoser
             yAxis.Maximum = (max_y ?? Double.NaN) - bias;
             yAxis.Minimum = (min_y ?? Double.NaN) - bias;
 
+            series_onsets.MarkerFill = OxyColor.FromRgb(255, 0, 0);
+            series_insets.MarkerFill = OxyColor.FromRgb(0, 255, 0);
+            series_pos_peaks.MarkerFill = OxyColor.FromRgb(0, 0, 255);
+            series_neg_peaks.MarkerFill = OxyColor.FromRgb(255, 255, 0);
+
             temp_SignalPlot.Axes.Add(yAxis);
             temp_SignalPlot.Series.Add(series_norm);
             temp_SignalPlot.Series.Add(series_onsets);
@@ -704,8 +751,12 @@ namespace SleepApneaDiagnoser
                 breathing_periods.Add((DateTimeAxis.ToDateTime(series_neg_peaks.Points[x].X) - DateTimeAxis.ToDateTime(series_neg_peaks.Points[x - 1].X)).TotalSeconds);
          
             breathing_periods.Sort();
-            RespiratoryBreathingPeriodMean = (breathing_periods.Average()).ToString("0.## sec/breath");
-            RespiratoryBreathingPeriodMedian = (breathing_periods[breathing_periods.Count / 2 - 1]).ToString("0.## sec/breath");
+
+            if (breathing_periods.Count > 0)
+            {
+                RespiratoryBreathingPeriodMean = (breathing_periods.Average()).ToString("0.## sec/breath");
+                RespiratoryBreathingPeriodMedian = (breathing_periods[breathing_periods.Count / 2 - 1]).ToString("0.## sec/breath");
+            }
            
         }
         private void BW_FinishRespiratoryAnalysisEDF(object sender, RunWorkerCompletedEventArgs e)
@@ -1023,8 +1074,10 @@ namespace SleepApneaDiagnoser
             p_HiddenSignals.Clear();
             if (File.Exists("hiddensignals.txt"))
             {
-                p_HiddenSignals = new StreamReader("hiddensignals.txt").ReadToEnd().Replace("\r\n", "\n").Split('\n').ToList();
-                p_HiddenSignals = p_HiddenSignals.Select(temp => temp.Trim()).ToList();
+                StreamReader sr = new StreamReader("hiddensignals.txt");
+                p_HiddenSignals = sr.ReadToEnd().Replace("\r\n", "\n").Split('\n').ToList();
+                p_HiddenSignals = p_HiddenSignals.Select(temp => temp.Trim()).Where(temp => temp != "").ToList();
+                sr.Close();
             }
         }
         private void WriteToHiddenSignalsFile()
@@ -1070,6 +1123,8 @@ namespace SleepApneaDiagnoser
 
             OnPropertyChanged(nameof(PreviewSignals));
             OnPropertyChanged(nameof(AllNonHiddenSignals));
+
+            WriteToHiddenSignalsFile();
         }
 
         private List<string[]> p_SignalsMinValues = new List<string[]>();
@@ -1181,7 +1236,7 @@ namespace SleepApneaDiagnoser
 
             p_SignalsMinValues.Add(new string[] { Signal.Trim(), Value.ToString() });
         }
-
+        
         public void WriteSettings()
         {
             WriteToHiddenSignalsFile();
@@ -1202,7 +1257,7 @@ namespace SleepApneaDiagnoser
 
         // General Private Variables
         private MainWindow p_window;
-        private EDFFile p_LoadedEDFFile = null;
+        private EDFFile p_LoadedEDFFile;
         private string p_LoadedEDFFileName = null;
 
         // Preview Model
@@ -1785,6 +1840,7 @@ namespace SleepApneaDiagnoser
             {
                 rm.RespiratorySignalPlot = value;
                 OnPropertyChanged(nameof(RespiratorySignalPlot));
+                p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
             }
         }
         public string RespiratoryBreathingPeriodMean
@@ -1811,7 +1867,37 @@ namespace SleepApneaDiagnoser
                 OnPropertyChanged(nameof(RespiratoryBreathingPeriodMedian));
             }
         }
+        public int RespiratoryMinimumPeakWidth
+        {
+            get
+            {
+                return rm.RespiratoryMinimumPeakWidth;
+            }
+            set
+            {
+                rm.RespiratoryMinimumPeakWidth = value;
+                OnPropertyChanged(nameof(RespiratoryMinimumPeakWidth));
+                p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Visible; }));
+            }
+        }
+        public bool RespiratoryRemoveMultiplePeaks
+        {
+            get
+            {
+                return rm.RespiratoryRemoveMultiplePeaks;
+            }
+            set
+            {
+                rm.RespiratoryRemoveMultiplePeaks = value;
+                OnPropertyChanged(nameof(RespiratoryRemoveMultiplePeaks));
+                p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Visible; }));
+                if (value == true)
+                    p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespAllowMultiplePeaks.Text = "No"; }));
+                else
+                    p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespAllowMultiplePeaks.Text = "Yes"; }));
 
+            }
+        }
         #endregion
 
         #region ETC

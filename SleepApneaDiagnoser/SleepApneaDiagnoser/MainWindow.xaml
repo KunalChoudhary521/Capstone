@@ -82,7 +82,7 @@
 
                     <!-- EDF Header -->
                     <Label Content="EDF Header" FontSize="18" Margin="0,10,178.333,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="42" HorizontalAlignment="Right" Width="114"/>
-                    <Grid HorizontalAlignment="Right" Width="292" Margin="0,35,0.333,26.667">
+                    <Grid HorizontalAlignment="Right" Width="292" Margin="0,35,0.333,26.667" IsEnabled="{Binding IsEDFLoaded}">
                         <Label x:Name="label5" Content="General Information" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="136" FontSize="14"/>
                         <Grid Margin="10,31,10,0" Height="77" VerticalAlignment="Top">
                             <Label Content="Start" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="29" Width="60" FontSize="14"/>
@@ -161,12 +161,14 @@
                                 <TextBox Height="23" Margin="120,42,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryBreathingPeriodMean}" VerticalAlignment="Top"/>
                                 <TextBox Height="23" Margin="120,73,7,0" TextWrapping="Wrap" Text="{Binding RespiratoryBreathingPeriodMedian}" VerticalAlignment="Top"/>
                             </Grid>
-                            <Label Content="Analysis Settings" FontSize="18" Height="35" VerticalAlignment="Top" HorizontalAlignment="Right" Width="200" Margin="0,253,81,0"/>
+                            <Label Content="Settings" FontSize="18" Height="35" VerticalAlignment="Top" HorizontalAlignment="Right" Width="200" Margin="0,253,81,0"/>
                             <Grid HorizontalAlignment="Right" Width="271" Margin="0,293,10,10">
-                                <Label Content="Peak Detection Sensitivity" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
-                                <mtr:NumericUpDown Height="23" Margin="20,39,20,0" VerticalAlignment="Top"/>
-                                <Label Content="Allow Multiple Peaks" HorizontalAlignment="Left" Margin="10,70,0,0" VerticalAlignment="Top"/>
-                                <mtr:ToggleSwitch Margin="20,99,20,148" FontFamily="Segoi UI" FontSize="14" ></mtr:ToggleSwitch>
+                                <Label Content="Peak Detection Sensitivity (ms)" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
+                                <mtr:NumericUpDown Height="23" Margin="20,39,20,0" VerticalAlignment="Top" Value="{Binding RespiratoryMinimumPeakWidth}"/>
+                                <Label Content="Allow Multiple Subsequent Peaks" HorizontalAlignment="Left" Margin="10,70,0,0" VerticalAlignment="Top"/>
+                                <mtr:ToggleSwitchButton Margin="181,100,20,0" FontFamily="Segoi UI" FontSize="14" IsChecked="{Binding RespiratoryRemoveMultiplePeaks}" VerticalAlignment="Top" />
+                                <TextBlock Name="TextBlock_RespPendingChanges" Text="Changes applied when plot is redrawn." HorizontalAlignment="Left" Margin="10,0,0,10" Height="29" VerticalAlignment="Bottom" Foreground="Blue" Visibility="Hidden" Width="251" FontSize="14"/>
+                                <TextBlock Name="TextBlock_RespAllowMultiplePeaks" Text="Yes" HorizontalAlignment="Left" Margin="20,104,0,0" TextAlignment="Center" FontSize="14" Height="31" Width="35" VerticalAlignment="Top"/>
                             </Grid>
                         </Grid>
                     </mtr:MetroTabItem>
