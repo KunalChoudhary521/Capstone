@@ -177,6 +177,11 @@ namespace SleepApneaDiagnoser
         {
             model.PerformRespiratoryAnalysisEDF();
         }
+
+        private void button_PerformEEGAnalysis_Click(object sender, RoutedEventArgs e)
+        {
+            model.PerformEEGAnalysisEDF();
+        }
     }
 
     #region Models
@@ -202,6 +207,13 @@ namespace SleepApneaDiagnoser
         public string RespiratoryBreathingPeriodMedian;
         public int RespiratoryMinimumPeakWidth = 500;
         public bool RespiratoryRemoveMultiplePeaks = true;
+    }
+    public class EEGModel
+    {
+        public string EEGEDFSelectedSignal;
+        public int EEGEDFStartRecord;
+        public int EEGEDFDuration;
+        public PlotModel EEGSignalPlot = null;
     }
     #endregion 
 
@@ -770,6 +782,22 @@ namespace SleepApneaDiagnoser
             bw.RunWorkerAsync();
         }
 
+        //EEG Analysis From EDF File
+        private void BW_EEGAnalysisEDF(object sender, DoWorkEventArgs e)
+        {
+
+        }
+        private void BW_FinishEEGAnalysisEDF(object sender, RunWorkerCompletedEventArgs e)
+        {
+
+        }
+        public void PerformEEGAnalysisEDF()
+        {
+            BackgroundWorker bw = new BackgroundWorker();
+            bw.DoWork += BW_EEGAnalysisEDF;
+            bw.RunWorkerCompleted += BW_FinishEEGAnalysisEDF;
+            bw.RunWorkerAsync();
+        }
         #endregion
 
         #region SETTINGS
@@ -1265,6 +1293,9 @@ namespace SleepApneaDiagnoser
 
         // Respiratory Model
         private RespiratoryModel rm = new RespiratoryModel();
+
+        //EEG Model
+        private EEGModel eegm = new EEGModel();
 
         #endregion
 
@@ -1898,6 +1929,58 @@ namespace SleepApneaDiagnoser
 
             }
         }
+
+        //EEG Anaylsis
+        public string EEGEDFSelectedSignal
+        {
+            get
+            {
+                return eegm.EEGEDFSelectedSignal;
+            }
+            set
+            {
+                eegm.EEGEDFSelectedSignal = value;
+                OnPropertyChanged(nameof(EEGEDFSelectedSignal));
+            }
+        }
+        public int? EEGEDFStartRecord
+        {
+            get
+            {
+                return eegm.EEGEDFStartRecord;
+            }
+            set
+            {
+                eegm.EEGEDFStartRecord = value ?? 0;
+                OnPropertyChanged(nameof(EEGEDFStartRecord));
+            }
+        }
+        public int? EEGEDFDuration
+        {
+            get
+            {
+                return eegm.EEGEDFDuration;
+            }
+            set
+            {
+                eegm.EEGEDFDuration = value ?? 0;
+                OnPropertyChanged(nameof(EEGEDFDuration));
+            }
+        }
+        public PlotModel EEGSignalPlot
+        {
+            get
+            {
+                return eegm.EEGSignalPlot;
+            }
+            set
+            {
+                eegm.EEGSignalPlot = value;
+                OnPropertyChanged(nameof(EEGSignalPlot));
+                p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
+            }
+        }
+        /****************************/
         #endregion
 
         #region ETC
