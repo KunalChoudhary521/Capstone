@@ -29,6 +29,7 @@ using MathWorks.MATLAB.NET.Utility;
 using MATLAB_496;
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
+using System.Windows.Forms;
 
 namespace SleepApneaDiagnoser
 {
@@ -74,7 +75,7 @@ namespace SleepApneaDiagnoser
         {
             model.LoadedEDFFile = null;
 
-            OpenFileDialog dialog = new OpenFileDialog();
+            Microsoft.Win32.OpenFileDialog dialog = new Microsoft.Win32.OpenFileDialog();
             dialog.Filter = "EDF files (*.edf)|*.edf";
             dialog.Title = "Select an EDF file";
 
@@ -449,39 +450,114 @@ namespace SleepApneaDiagnoser
             bw.RunWorkerAsync();
         }
 
-        // Export Previewed/Selected Signals Wizard
-        public void ExportSignals()
+    // Export Previewed/Selected Signals Wizard
+    public async void ExportSignals()
+    {
+      if (pm.PreviewSelectedSignals.Count > 0)
+      {
+        Dialog_Export_Previewed_Signals dlg = new Dialog_Export_Previewed_Signals(pm.PreviewSelectedSignals);
+
+        controller = await p_window.ShowProgressAsync("Export", "Exporting preview signals to binary...");
+
+        controller.SetCancelable(false);
+
+        if (dlg.ShowDialog() == true)
         {
-            if (pm.PreviewSelectedSignals.Count > 0)
-            {
-                Dialog_Export_Previewed_Signals dlg = new Dialog_Export_Previewed_Signals(pm.PreviewSelectedSignals.ToList());
-                if (dlg.ShowDialog() == true)
-                {
-                    List<ExportSignalModel> signals_to_export = new List<ExportSignalModel>(Dialog_Export_Previewed_Signals.signals_to_export);
+          FolderBrowserDialog folder_dialog = new FolderBrowserDialog();
 
-                    /*Processing proc = new Processing();
-                    MWArray[] input = new MWArray[2];
-                    input[0] = new MWNumericArray(LoadedEDFFile.retrieveSignalSampleValues(edfsignal2).ToArray());
-                    input[1] = edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord;
+          string location;
 
-                    values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-                    values2 = (
-                                (double[])(
-                                    (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
-                                ).ToVector(MWArrayComponent.Real)
-                              ).ToList().Select(temp => (float)temp).ToList();
+          if (folder_dialog.ShowDialog() == DialogResult.OK)
+          {
+            location = folder_dialog.SelectedPath;
+          }
+          else
+          {
+            await p_window.ShowMessageAsync("Choose Folder", "Choose a folder location to store exported signals or cancel");
 
-                    sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;*/
-                }
-            }
-            else
-            {
-                p_window.ShowMessageAsync("Error", "Please select at least one signal from the preview.");
-            }
+            return;
+          }
+
+          ExportSignalModel signals_data = Dialog_Export_Previewed_Signals.signals_to_export;
+
+          BackgroundWorker bw = new BackgroundWorker();
+          bw.DoWork += BW_ExportSignals;
+          bw.RunWorkerCompleted += BW_FinishExportSignals;
+
+          List<dynamic> arguments = new List<dynamic>();
+          arguments.Add(signals_data);
+          arguments.Add(location);
+
+          bw.RunWorkerAsync(arguments);
         }
-        
-        // Respiratory Analysis From EDF File
-        private void BW_RespiratoryAnalysisEDF(object sender, DoWorkEventArgs e)
+      }
+      else
+      {
+        await controller.CloseAsync();
+
+        await p_window.ShowMessageAsync("Error", "Please select at least one signal from the preview.");
+      }
+    }
+
+    private async void BW_FinishExportSignals(object sender, RunWorkerCompletedEventArgs e)
+    {
+      await controller.CloseAsync();
+
+      await p_window.ShowMessageAsync("Export Success", "Previewed signals were exported to Binary");
+    }
+
+    private void BW_ExportSignals(object sender, DoWorkEventArgs e)
+    {
+      ExportSignalModel signals_data = ((List<dynamic>)e.Argument)[0];
+      string location = ((List<dynamic>)e.Argument)[1];
+
+      //hdr file contains metadata of the binary file
+      FileStream hdr_file = new FileStream(location + "/" + signals_data.Subject_ID + ".hdr", FileMode.OpenOrCreate);
+      hdr_file.SetLength(0); //clear it's contents
+      hdr_file.Close(); //flush
+      hdr_file = new FileStream(location + "/" + signals_data.Subject_ID + ".hdr", FileMode.OpenOrCreate); //reload
+
+      StringBuilder sb_hdr = new StringBuilder(); // string builder used for writing into the file
+
+      sb_hdr.AppendLine(signals_data.Subject_ID.ToString()) // subject id
+        .AppendLine(signals_data.Epochs_From.ToString()) // epoch start
+        .AppendLine(signals_data.Epochs_To.ToString()); // epoch end         
+
+      foreach (var signal in pm.PreviewSelectedSignals)
+      {
+        var edfSignal = LoadedEDFFile.Header.Signals.Find(s => s.Label.Trim() == signal.Trim());
+        var signalValues = LoadedEDFFile.retrieveSignalSampleValues(edfSignal).ToArray();
+
+        FileStream bin_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".bin", FileMode.OpenOrCreate); //the binary file for each signal
+        bin_file.SetLength(0); //clear it's contents
+        bin_file.Close(); //flush
+
+        bin_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".bin", FileMode.OpenOrCreate); //reload
+        BinaryWriter bin_writer = new BinaryWriter(bin_file);
+
+        int start_index = signals_data.Epochs_From * 30 * edfSignal.NumberOfSamplesPerDataRecord; // from epoch number * 30 seconds per epoch * sample rate = start time
+        int end_index = signals_data.Epochs_To * 30 * edfSignal.NumberOfSamplesPerDataRecord; // to epoch number * 30 seconds per epoch * sample rate = end time
+
+        if (end_index > signalValues.Count()) { end_index = signalValues.Count(); }
+
+
+        sb_hdr.AppendLine(signal); //append signal name that is being exported in order to parse binary file later
+
+        for (int i = start_index; i < end_index; i++)
+        {
+          bin_writer.Write(signalValues[i]);
+        }
+
+        bin_writer.Close();
+      }
+
+      var bytes_to_write = Encoding.ASCII.GetBytes(sb_hdr.ToString());
+      hdr_file.Write(bytes_to_write, 0, bytes_to_write.Length);
+      hdr_file.Close();
+    }
+
+    // Respiratory Analysis From EDF File
+    private void BW_RespiratoryAnalysisEDF(object sender, DoWorkEventArgs e)
         {
             PlotModel temp_SignalPlot = new PlotModel();
 

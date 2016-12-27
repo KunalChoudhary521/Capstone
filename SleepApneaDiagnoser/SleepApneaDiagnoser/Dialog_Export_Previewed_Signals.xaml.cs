@@ -20,21 +20,17 @@ namespace SleepApneaDiagnoser
   /// </summary>
   public partial class Dialog_Export_Previewed_Signals
   {
-    public static List<ExportSignalModel> signals_to_export;
-    private int signal_number;
+    public static ExportSignalModel signals_to_export;
     private List<string> selected_signals;
     public Dialog_Export_Previewed_Signals(List<string> selected_signals)
     {
       InitializeComponent();
 
       this.selected_signals = new List<string>(selected_signals);
-      signals_to_export = new List<ExportSignalModel>();
-      signal_number = 0;
 
-      this.textBox_signal_name.Text = selected_signals.First();
+      this.textBox_subject_id.Text = "";
       this.textBox_epochs_from.Text = "0";
       this.textBox_epochs_to.Text = "10";
-      button_next_update();
     }
 
     private void button_export_cancel_Click(object sender, RoutedEventArgs e)
@@ -43,37 +39,65 @@ namespace SleepApneaDiagnoser
       this.Close();
     }
 
-    private void button_export_next_finish_Click(object sender, RoutedEventArgs e)
+    //TODO: ZUR(2016-11-22)
+    //There is probably a much better way of doing this, but at the moment I just did this...
+    //Can come back and clean it up later when we have the time and do it the better way
+    private void button_export_finish_Click(object sender, RoutedEventArgs e)
     {
-      add_signal();
-      if (signal_number < selected_signals.Count - 1)
+      int subject_id;
+      if (string.IsNullOrEmpty(this.textBox_subject_id.Text))
       {
-        signal_number++;
-        this.textBox_signal_name.Text = selected_signals[signal_number];
-        this.textBox_epochs_from.Text = "0";
-        this.textBox_epochs_to.Text = "10";
-        button_next_update();
+        this.ShowMessageAsync("Error", "Please enter a subject ID");
       }
-      else {      
-        this.DialogResult = true;
-        this.Close();
-      }
-    }
-
-    private void button_next_update() {
-      if (signal_number < selected_signals.Count - 1)
+      else if (int.TryParse(this.textBox_subject_id.Text, out subject_id) == false)
       {
-        this.button_export_next_finish.Content = "Next";
+        this.ShowMessageAsync("Error", "Please enter a valid subject ID");
       }
       else
       {
-        this.button_export_next_finish.Content = "Export";
+        if (subject_id < 0)
+        {
+          this.ShowMessageAsync("Error", "Please enter a positive two digit ID");
+        }
+        else
+        {
+          //just in case
+          subject_id = subject_id % 100; 
+          int from_epochs;
+          if (int.TryParse(this.textBox_epochs_from.Text, out from_epochs) == false)
+          {
+            this.ShowMessageAsync("Error", "Please enter a valid 'from' epochs value.");
+          }
+          else
+          {
+            if (from_epochs < 0)
+            {
+              this.ShowMessageAsync("Error", "From epochs must be greater than 0");
+            }
+            else
+            {
+              int to_epochs;
+              if (int.TryParse(this.textBox_epochs_to.Text, out to_epochs) == false)
+              {
+                this.ShowMessageAsync("Error", "Please enter a valid 'to' epochs values.");
+              }
+              else
+              {
+                if (to_epochs < 0 || to_epochs <= from_epochs)
+                {
+                  this.ShowMessageAsync("Error", "To epochs must be greater than from epochs.");
+                }
+                else
+                {
+                  signals_to_export = new ExportSignalModel(subject_id, from_epochs, to_epochs);
+                  this.DialogResult = true;
+                  this.Close();
+                }
+              }
+            }
+          }
+        }
       }
-    }
-
-    private void add_signal() {
-      ExportSignalModel signal = new ExportSignalModel(selected_signals[signal_number], textBox_epochs_from.Text, textBox_epochs_to.Text);
-      signals_to_export.Add(signal);
     }
   }
 }
