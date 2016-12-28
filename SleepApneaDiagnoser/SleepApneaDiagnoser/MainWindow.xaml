@@ -10,7 +10,7 @@
         xmlns:mtr="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         xmlns:ControlzEx="clr-namespace:ControlzEx;assembly=MahApps.Metro" x:Class="SleepApneaDiagnoser.MainWindow"
         mc:Ignorable="d"
-        Title="Sleep Apnea Diagnoser" Height="768" Width="1366" Closing="Window_Closing" WindowState="Maximized" MinWidth="1200" MinHeight="650">
+        Title="Sleep Apnea Diagnoser" Height="768" Width="1366" Closing="Window_Closing" WindowState="Maximized" MinWidth="1200" MinHeight="650" TitleCaps="False">
 
     <mtr:MetroWindow.Resources>
         <Style TargetType="TextBlock">
