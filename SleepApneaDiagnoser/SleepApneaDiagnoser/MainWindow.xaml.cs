@@ -319,6 +319,75 @@ namespace SleepApneaDiagnoser
       return GetPercentileValue(values.ToArray(), percentile, tolerance);
     }
 
+    private static List<float> retrieveSignalSampleValuesMod(EDFFile file, EDFSignal signal_to_retrieve, DateTime StartTime, DateTime EndTime)
+    {
+      int start_sample, start_record;
+      int end_sample, end_record;
+      #region Find Start and End Points
+      {
+        double record_duration = file.Header.DurationOfDataRecordInSeconds;
+        double samples_per_record = signal_to_retrieve.NumberOfSamplesPerDataRecord;
+        double total_seconds = (StartTime - file.Header.StartDateTime).TotalSeconds;
+        double seconds_past_record = total_seconds % record_duration;
+        double sample_period = record_duration / samples_per_record;
+
+        start_sample = (int)(seconds_past_record / sample_period);
+        start_record = (int)((total_seconds - seconds_past_record) / record_duration);
+      }
+      {
+        double record_duration = file.Header.DurationOfDataRecordInSeconds;
+        double samples_per_record = signal_to_retrieve.NumberOfSamplesPerDataRecord;
+        double total_seconds = (EndTime - file.Header.StartDateTime).TotalSeconds;
+        double seconds_past_record = total_seconds % record_duration;
+        double sample_period = record_duration / samples_per_record;
+
+        end_sample = (int)(seconds_past_record / sample_period);
+        end_record = (int)((total_seconds - seconds_past_record) / record_duration);
+      }
+      #endregion
+
+      List<float> signalSampleValues = new List<float>();
+
+      if (file.Header.Signals.Contains(signal_to_retrieve))
+      {
+        //Remove Signal DataRecords
+        for (int x = start_record; x < end_record; x++)
+        {
+          EDFDataRecord dr = file.DataRecords[x];
+
+          foreach (EDFSignal signal in file.Header.Signals)
+          {
+            if (signal.IndexNumberWithLabel.Equals(signal_to_retrieve.IndexNumberWithLabel))
+            {
+              int start = x == start_record ? start_sample : 0;
+              int end = x == end_record - 1 ? end_sample : dr[signal.IndexNumberWithLabel].Count;
+              for (int y = start; y < end; y++)
+              {
+                signalSampleValues.Add(dr[signal.IndexNumberWithLabel][y]);
+              }
+            }
+          }
+        }
+      }
+      return signalSampleValues;
+
+    }
+    private static List<float> MATLAB_Resample(List<float> values, float ratio)
+    {
+      // Prepare Input for MATLAB function
+      Processing proc = new Processing();
+      MWArray[] input = new MWArray[2];
+      input[0] = new MWNumericArray(values.ToArray());
+      input[1] = ratio; 
+      // Call MATLAB function
+      return (
+                  (double[])(
+                      (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
+                  ).ToVector(MWArrayComponent.Real)
+                ).ToList().Select(temp => (float)temp).ToList();
+
+    }
+
     /***************************************************** NON-STATIC FUNCTIONS *****************************************************/
 
     /// <summary>
@@ -341,26 +410,19 @@ namespace SleepApneaDiagnoser
       {
         // Get Signal using API
         EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal);
-
-        // Determine Array Portion
         sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
-        int startIndex, indexCount;
-        TimeSpan startPoint = StartTime - LoadedEDFFile.Header.StartDateTime;
-        TimeSpan duration = EndTime - StartTime;
-        startIndex = (int)(startPoint.TotalSeconds / sample_period);
-        indexCount = (int)(duration.TotalSeconds / sample_period);
 
         // Get Array
-        List<float> values = LoadedEDFFile.retrieveSignalSampleValues(edfsignal);
+        List<float> values = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal, StartTime, EndTime);
 
         // Determine Y Axis Bounds
         min_y = GetMinSignalValue(Signal, values);
         max_y = GetMaxSignalValue(Signal, values);
 
         // Add Points to Series
-        for (int y = startIndex; y < indexCount + startIndex; y++)
+        for (int y = 0; y < values.Count; y++)
         {
-          series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
+          series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(StartTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
         }
       }
       else // Derivative Signal
@@ -375,62 +437,33 @@ namespace SleepApneaDiagnoser
         List<float> values2;
         if (edfsignal1.NumberOfSamplesPerDataRecord == edfsignal2.NumberOfSamplesPerDataRecord) // No resampling
         {
-          values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-          values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
+          values1 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
+          values2 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
           sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
         }
         else if (edfsignal1.NumberOfSamplesPerDataRecord > edfsignal2.NumberOfSamplesPerDataRecord) // Upsample signal 2
         {
-          // Prepare Input for MATLAB function
-          Processing proc = new Processing();
-          MWArray[] input = new MWArray[2];
-          input[0] = new MWNumericArray(LoadedEDFFile.retrieveSignalSampleValues(edfsignal2).ToArray());
-          input[1] = edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord;
-
-          values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-          // Call MATLAB function
-          values2 = (
-                      (double[])(
-                          (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
-                      ).ToVector(MWArrayComponent.Real)
-                    ).ToList().Select(temp => (float)temp).ToList();
-
+          values1 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
+          values2 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
+          values2 = MATLAB_Resample(values2, edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord);
           sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
         }
         else // Upsample signal 1
         {
-          // Prepare Input for MATLAB function
-          Processing proc = new Processing();
-          MWArray[] input = new MWArray[2];
-          input[0] = new MWNumericArray(LoadedEDFFile.retrieveSignalSampleValues(edfsignal1).ToArray());
-          input[1] = edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord;
-
-          // Call MATLAB function
-          values1 = (
-                      (double[])(
-                          (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
-                      ).ToVector(MWArrayComponent.Real)
-                    ).ToList().Select(temp => (float)temp).ToList();
-          values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
-
+          values1 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
+          values2 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
+          values1 = MATLAB_Resample(values1, edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord);
           sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal2.NumberOfSamplesPerDataRecord;
         }
-
-        // Determine Array Portions
-        int startIndex, indexCount;
-        TimeSpan startPoint = StartTime - LoadedEDFFile.Header.StartDateTime;
-        TimeSpan duration = EndTime - StartTime;
-        startIndex = (int)(startPoint.TotalSeconds / sample_period);
-        indexCount = (int)(duration.TotalSeconds / sample_period);
-
+        
         // Get Y Axis Bounds
         min_y = GetMinSignalValue(Signal, values1, values2);
         max_y = GetMaxSignalValue(Signal, values1, values2);
 
         // Add Points to Series
-        for (int y = startIndex; y < indexCount + startIndex; y++)
+        for (int y = 0; y < Math.Min(values1.Count, values2.Count); y++)
         {
-          series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values1[y] - values2[y]));
+          series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(StartTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values1[y] - values2[y]));
         }
       }
 
