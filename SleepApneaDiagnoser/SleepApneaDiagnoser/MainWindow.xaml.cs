@@ -509,33 +509,63 @@ namespace SleepApneaDiagnoser
         xAxis.Maximum = DateTimeAxis.ToDouble(PreviewViewEndTime);
         temp_PreviewSignalPlot.Axes.Add(xAxis);
 
+        List<BackgroundWorker> bw_array = new List<BackgroundWorker>();
+        LineSeries[] series_array = new LineSeries[pm.PreviewSelectedSignals.Count];
+        LinearAxis[] axis_array = new LinearAxis[pm.PreviewSelectedSignals.Count];
         for (int x = 0; x < pm.PreviewSelectedSignals.Count; x++)
         {
-          double? min_y, max_y;
-          float sample_period;
-          LineSeries series = GetSeriesFromSignalName(out sample_period,
-                                                      out max_y,
-                                                      out min_y,
-                                                      pm.PreviewSelectedSignals[x],
-                                                      (PreviewViewStartTime ?? new DateTime()),
-                                                      PreviewViewEndTime
-                                                      );
+          BackgroundWorker bw = new BackgroundWorker();
+          bw.DoWork += new DoWorkEventHandler(
+            delegate (object sender1, DoWorkEventArgs e1)
+            {
+              int y = (int)e1.Argument;
 
-          series.YAxisKey = pm.PreviewSelectedSignals[x];
-          series.XAxisKey = "DateTime";
+              double? min_y, max_y;
+              float sample_period;
+              LineSeries series = GetSeriesFromSignalName(out sample_period,
+                                                          out max_y,
+                                                          out min_y,
+                                                          pm.PreviewSelectedSignals[y],
+                                                          (PreviewViewStartTime ?? new DateTime()),
+                                                          PreviewViewEndTime
+                                                          );
 
-          LinearAxis yAxis = new LinearAxis();
-          yAxis.MajorGridlineStyle = LineStyle.Solid;
-          yAxis.MinorGridlineStyle = LineStyle.Dot;
-          yAxis.Title = pm.PreviewSelectedSignals[x];
-          yAxis.Key = pm.PreviewSelectedSignals[x];
-          yAxis.EndPosition = (double)1 - (double)x * ((double)1 / (double)pm.PreviewSelectedSignals.Count);
-          yAxis.StartPosition = (double)1 - (double)(x + 1) * ((double)1 / (double)pm.PreviewSelectedSignals.Count);
-          yAxis.Maximum = max_y ?? Double.NaN;
-          yAxis.Minimum = min_y ?? Double.NaN;
+              series.YAxisKey = pm.PreviewSelectedSignals[y];
+              series.XAxisKey = "DateTime";
 
-          temp_PreviewSignalPlot.Axes.Add(yAxis);
-          temp_PreviewSignalPlot.Series.Add(series);
+              LinearAxis yAxis = new LinearAxis();
+              yAxis.MajorGridlineStyle = LineStyle.Solid;
+              yAxis.MinorGridlineStyle = LineStyle.Dot;
+              yAxis.Title = pm.PreviewSelectedSignals[y];
+              yAxis.Key = pm.PreviewSelectedSignals[y];
+              yAxis.EndPosition = (double)1 - (double)y * ((double)1 / (double)pm.PreviewSelectedSignals.Count);
+              yAxis.StartPosition = (double)1 - (double)(y + 1) * ((double)1 / (double)pm.PreviewSelectedSignals.Count);
+              yAxis.Maximum = max_y ?? Double.NaN;
+              yAxis.Minimum = min_y ?? Double.NaN;
+
+              series_array[y] = series;
+              axis_array[y] = yAxis;
+            }
+          );
+          bw.RunWorkerAsync(x);
+          bw_array.Add(bw);
+        }
+
+        bool all_done = false;
+        while(!all_done)
+        {
+          all_done = true;
+          for (int y = 0; y < bw_array.Count; y++)
+          {
+            if (bw_array[y].IsBusy)
+              all_done = false;
+          }
+        }
+
+        for (int y = 0; y < series_array.Length; y++)
+        {
+          temp_PreviewSignalPlot.Series.Add(series_array[y]);
+          temp_PreviewSignalPlot.Axes.Add(axis_array[y]);
         }
       }
 
