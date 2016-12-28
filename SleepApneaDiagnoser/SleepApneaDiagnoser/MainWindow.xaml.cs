@@ -578,7 +578,6 @@ namespace SleepApneaDiagnoser
     /// <param name="e"></param>
     private void BW_FinishChart(object sender, RunWorkerCompletedEventArgs e)
     {
-      PreviewNavigationEnabled = true;
     }
     /// <summary>
     /// Draw a chart in the preview pane
@@ -1522,6 +1521,10 @@ namespace SleepApneaDiagnoser
 
       DrawChart();
     }
+    private void PreviewSignalPlot_Changed()
+    {
+      PreviewNavigationEnabled = true;
+    }
     private void RespiratorySignalPlot_Changed()
     {
       p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
@@ -2072,6 +2075,7 @@ namespace SleepApneaDiagnoser
       {
         pm.PreviewSignalPlot = value;
         OnPropertyChanged(nameof(PreviewSignalPlot));
+        PreviewSignalPlot_Changed();
       }
     }
 
