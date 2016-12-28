@@ -324,6 +324,75 @@ namespace SleepApneaDiagnoser
       return GetPercentileValue(values.ToArray(), percentile, tolerance);
     }
 
+    private static List<float> retrieveSignalSampleValuesMod(EDFFile file, EDFSignal signal_to_retrieve, DateTime StartTime, DateTime EndTime)
+    {
+      int start_sample, start_record;
+      int end_sample, end_record;
+      #region Find Start and End Points
+      {
+        double record_duration = file.Header.DurationOfDataRecordInSeconds;
+        double samples_per_record = signal_to_retrieve.NumberOfSamplesPerDataRecord;
+        double total_seconds = (StartTime - file.Header.StartDateTime).TotalSeconds;
+        double seconds_past_record = total_seconds % record_duration;
+        double sample_period = record_duration / samples_per_record;
+
+        start_sample = (int)(seconds_past_record / sample_period);
+        start_record = (int)((total_seconds - seconds_past_record) / record_duration);
+      }
+      {
+        double record_duration = file.Header.DurationOfDataRecordInSeconds;
+        double samples_per_record = signal_to_retrieve.NumberOfSamplesPerDataRecord;
+        double total_seconds = (EndTime - file.Header.StartDateTime).TotalSeconds;
+        double seconds_past_record = total_seconds % record_duration;
+        double sample_period = record_duration / samples_per_record;
+
+        end_sample = (int)(seconds_past_record / sample_period);
+        end_record = (int)((total_seconds - seconds_past_record) / record_duration);
+      }
+      #endregion
+
+      List<float> signalSampleValues = new List<float>();
+
+      if (file.Header.Signals.Contains(signal_to_retrieve))
+      {
+        //Remove Signal DataRecords
+        for (int x = start_record; x < end_record; x++)
+        {
+          EDFDataRecord dr = file.DataRecords[x];
+
+          foreach (EDFSignal signal in file.Header.Signals)
+          {
+            if (signal.IndexNumberWithLabel.Equals(signal_to_retrieve.IndexNumberWithLabel))
+            {
+              int start = x == start_record ? start_sample : 0;
+              int end = x == end_record - 1 ? end_sample : dr[signal.IndexNumberWithLabel].Count;
+              for (int y = start; y < end; y++)
+              {
+                signalSampleValues.Add(dr[signal.IndexNumberWithLabel][y]);
+              }
+            }
+          }
+        }
+      }
+      return signalSampleValues;
+
+    }
+    private static List<float> MATLAB_Resample(List<float> values, float ratio)
+    {
+      // Prepare Input for MATLAB function
+      Processing proc = new Processing();
+      MWArray[] input = new MWArray[2];
+      input[0] = new MWNumericArray(values.ToArray());
+      input[1] = ratio; 
+      // Call MATLAB function
+      return (
+                  (double[])(
+                      (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
+                  ).ToVector(MWArrayComponent.Real)
+                ).ToList().Select(temp => (float)temp).ToList();
+
+    }
+
     /***************************************************** NON-STATIC FUNCTIONS *****************************************************/
 
     /// <summary>
@@ -340,31 +409,25 @@ namespace SleepApneaDiagnoser
     {
       // Variable To Return
       LineSeries series = new LineSeries();
+      series.MinimumSegmentLength = 10;
 
       if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal.Trim()) != null) // Normal EDF Signal
       {
         // Get Signal using API
         EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal);
-
-        // Determine Array Portion
         sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
-        int startIndex, indexCount;
-        TimeSpan startPoint = StartTime - LoadedEDFFile.Header.StartDateTime;
-        TimeSpan duration = EndTime - StartTime;
-        startIndex = (int)(startPoint.TotalSeconds / sample_period);
-        indexCount = (int)(duration.TotalSeconds / sample_period);
 
         // Get Array
-        List<float> values = LoadedEDFFile.retrieveSignalSampleValues(edfsignal);
+        List<float> values = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal, StartTime, EndTime);
 
         // Determine Y Axis Bounds
         min_y = GetMinSignalValue(Signal, values);
         max_y = GetMaxSignalValue(Signal, values);
 
         // Add Points to Series
-        for (int y = startIndex; y < indexCount + startIndex; y++)
+        for (int y = 0; y < values.Count; y++)
         {
-          series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
+          series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(StartTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
         }
       }
       else // Derivative Signal
@@ -379,62 +442,33 @@ namespace SleepApneaDiagnoser
         List<float> values2;
         if (edfsignal1.NumberOfSamplesPerDataRecord == edfsignal2.NumberOfSamplesPerDataRecord) // No resampling
         {
-          values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-          values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
+          values1 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
+          values2 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
           sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
         }
         else if (edfsignal1.NumberOfSamplesPerDataRecord > edfsignal2.NumberOfSamplesPerDataRecord) // Upsample signal 2
         {
-          // Prepare Input for MATLAB function
-          Processing proc = new Processing();
-          MWArray[] input = new MWArray[2];
-          input[0] = new MWNumericArray(LoadedEDFFile.retrieveSignalSampleValues(edfsignal2).ToArray());
-          input[1] = edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord;
-
-          values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-          // Call MATLAB function
-          values2 = (
-                      (double[])(
-                          (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
-                      ).ToVector(MWArrayComponent.Real)
-                    ).ToList().Select(temp => (float)temp).ToList();
-
+          values1 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
+          values2 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
+          values2 = MATLAB_Resample(values2, edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord);
           sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
         }
         else // Upsample signal 1
         {
-          // Prepare Input for MATLAB function
-          Processing proc = new Processing();
-          MWArray[] input = new MWArray[2];
-          input[0] = new MWNumericArray(LoadedEDFFile.retrieveSignalSampleValues(edfsignal1).ToArray());
-          input[1] = edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord;
-
-          // Call MATLAB function
-          values1 = (
-                      (double[])(
-                          (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
-                      ).ToVector(MWArrayComponent.Real)
-                    ).ToList().Select(temp => (float)temp).ToList();
-          values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
-
+          values1 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
+          values2 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
+          values1 = MATLAB_Resample(values1, edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord);
           sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal2.NumberOfSamplesPerDataRecord;
         }
-
-        // Determine Array Portions
-        int startIndex, indexCount;
-        TimeSpan startPoint = StartTime - LoadedEDFFile.Header.StartDateTime;
-        TimeSpan duration = EndTime - StartTime;
-        startIndex = (int)(startPoint.TotalSeconds / sample_period);
-        indexCount = (int)(duration.TotalSeconds / sample_period);
-
+        
         // Get Y Axis Bounds
         min_y = GetMinSignalValue(Signal, values1, values2);
         max_y = GetMaxSignalValue(Signal, values1, values2);
 
         // Add Points to Series
-        for (int y = startIndex; y < indexCount + startIndex; y++)
+        for (int y = 0; y < Math.Min(values1.Count, values2.Count); y++)
         {
-          series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values1[y] - values2[y]));
+          series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(StartTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values1[y] - values2[y]));
         }
       }
 
@@ -513,33 +547,63 @@ namespace SleepApneaDiagnoser
         xAxis.Maximum = DateTimeAxis.ToDouble(PreviewViewEndTime);
         temp_PreviewSignalPlot.Axes.Add(xAxis);
 
+        List<BackgroundWorker> bw_array = new List<BackgroundWorker>();
+        LineSeries[] series_array = new LineSeries[pm.PreviewSelectedSignals.Count];
+        LinearAxis[] axis_array = new LinearAxis[pm.PreviewSelectedSignals.Count];
         for (int x = 0; x < pm.PreviewSelectedSignals.Count; x++)
         {
-          double? min_y, max_y;
-          float sample_period;
-          LineSeries series = GetSeriesFromSignalName(out sample_period,
-                                                      out max_y,
-                                                      out min_y,
-                                                      pm.PreviewSelectedSignals[x],
-                                                      (PreviewViewStartTime ?? new DateTime()),
-                                                      PreviewViewEndTime
-                                                      );
+          BackgroundWorker bw = new BackgroundWorker();
+          bw.DoWork += new DoWorkEventHandler(
+            delegate (object sender1, DoWorkEventArgs e1)
+            {
+              int y = (int)e1.Argument;
 
-          series.YAxisKey = pm.PreviewSelectedSignals[x];
-          series.XAxisKey = "DateTime";
+              double? min_y, max_y;
+              float sample_period;
+              LineSeries series = GetSeriesFromSignalName(out sample_period,
+                                                          out max_y,
+                                                          out min_y,
+                                                          pm.PreviewSelectedSignals[y],
+                                                          (PreviewViewStartTime ?? new DateTime()),
+                                                          PreviewViewEndTime
+                                                          );
 
-          LinearAxis yAxis = new LinearAxis();
-          yAxis.MajorGridlineStyle = LineStyle.Solid;
-          yAxis.MinorGridlineStyle = LineStyle.Dot;
-          yAxis.Title = pm.PreviewSelectedSignals[x];
-          yAxis.Key = pm.PreviewSelectedSignals[x];
-          yAxis.EndPosition = (double)1 - (double)x * ((double)1 / (double)pm.PreviewSelectedSignals.Count);
-          yAxis.StartPosition = (double)1 - (double)(x + 1) * ((double)1 / (double)pm.PreviewSelectedSignals.Count);
-          yAxis.Maximum = max_y ?? Double.NaN;
-          yAxis.Minimum = min_y ?? Double.NaN;
+              series.YAxisKey = pm.PreviewSelectedSignals[y];
+              series.XAxisKey = "DateTime";
 
-          temp_PreviewSignalPlot.Axes.Add(yAxis);
-          temp_PreviewSignalPlot.Series.Add(series);
+              LinearAxis yAxis = new LinearAxis();
+              yAxis.MajorGridlineStyle = LineStyle.Solid;
+              yAxis.MinorGridlineStyle = LineStyle.Dot;
+              yAxis.Title = pm.PreviewSelectedSignals[y];
+              yAxis.Key = pm.PreviewSelectedSignals[y];
+              yAxis.EndPosition = (double)1 - (double)y * ((double)1 / (double)pm.PreviewSelectedSignals.Count);
+              yAxis.StartPosition = (double)1 - (double)(y + 1) * ((double)1 / (double)pm.PreviewSelectedSignals.Count);
+              yAxis.Maximum = max_y ?? Double.NaN;
+              yAxis.Minimum = min_y ?? Double.NaN;
+
+              series_array[y] = series;
+              axis_array[y] = yAxis;
+            }
+          );
+          bw.RunWorkerAsync(x);
+          bw_array.Add(bw);
+        }
+
+        bool all_done = false;
+        while(!all_done)
+        {
+          all_done = true;
+          for (int y = 0; y < bw_array.Count; y++)
+          {
+            if (bw_array[y].IsBusy)
+              all_done = false;
+          }
+        }
+
+        for (int y = 0; y < series_array.Length; y++)
+        {
+          temp_PreviewSignalPlot.Series.Add(series_array[y]);
+          temp_PreviewSignalPlot.Axes.Add(axis_array[y]);
         }
       }
 
@@ -552,7 +616,6 @@ namespace SleepApneaDiagnoser
     /// <param name="e"></param>
     private void BW_FinishChart(object sender, RunWorkerCompletedEventArgs e)
     {
-      PreviewNavigationEnabled = true;
     }
     /// <summary>
     /// Draw a chart in the preview pane
@@ -882,7 +945,8 @@ namespace SleepApneaDiagnoser
 
       // Weighted Running Average (Smoothing) and Normalization
       LineSeries series_norm = new LineSeries();
-      int LENGTH = 50;
+      int LENGTH = (int) (0.05 / sample_period) * 2;
+      LENGTH = Math.Max(1, LENGTH);
       for (int x = 0; x < series.Points.Count; x++)
       {
         double sum = 0;
@@ -1667,8 +1731,31 @@ namespace SleepApneaDiagnoser
 
       DrawChart();
     }
+    private void PreviewSignalPlot_Changed()
+    {
+      PreviewNavigationEnabled = true;
+    }
+    private void RespiratorySignalPlot_Changed()
+    {
+      p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
+    }
+    private void RespiratoryMinimumPeakWidth_Changed()
+    {
+      p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Visible; }));
+    }
+    private void RespiratoryRemoveMultiplePeaks_Changed()
+    {
+      p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Visible; }));
+      if (RespiratoryRemoveMultiplePeaks == true)
+        p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespAllowMultiplePeaks.Text = "No"; }));
+      else
+        p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespAllowMultiplePeaks.Text = "Yes"; }));
+    }
 
     // Loaded EDF Structure and File Name
+    /// <summary>
+    /// The currently loaded EDF file, has a 'Changed Event'
+    /// </summary>
     public EDFFile LoadedEDFFile
     {
       get
@@ -1681,6 +1768,9 @@ namespace SleepApneaDiagnoser
         LoadedEDFFile_Changed();
       }
     }
+    /// <summary>
+    /// Loaded EDF File Name, bound to the Status Bar Content
+    /// </summary>
     public string LoadedEDFFileName
     {
       get
@@ -1693,6 +1783,9 @@ namespace SleepApneaDiagnoser
         OnPropertyChanged(nameof(LoadedEDFFileName));
       }
     }
+    /// <summary>
+    /// False, if LoadedEDFFile = null, bound to the Enabled property of many controls
+    /// </summary>
     public bool IsEDFLoaded
     {
       get
@@ -1702,6 +1795,9 @@ namespace SleepApneaDiagnoser
     }
 
     // EDF Header
+    /// <summary>
+    /// The Time the signal recordings started, bound to TextBox Text in Preview Tab
+    /// </summary>
     public string EDFStartTime
     {
       get
@@ -1712,6 +1808,9 @@ namespace SleepApneaDiagnoser
           return null;
       }
     }
+    /// <summary>
+    /// The Time the signal recordings ended, bound to TextBox Text in Preview Tab
+    /// </summary>
     public string EDFEndTime
     {
       get
@@ -1722,6 +1821,9 @@ namespace SleepApneaDiagnoser
           return "";
       }
     }
+    /// <summary>
+    /// The name of the patient the signals were measured from, bound to TextBox Text in Preview Tab
+    /// </summary>
     public string EDFPatientName
     {
       get
@@ -1732,6 +1834,9 @@ namespace SleepApneaDiagnoser
           return "";
       }
     }
+    /// <summary>
+    /// The gender of the patient the signals were measured from, bound to TextBox Text in Preview Tab
+    /// </summary>
     public string EDFPatientSex
     {
       get
@@ -1742,6 +1847,9 @@ namespace SleepApneaDiagnoser
           return "";
       }
     }
+    /// <summary>
+    /// The code of the patient the signals were measured from, bound to TextBox Text in Preview Tab
+    /// </summary>
     public string EDFPatientCode
     {
       get
@@ -1752,6 +1860,9 @@ namespace SleepApneaDiagnoser
           return "";
       }
     }
+    /// <summary>
+    /// The birthdate of the patient the signals were measured from, bound to TextBox Text in Preview Tab
+    /// </summary>
     public string EDFPatientBirthDate
     {
       get
@@ -1762,6 +1873,9 @@ namespace SleepApneaDiagnoser
           return "";
       }
     }
+    /// <summary>
+    /// The recording equipment the signals were measured on, bound to TextBox Text in Preview Tab
+    /// </summary>
     public string EDFRecordEquipment
     {
       get
@@ -1772,6 +1886,9 @@ namespace SleepApneaDiagnoser
           return "";
       }
     }
+    /// <summary>
+    /// The code of the recording equipment the signals were measured on, bound to TextBox Text in Preview Tab
+    /// </summary>
     public string EDFRecordCode
     {
       get
@@ -1782,6 +1899,9 @@ namespace SleepApneaDiagnoser
           return "";
       }
     }
+    /// <summary>
+    /// The name of the technician who recorded the signals, bound to TextBox Text in Preview Tab
+    /// </summary>
     public string EDFRecordTechnician
     {
       get
@@ -1792,6 +1912,11 @@ namespace SleepApneaDiagnoser
           return "";
       }
     }
+
+    // Signal Names
+    /// <summary>
+    /// Every available signal derived or from EDF
+    /// </summary>
     public ReadOnlyCollection<string> AllSignals
     {
       get
@@ -1809,6 +1934,9 @@ namespace SleepApneaDiagnoser
         }
       }
     }
+    /// <summary>
+    /// Every signal stored in the EDF file
+    /// </summary>
     public ReadOnlyCollection<string> EDFAllSignals
     {
       get
@@ -1819,6 +1947,9 @@ namespace SleepApneaDiagnoser
           return Array.AsReadOnly(new string[0]);
       }
     }
+    /// <summary>
+    /// Every available signal derived or from EDF that is not on the hidden list
+    /// </summary>
     public ReadOnlyCollection<string> AllNonHiddenSignals
     {
       get
@@ -1838,6 +1969,9 @@ namespace SleepApneaDiagnoser
     }
 
     // Preview Signal Selection
+    /// <summary>
+    /// The currently selected category index, has a 'Changed Event'
+    /// </summary>
     public int PreviewCurrentCategory
     {
       get
@@ -1851,6 +1985,9 @@ namespace SleepApneaDiagnoser
         PreviewCurrentCategory_Changed();
       }
     }
+    /// <summary>
+    /// The currently selected category, bound to TextBlock in Preview Tab
+    /// </summary>
     public string PreviewCurrentCategoryName
     {
       get
@@ -1861,6 +1998,9 @@ namespace SleepApneaDiagnoser
           return sm.SignalCategories[PreviewCurrentCategory];
       }
     }
+    /// <summary>
+    /// All the non-hidden signals in the currently selected category, bound to the signal selection pane in the Preview Tab
+    /// </summary>
     public ReadOnlyCollection<string> PreviewSignals
     {
       get
@@ -1883,6 +2023,10 @@ namespace SleepApneaDiagnoser
         }
       }
     }
+    /// <summary>
+    /// Updates the Selected Signals list and calls the draw chart function
+    /// </summary>
+    /// <param name="SelectedItems"> The new user selected signals </param>
     public void SetSelectedSignals(System.Collections.IList SelectedItems)
     {
       pm.PreviewSelectedSignals.Clear();
@@ -1893,6 +2037,9 @@ namespace SleepApneaDiagnoser
     }
 
     // Preview Plot Range
+    /// <summary>
+    /// If true, user input is in Absolute Time, if false, user input is in Epochs, bound to the ToggleButton in the Preview Tab, and the Enabled property of the UpDown controls in the Preview Tab
+    /// </summary>
     public bool PreviewUseAbsoluteTime
     {
       get
@@ -1906,6 +2053,9 @@ namespace SleepApneaDiagnoser
         PreviewUseAbsoluteTime_Changed();
       }
     }
+    /// <summary>
+    /// The current user selected StartTime in Absolute Time, bound to the DateTimeUpDown control in the Preview Tab
+    /// </summary>
     public DateTime? PreviewViewStartTime
     {
       get
@@ -1932,6 +2082,9 @@ namespace SleepApneaDiagnoser
         }
       }
     }
+    /// <summary>
+    /// The current user selected StartTime in Epochs, bound to the NumericUpDown control in the Preview Tab
+    /// </summary>
     public int? PreviewViewStartRecord
     {
       get
@@ -1958,6 +2111,9 @@ namespace SleepApneaDiagnoser
         }
       }
     }
+    /// <summary>
+    /// The current user selected duration in Seconds or Epochs, depending on the value of PreviewUseAbsoluteTime, bound to the NumericUpDown control in the Preview Tab
+    /// </summary>
     public int? PreviewViewDuration
     {
       get
@@ -1987,6 +2143,9 @@ namespace SleepApneaDiagnoser
         PreviewView_Changed();
       }
     }
+    /// <summary>
+    /// The current user selected EndTime calculated using the start time and duration
+    /// </summary>
     public DateTime PreviewViewEndTime
     {
       get
@@ -2005,6 +2164,9 @@ namespace SleepApneaDiagnoser
       }
     }
 
+    /// <summary>
+    /// The maximum acceptable start time for the DateTimeUpDown control in the Preview Tab
+    /// </summary>
     public DateTime PreviewViewStartTimeMax
     {
       get
@@ -2017,6 +2179,9 @@ namespace SleepApneaDiagnoser
           return new DateTime();
       }
     }
+    /// <summary>
+    /// The minimum acceptable start time for the DateTimeUpDown control in the Preview Tab
+    /// </summary>
     public DateTime PreviewViewStartTimeMin
     {
       get
@@ -2027,6 +2192,9 @@ namespace SleepApneaDiagnoser
           return new DateTime();
       }
     }
+    /// <summary>
+    /// The maximum acceptable start time for the NumericUpDown control in the Preview Tab
+    /// </summary>
     public int PreviewViewStartRecordMax
     {
       get
@@ -2037,6 +2205,9 @@ namespace SleepApneaDiagnoser
           return 0;
       }
     }
+    /// <summary>
+    /// The minimum acceptable start time for the NumericUpDown control in the Preview Tab
+    /// </summary>
     public int PreviewViewStartRecordMin
     {
       get
@@ -2044,6 +2215,9 @@ namespace SleepApneaDiagnoser
         return 0; // Record 0
       }
     }
+    /// <summary>
+    /// The maximum acceptable start time for the NumericUpDown control in the Preview Tab
+    /// </summary>
     public int PreviewViewDurationMax
     {
       get
@@ -2065,6 +2239,9 @@ namespace SleepApneaDiagnoser
           return 0;
       }
     }
+    /// <summary>
+    /// The minimum acceptable start time for the NumericUpDown control in the Preview Tab
+    /// </summary>
     public int PreviewViewDurationMin
     {
       get
@@ -2075,6 +2252,9 @@ namespace SleepApneaDiagnoser
           return 0;
       }
     }
+    /// <summary>
+    /// If true, enable the navigation controls, if false disable them, bound to all the navigation controls in the Preview Tab
+    /// </summary>
     public bool PreviewNavigationEnabled
     {
       get
@@ -2092,6 +2272,9 @@ namespace SleepApneaDiagnoser
     }
 
     // Preview Plot
+    /// <summary>
+    /// The plot in the Preview Tab
+    /// </summary>
     public PlotModel PreviewSignalPlot
     {
       get
@@ -2102,10 +2285,14 @@ namespace SleepApneaDiagnoser
       {
         pm.PreviewSignalPlot = value;
         OnPropertyChanged(nameof(PreviewSignalPlot));
+        PreviewSignalPlot_Changed();
       }
     }
 
     // Respiratory Analysis
+    /// <summary>
+    /// The user selected respiratory signal, bound to the selection box in the Respiratory Analysis tab
+    /// </summary>
     public string RespiratoryEDFSelectedSignal
     {
       get
@@ -2118,6 +2305,9 @@ namespace SleepApneaDiagnoser
         OnPropertyChanged(nameof(RespiratoryEDFSelectedSignal));
       }
     }
+    /// <summary>
+    /// The user selected start epoch, bound to the NumericUpDown in the Respiratory Analysis tab
+    /// </summary>
     public int? RespiratoryEDFStartRecord
     {
       get
@@ -2130,6 +2320,9 @@ namespace SleepApneaDiagnoser
         OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
       }
     }
+    /// <summary>
+    /// The user selected epoch duration, bound to the NumericUpDown in the Respiratory Analysis tab
+    /// </summary>
     public int? RespiratoryEDFDuration
     {
       get
@@ -2142,19 +2335,9 @@ namespace SleepApneaDiagnoser
         OnPropertyChanged(nameof(RespiratoryEDFDuration));
       }
     }
-    public PlotModel RespiratorySignalPlot
-    {
-      get
-      {
-        return rm.RespiratorySignalPlot;
-      }
-      set
-      {
-        rm.RespiratorySignalPlot = value;
-        OnPropertyChanged(nameof(RespiratorySignalPlot));
-        p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
-      }
-    }
+    /// <summary>
+    /// The calculated breathing period mean, bound to the TextBox in the Respiratory Analysis tab
+    /// </summary>
     public string RespiratoryBreathingPeriodMean
     {
       get
@@ -2167,6 +2350,9 @@ namespace SleepApneaDiagnoser
         OnPropertyChanged(nameof(RespiratoryBreathingPeriodMean));
       }
     }
+    /// <summary>
+    /// The calculated breathing period median, bound to the TextBox in the Respiratory Analysis tab
+    /// </summary>
     public string RespiratoryBreathingPeriodMedian
     {
       get
@@ -2179,6 +2365,9 @@ namespace SleepApneaDiagnoser
         OnPropertyChanged(nameof(RespiratoryBreathingPeriodMedian));
       }
     }
+    /// <summary>
+    /// The user specified peak sensitivity in ms, bound to the NumericUpDown in the Respiratory Analysis tab
+    /// </summary>
     public int RespiratoryMinimumPeakWidth
     {
       get
@@ -2189,9 +2378,12 @@ namespace SleepApneaDiagnoser
       {
         rm.RespiratoryMinimumPeakWidth = value;
         OnPropertyChanged(nameof(RespiratoryMinimumPeakWidth));
-        p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Visible; }));
+        RespiratoryMinimumPeakWidth_Changed();
       }
     }
+    /// <summary>
+    /// True if the user does not want multiple respiration peaks or expiration peaks simultaniously, bound to the togglebutton in the Respiratory Analysis tab
+    /// </summary>
     public bool RespiratoryRemoveMultiplePeaks
     {
       get
@@ -2202,12 +2394,23 @@ namespace SleepApneaDiagnoser
       {
         rm.RespiratoryRemoveMultiplePeaks = value;
         OnPropertyChanged(nameof(RespiratoryRemoveMultiplePeaks));
-        p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Visible; }));
-        if (value == true)
-          p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespAllowMultiplePeaks.Text = "No"; }));
-        else
-          p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespAllowMultiplePeaks.Text = "Yes"; }));
-
+        RespiratoryRemoveMultiplePeaks_Changed();
+      }
+    }
+    /// <summary>
+    /// The plot in the respiratory analysis tab
+    /// </summary>
+    public PlotModel RespiratorySignalPlot
+    {
+      get
+      {
+        return rm.RespiratorySignalPlot;
+      }
+      set
+      {
+        rm.RespiratorySignalPlot = value;
+        OnPropertyChanged(nameof(RespiratorySignalPlot));
+        RespiratorySignalPlot_Changed();
       }
     }
 
@@ -2270,13 +2473,13 @@ namespace SleepApneaDiagnoser
     private void OnPropertyChanged(string propertyName)
     {
       PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-    }   
+    }
 
     #endregion
 
     public ModelView(MainWindow i_window)
     {
       p_window = i_window;
-    }   
+    }
   }
 }
