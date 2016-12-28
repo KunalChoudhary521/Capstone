@@ -706,7 +706,8 @@ namespace SleepApneaDiagnoser
 
       // Weighted Running Average (Smoothing) and Normalization
       LineSeries series_norm = new LineSeries();
-      int LENGTH = 50;
+      int LENGTH = (int) (0.05 / sample_period) * 2;
+      LENGTH = Math.Max(1, LENGTH);
       for (int x = 0; x < series.Points.Count; x++)
       {
         double sum = 0;
