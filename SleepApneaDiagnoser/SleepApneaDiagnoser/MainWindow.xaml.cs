@@ -327,22 +327,24 @@ namespace SleepApneaDiagnoser
       {
         double record_duration = file.Header.DurationOfDataRecordInSeconds;
         double samples_per_record = signal_to_retrieve.NumberOfSamplesPerDataRecord;
-        double total_seconds = (StartTime - file.Header.StartDateTime).TotalSeconds;
-        double seconds_past_record = total_seconds % record_duration;
-        double sample_period = record_duration / samples_per_record;
 
-        start_sample = (int)(seconds_past_record / sample_period);
-        start_record = (int)((total_seconds - seconds_past_record) / record_duration);
+        double total_seconds = (StartTime - file.Header.StartDateTime).TotalSeconds;
+        double sample_period = record_duration / samples_per_record;
+        double total_samples = total_seconds / sample_period;
+
+        start_sample = ((int)(total_samples)) % ((int)samples_per_record);
+        start_record = (int)((total_samples - start_sample) / samples_per_record);
       }
       {
         double record_duration = file.Header.DurationOfDataRecordInSeconds;
         double samples_per_record = signal_to_retrieve.NumberOfSamplesPerDataRecord;
-        double total_seconds = (EndTime - file.Header.StartDateTime).TotalSeconds;
-        double seconds_past_record = total_seconds % record_duration;
-        double sample_period = record_duration / samples_per_record;
 
-        end_sample = (int)(seconds_past_record / sample_period);
-        end_record = (int)((total_seconds - seconds_past_record) / record_duration);
+        double total_seconds = (EndTime - file.Header.StartDateTime).TotalSeconds;
+        double sample_period = record_duration / samples_per_record;
+        double total_samples = total_seconds / sample_period - 1;
+
+        end_sample = ((int)total_samples) % ((int)samples_per_record);
+        end_record = (((int)total_samples) - end_sample) / ((int)samples_per_record);
       }
       #endregion
 
@@ -351,7 +353,7 @@ namespace SleepApneaDiagnoser
       if (file.Header.Signals.Contains(signal_to_retrieve))
       {
         //Remove Signal DataRecords
-        for (int x = start_record; x < end_record; x++)
+        for (int x = start_record; x <= end_record; x++)
         {
           EDFDataRecord dr = file.DataRecords[x];
 
@@ -360,8 +362,8 @@ namespace SleepApneaDiagnoser
             if (signal.IndexNumberWithLabel.Equals(signal_to_retrieve.IndexNumberWithLabel))
             {
               int start = x == start_record ? start_sample : 0;
-              int end = x == end_record - 1 ? end_sample : dr[signal.IndexNumberWithLabel].Count;
-              for (int y = start; y < end; y++)
+              int end = x == end_record ? end_sample : dr[signal.IndexNumberWithLabel].Count - 1;
+              for (int y = start; y <= end; y++)
               {
                 signalSampleValues.Add(dr[signal.IndexNumberWithLabel][y]);
               }
