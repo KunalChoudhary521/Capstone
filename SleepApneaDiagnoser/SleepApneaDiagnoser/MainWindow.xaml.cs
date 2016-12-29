@@ -585,7 +585,6 @@ namespace SleepApneaDiagnoser
     }
     private void BW_FinishChart(object sender, RunWorkerCompletedEventArgs e)
     {
-      PreviewNavigationEnabled = true;
     }
     public void DrawChart()
     {
@@ -1556,6 +1555,10 @@ namespace SleepApneaDiagnoser
 
       DrawChart();
     }
+    private void PreviewSignalPlot_Changed()
+    {
+      PreviewNavigationEnabled = true;
+    }
 
     /*********************************************************** GENERAL ************************************************************/
 
@@ -1981,6 +1984,17 @@ namespace SleepApneaDiagnoser
       {
         pm.PreviewNavigationEnabled = value;
         OnPropertyChanged(nameof(PreviewNavigationEnabled));
+        OnPropertyChanged(nameof(PreviewProgressRingEnabled));
+      }
+    }
+    public bool PreviewProgressRingEnabled
+    {
+      get
+      {
+        if (!IsEDFLoaded)
+          return false;
+        else
+          return !pm.PreviewNavigationEnabled;
       }
     }
 
@@ -1995,6 +2009,7 @@ namespace SleepApneaDiagnoser
       {
         pm.PreviewSignalPlot = value;
         OnPropertyChanged(nameof(PreviewSignalPlot));
+        PreviewSignalPlot_Changed();
       }
     }
 
