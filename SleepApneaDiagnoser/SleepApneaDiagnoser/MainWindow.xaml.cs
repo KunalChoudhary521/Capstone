@@ -29,6 +29,7 @@ using MathWorks.MATLAB.NET.Utility;
 using MATLAB_496;
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
+using MahApps.Metro;
 using System.Windows.Forms;
 using EEGBandpower;
 
@@ -41,6 +42,73 @@ namespace SleepApneaDiagnoser
   {
     ModelView model;
 
+    public static void UseWindowsThemeColor()
+    {
+      byte a = ((Color)SystemParameters.WindowGlassBrush.GetValue(SolidColorBrush.ColorProperty)).A;
+      byte g = ((Color)SystemParameters.WindowGlassBrush.GetValue(SolidColorBrush.ColorProperty)).G;
+      byte r = ((Color)SystemParameters.WindowGlassBrush.GetValue(SolidColorBrush.ColorProperty)).R;
+      byte b = ((Color)SystemParameters.WindowGlassBrush.GetValue(SolidColorBrush.ColorProperty)).B;
+
+      // create a runtime accent resource dictionary
+
+      var resourceDictionary = new ResourceDictionary();
+
+      resourceDictionary.Add("HighlightColor", Color.FromArgb(a, r, g, b));
+      resourceDictionary.Add("AccentColor", Color.FromArgb(a, r, g, b));
+      resourceDictionary.Add("AccentColor2", Color.FromArgb(a, r, g, b));
+      resourceDictionary.Add("AccentColor3", Color.FromArgb(a, r, g, b));
+      resourceDictionary.Add("AccentColor4", Color.FromArgb(a, r, g, b));
+
+      resourceDictionary.Add("HighlightBrush", new SolidColorBrush((Color)resourceDictionary["HighlightColor"]));
+      resourceDictionary.Add("AccentColorBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor"]));
+      resourceDictionary.Add("AccentColorBrush2", new SolidColorBrush((Color)resourceDictionary["AccentColor2"]));
+      resourceDictionary.Add("AccentColorBrush3", new SolidColorBrush((Color)resourceDictionary["AccentColor3"]));
+      resourceDictionary.Add("AccentColorBrush4", new SolidColorBrush((Color)resourceDictionary["AccentColor4"]));
+      resourceDictionary.Add("WindowTitleColorBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor"]));
+
+      resourceDictionary.Add("ProgressBrush", new LinearGradientBrush(
+          new GradientStopCollection(new[]
+          {
+                new GradientStop((Color)resourceDictionary["HighlightColor"], 0),
+                new GradientStop((Color)resourceDictionary["AccentColor3"], 1)
+          }),
+          new Point(0.001, 0.5), new Point(1.002, 0.5)));
+
+      resourceDictionary.Add("CheckmarkFill", new SolidColorBrush((Color)resourceDictionary["AccentColor"]));
+      resourceDictionary.Add("RightArrowFill", new SolidColorBrush((Color)resourceDictionary["AccentColor"]));
+
+      resourceDictionary.Add("IdealForegroundColor", Colors.White);
+      resourceDictionary.Add("IdealForegroundColorBrush", new SolidColorBrush((Color)resourceDictionary["IdealForegroundColor"]));
+      resourceDictionary.Add("AccentSelectedColorBrush", new SolidColorBrush((Color)resourceDictionary["IdealForegroundColor"]));
+
+      // DataGrid brushes since latest alpha after 1.1.2
+      resourceDictionary.Add("MetroDataGrid.HighlightBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor"]));
+      resourceDictionary.Add("MetroDataGrid.HighlightTextBrush", new SolidColorBrush((Color)resourceDictionary["IdealForegroundColor"]));
+      resourceDictionary.Add("MetroDataGrid.MouseOverHighlightBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor3"]));
+      resourceDictionary.Add("MetroDataGrid.FocusBorderBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor"]));
+      resourceDictionary.Add("MetroDataGrid.InactiveSelectionHighlightBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor2"]));
+      resourceDictionary.Add("MetroDataGrid.InactiveSelectionHighlightTextBrush", new SolidColorBrush((Color)resourceDictionary["IdealForegroundColor"]));
+
+      // applying theme to MahApps
+
+      var resDictName = string.Format("ApplicationAccent_{0}.xaml", Color.FromArgb(a, r, g, b).ToString().Replace("#", string.Empty));
+      var fileName = System.IO.Path.Combine(System.IO.Path.GetTempPath(), resDictName);
+      using (var writer = System.Xml.XmlWriter.Create(fileName, new System.Xml.XmlWriterSettings { Indent = true }))
+      {
+        System.Windows.Markup.XamlWriter.Save(resourceDictionary, writer);
+        writer.Close();
+      }
+
+      resourceDictionary = new ResourceDictionary() { Source = new Uri(fileName, UriKind.Absolute) };
+
+      var newAccent = new Accent { Name = resDictName, Resources = resourceDictionary };
+      ThemeManager.AddAccent(newAccent.Name, newAccent.Resources.Source);
+
+      var application = System.Windows.Application.Current;
+      var applicationTheme = ThemeManager.AppThemes.First(x => string.Equals(x.Name, "BaseLight"));
+      ThemeManager.ChangeAppStyle(application, newAccent, applicationTheme);
+    }
+    
     /// <summary>
     /// Function called to populate recent files list. Called when application is first loaded and if the recent files list changes.
     /// </summary>
@@ -53,7 +121,7 @@ namespace SleepApneaDiagnoser
         if (!itemControl_RecentEDF.Items.Contains(array[x].Split('\\')[array[x].Split('\\').Length - 1]))
           itemControl_RecentEDF.Items.Add(array[x].Split('\\')[array[x].Split('\\').Length - 1]);
     }
-
+    
     /// <summary>
     /// Constructor for GUI class.
     /// </summary>
@@ -64,6 +132,11 @@ namespace SleepApneaDiagnoser
       model = new ModelView(this);
       this.DataContext = model;
       LoadRecent();
+
+      try {
+        UseWindowsThemeColor();
+      } catch {
+      }
     }
 
     private void Window_Closing(object sender, CancelEventArgs e)
