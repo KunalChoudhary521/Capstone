@@ -42,6 +42,9 @@ namespace SleepApneaDiagnoser
   {
     ModelView model;
 
+    /// <summary>
+    /// Modified From Sample MahApps.Metro Project
+    /// </summary>
     public static void UseWindowsThemeColor()
     {
       byte a = ((Color)SystemParameters.WindowGlassBrush.GetValue(SolidColorBrush.ColorProperty)).A;
