@@ -243,7 +243,7 @@ namespace SleepApneaDiagnoser
       return (int)(period.TotalSeconds / (double)EPOCH_SEC);
     }
 
-    private static double? GetPercentileValue(float[] values_array, int percentile, int tolerance)
+    private static double? GetPercentileValue(float[] values_array, int percentile)
     {
       List<float> values = values_array.ToList();
       values.Sort();
@@ -252,7 +252,7 @@ namespace SleepApneaDiagnoser
 
       return values[index];
     }
-    private static double? GetPercentileValueDeriv(float[] values_array_1, float[] values_array_2, int percentile, int tolerance)
+    private static double? GetPercentileValueDeriv(float[] values_array_1, float[] values_array_2, int percentile)
     {
       List<float> values1 = values_array_1.ToList();
       List<float> values2 = values_array_2.ToList();
@@ -261,7 +261,7 @@ namespace SleepApneaDiagnoser
       for (int x = 0; x < Math.Min(values_array_1.Length, values_array_2.Length); x++)
         values.Add(values_array_1[x] - values_array_2[x]);
 
-      return GetPercentileValue(values.ToArray(), percentile, tolerance);
+      return GetPercentileValue(values.ToArray(), percentile);
     }
 
     /***************************************************** NON-STATIC FUNCTIONS *****************************************************/
@@ -1214,14 +1214,7 @@ namespace SleepApneaDiagnoser
       else
       {
         double? value = null;
-
-        int j = 1;
-        while (value == null && j < 100)
-        {
-          j++;
-          value = GetPercentileValue(values.ToArray(), 97, j);
-        }
-
+        value = GetPercentileValue(values.ToArray(), 99);
         SetMaxSignalValue(Signal, value ?? 0);
         return value;
       }
@@ -1235,14 +1228,7 @@ namespace SleepApneaDiagnoser
       else
       {
         double? value = null;
-
-        int j = 1;
-        while (value == null && j < 100)
-        {
-          j++;
-          value = GetPercentileValue(values.ToArray(), 3, j);
-        }
-
+        value = GetPercentileValue(values.ToArray(), 1);
         SetMinSignalValue(Signal, value ?? 0);
         return value;
       }
@@ -1256,14 +1242,7 @@ namespace SleepApneaDiagnoser
       else
       {
         double? value = null;
-
-        int j = 1;
-        while (value == null && j < 100)
-        {
-          j++;
-          value = GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), 97, j);
-        }
-
+        value = GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), 99);
         SetMaxSignalValue(Signal, value ?? 0);
         return value;
       }
@@ -1277,14 +1256,7 @@ namespace SleepApneaDiagnoser
       else
       {
         double? value = null;
-
-        int j = 1;
-        while (value == null && j < 100)
-        {
-          j++;
-          value = GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), 3, j);
-        }
-
+        value = GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), 1);
         SetMinSignalValue(Signal, value ?? 0);
         return value;
       }
