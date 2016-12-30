@@ -135,7 +135,7 @@ namespace SleepApneaDiagnoser
       model = new ModelView(this);
       this.DataContext = model;
       LoadRecent();
-
+      
       try {
         UseWindowsThemeColor();
       } catch {
@@ -259,6 +259,8 @@ namespace SleepApneaDiagnoser
     {
       model.PerformEEGAnalysisEDF();
     }
+
+    
   }
 
   #region Models
@@ -1159,13 +1161,21 @@ namespace SleepApneaDiagnoser
     }
     public void ManageCategories()
     {
-      Dialog_Manage_Categories dlg = new Dialog_Manage_Categories(p_SignalCategories.ToArray(), p_SignalCategoryContents.Select(temp => temp.ToArray()).ToArray(), LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray(), p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
-      dlg.ShowModalDialogExternally();
-
-      PreviewCurrentCategory = -1;
-      p_SignalCategories = dlg.categories.ToList();
-      p_SignalCategoryContents = dlg.categories_signals;
+      Dialog_Manage_Categories dlg = new Dialog_Manage_Categories(p_window,
+                                                                  this,
+                                                                  p_SignalCategories.ToArray(), 
+                                                                  p_SignalCategoryContents.Select(temp => temp.ToArray()).ToArray(), 
+                                                                  LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray(), 
+                                                                  p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+      p_window.ShowMetroDialogAsync(dlg);
     }
+    public void ManageCategoriesOutput(string[] categories, List<List<string>> categories_signals)
+    {
+      PreviewCurrentCategory = -1;
+      p_SignalCategories = categories.ToList();
+      p_SignalCategoryContents = categories_signals;
+    }
+
     public void NextCategory()
     {
       if (PreviewCurrentCategory == p_SignalCategories.Count - 1)
@@ -1247,40 +1257,43 @@ namespace SleepApneaDiagnoser
     }
     public void AddDerivative()
     {
-      Dialog_Add_Derivative dlg = new Dialog_Add_Derivative(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.Trim()).ToArray(), p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
-      dlg.ShowModalDialogExternally();
-
-      if (dlg.DialogResult == true)
-      {
-        p_DerivedSignals.Add(new string[] { dlg.SignalName, dlg.Signal1, dlg.Signal2 });
-        AddToCommonDerivativesFile(dlg.SignalName, dlg.Signal1, dlg.Signal2);
-      }
+      Dialog_Add_Derivative dlg = new Dialog_Add_Derivative(p_window,
+                                                            this,
+                                                            LoadedEDFFile.Header.Signals.Select(temp => temp.Label.Trim()).ToArray(), 
+                                                            p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+      p_window.ShowMetroDialogAsync(dlg);
+    }
+    public void AddDerivativeOutput(string name, string signal1, string signal2)
+    {
+      p_DerivedSignals.Add(new string[] { name, signal1, signal2 });
+      AddToCommonDerivativesFile(name, signal1, signal2);
 
       OnPropertyChanged(nameof(PreviewSignals));
       OnPropertyChanged(nameof(AllNonHiddenSignals));
     }
     public void RemoveDerivative()
     {
-      Dialog_Remove_Derivative dlg = new Dialog_Remove_Derivative(p_DerivedSignals.ToArray());
-      dlg.ShowModalDialogExternally();
-
-      if (dlg.DialogResult == true)
+      Dialog_Remove_Derivative dlg = new Dialog_Remove_Derivative(p_window,
+                                                                  this,
+                                                                  p_DerivedSignals.ToArray());
+      p_window.ShowMetroDialogAsync(dlg);
+    }
+    public void RemoveDerivativeOutput(string[] RemovedSignals)
+    {
+      for (int x = 0; x < RemovedSignals.Length; x++)
       {
-        for (int x = 0; x < dlg.RemovedSignals.Length; x++)
+        List<string[]> RemovedDerivatives = p_DerivedSignals.FindAll(temp => temp[0].Trim() == RemovedSignals[x].Trim()).ToList();
+        p_DerivedSignals.RemoveAll(temp => temp[0].Trim() == RemovedSignals[x].Trim());
+        RemoveFromCommonDerivativesFile(RemovedDerivatives);
+
+        if (pm.PreviewSelectedSignals.Contains(RemovedSignals[x].Trim()))
         {
-          List<string[]> RemovedDerivatives = p_DerivedSignals.FindAll(temp => temp[0].Trim() == dlg.RemovedSignals[x].Trim()).ToList();
-          p_DerivedSignals.RemoveAll(temp => temp[0].Trim() == dlg.RemovedSignals[x].Trim());
-          RemoveFromCommonDerivativesFile(RemovedDerivatives);
-
-          if (pm.PreviewSelectedSignals.Contains(dlg.RemovedSignals[x].Trim()))
-          {
-            pm.PreviewSelectedSignals.Remove(dlg.RemovedSignals[x].Trim());
-          }
-
-          // Remove Potentially Saved Min/Max Values
-          p_SignalsMaxValues.RemoveAll(temp => temp[0].Trim() == dlg.RemovedSignals[x].Trim());
-          p_SignalsMinValues.RemoveAll(temp => temp[0].Trim() == dlg.RemovedSignals[x].Trim());
+          pm.PreviewSelectedSignals.Remove(RemovedSignals[x].Trim());
         }
+
+        // Remove Potentially Saved Min/Max Values
+        p_SignalsMaxValues.RemoveAll(temp => temp[0].Trim() == RemovedSignals[x].Trim());
+        p_SignalsMinValues.RemoveAll(temp => temp[0].Trim() == RemovedSignals[x].Trim());
       }
 
       OnPropertyChanged(nameof(PreviewSignals));
@@ -1320,12 +1333,17 @@ namespace SleepApneaDiagnoser
           input[x] = false;
       }
 
-      Dialog_Hide_Signals dlg = new Dialog_Hide_Signals(EDFAllSignals.ToArray(), input);
-      dlg.ShowModalDialogExternally();
-
-      for (int x = 0; x < dlg.hide_signals_new.Length; x++)
+      Dialog_Hide_Signals dlg = new Dialog_Hide_Signals(p_window,
+                                                        this,
+                                                        EDFAllSignals.ToArray(), 
+                                                        input);
+      p_window.ShowMetroDialogAsync(dlg);
+    }
+    public void HideSignalsOutput(bool[] hide_signals_new)
+    {
+      for (int x = 0; x < hide_signals_new.Length; x++)
       {
-        if (dlg.hide_signals_new[x])
+        if (hide_signals_new[x])
         {
           if (!p_HiddenSignals.Contains(EDFAllSignals[x]))
           {
