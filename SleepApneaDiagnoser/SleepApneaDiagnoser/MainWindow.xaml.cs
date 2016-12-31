@@ -33,6 +33,10 @@ using MahApps.Metro;
 using System.Windows.Forms;
 using EEGBandpower;
 
+using System.Numerics;
+using MathNet.Filtering;
+using MathNet.Numerics;
+
 namespace SleepApneaDiagnoser
 {
   /// <summary>
@@ -259,8 +263,10 @@ namespace SleepApneaDiagnoser
     {
       model.PerformEEGAnalysisEDF();
     }
-
-    
+    private void button_PerformCoherenceAnalysis_Click(object sender, RoutedEventArgs e)
+    {
+      model.PerformCoherenceAnalysisEDF();
+    }
   }
 
   #region Models
@@ -293,6 +299,18 @@ namespace SleepApneaDiagnoser
     public int EEGEDFStartRecord;
     public int EEGEDFDuration;
     public PlotModel EEGSignalPlot = null;
+  }
+  public class CoherenceModel
+  {
+    public string CoherenceEDFSelectedSignal1;
+    public string CoherenceEDFSelectedSignal2;
+    public int CoherenceEDFStartRecord;
+    public int CoherenceEDFDuration;
+    public PlotModel CoherenceSignalPlot1 = null;
+    public PlotModel CoherenceSignalPlot2 = null;
+    public PlotModel CoherenceSignalFreq1 = null;
+    public PlotModel CoherenceSignalFreq2 = null;
+    public PlotModel CoherencePlot= null;
   }
   #endregion
 
@@ -405,7 +423,7 @@ namespace SleepApneaDiagnoser
                   ).ToVector(MWArrayComponent.Real)
                 ).ToList().Select(temp => (float)temp).ToList();
     }
-
+    
     /***************************************************** NON-STATIC FUNCTIONS *****************************************************/
 
     private LineSeries GetSeriesFromSignalName(out float sample_period, out double? max_y, out double? min_y, string Signal, DateTime StartTime, DateTime EndTime)
@@ -988,6 +1006,248 @@ namespace SleepApneaDiagnoser
       bw.RunWorkerAsync();
     }
 
+    /**************************************************** COHERENCE ANALYSIS TAB ****************************************************/
+
+    private void BW_CoherenceAnalysisEDF(object sender, DoWorkEventArgs e)
+    {
+      #region Plot Series 1 in Time Domain 
+
+      // Get Series 1
+      double? max_y_1, min_y_1;
+      float sample_period_1;
+      LineSeries series_1 = GetSeriesFromSignalName(out sample_period_1,
+                                                  out max_y_1,
+                                                  out min_y_1,
+                                                  CoherenceEDFSelectedSignal1,
+                                                  EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile),
+                                                  EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile) + EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 0)
+                                                  );
+
+      // Plot Series 1
+      {
+        PlotModel temp_SignalPlot = new PlotModel();
+
+        DateTimeAxis xAxis = new DateTimeAxis();
+        xAxis.Key = "DateTime";
+        xAxis.Minimum = DateTimeAxis.ToDouble(EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile));
+        xAxis.Maximum = DateTimeAxis.ToDouble(EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile) + EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 0));
+        temp_SignalPlot.Axes.Add(xAxis);
+
+        LinearAxis yAxis = new LinearAxis();
+        yAxis.MajorGridlineStyle = LineStyle.Solid;
+        yAxis.MinorGridlineStyle = LineStyle.Dot;
+        yAxis.Title = CoherenceEDFSelectedSignal1 + " (Time)";
+        yAxis.Key = CoherenceEDFSelectedSignal1 + " (Time)";
+        yAxis.Maximum = (max_y_1 ?? Double.NaN);
+        yAxis.Minimum = (min_y_1 ?? Double.NaN);
+        temp_SignalPlot.Axes.Add(yAxis);
+
+        series_1.YAxisKey = CoherenceEDFSelectedSignal1 + " (Time)";
+        series_1.XAxisKey = "DateTime";
+        temp_SignalPlot.Series.Add(series_1);
+
+        CoherenceSignalPlot1 = temp_SignalPlot;
+      }
+
+      #endregion
+
+      #region Plot Series 2 in Time Domain 
+
+      // Get Series 2
+      double? max_y_2, min_y_2;
+      float sample_period_2;
+      LineSeries series_2 = GetSeriesFromSignalName(out sample_period_2,
+                                                  out max_y_2,
+                                                  out min_y_2,
+                                                  CoherenceEDFSelectedSignal2,
+                                                  EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile),
+                                                  EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile) + EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 0)
+                                                  );
+
+      // Plot Series 2
+      {
+        PlotModel temp_SignalPlot = new PlotModel();
+
+        DateTimeAxis xAxis = new DateTimeAxis();
+        xAxis.Key = "DateTime";
+        xAxis.Minimum = DateTimeAxis.ToDouble(EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile));
+        xAxis.Maximum = DateTimeAxis.ToDouble(EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile) + EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 0));
+        temp_SignalPlot.Axes.Add(xAxis);
+
+        LinearAxis yAxis = new LinearAxis();
+        yAxis.MajorGridlineStyle = LineStyle.Solid;
+        yAxis.MinorGridlineStyle = LineStyle.Dot;
+        yAxis.Title = CoherenceEDFSelectedSignal2 + " (Time)";
+        yAxis.Key = CoherenceEDFSelectedSignal2 + " (Time)";
+        yAxis.Maximum = (max_y_2 ?? Double.NaN);
+        yAxis.Minimum = (min_y_2 ?? Double.NaN);
+        temp_SignalPlot.Axes.Add(yAxis);
+
+        series_2.YAxisKey = CoherenceEDFSelectedSignal2 + " (Time)";
+        series_2.XAxisKey = "DateTime";
+        temp_SignalPlot.Series.Add(series_2);
+
+        CoherenceSignalPlot2 = temp_SignalPlot;
+      }
+
+      #endregion
+
+      #region Plot Series 1 in Frequency Domain
+
+      // Get Series 1
+      LineSeries freq_1 = new LineSeries();
+      Complex[] fft_1;
+      {
+        {
+          List<Complex> temp = series_1.Points.Select(x => (Complex)x.Y).ToList();
+          int n = (int)Math.Ceiling(Math.Log(temp.Count) / Math.Log(2));
+          temp.AddRange(new Complex[(int)Math.Pow(2, (double)n) - temp.Count]);
+          fft_1 = temp.ToArray();
+          MathNet.Numerics.IntegralTransforms.Fourier.BluesteinForward(fft_1, MathNet.Numerics.IntegralTransforms.FourierOptions.Matlab);
+        }
+
+        for (int x = fft_1.Length / 2; x < fft_1.Length; x++)
+          freq_1.Points.Add(new DataPoint((x - fft_1.Length), fft_1[x].Magnitude));
+        for (int x = 0; x < fft_1.Length / 2; x++)
+          freq_1.Points.Add(new DataPoint(x, fft_1[x].Magnitude));
+      }
+
+      // Plot Series 1
+      {
+        PlotModel temp_plot = new PlotModel();
+        temp_plot.Series.Add(freq_1);
+        CoherenceSignalFreq1 = temp_plot;
+      }
+
+      #endregion
+
+      #region Plot Series 2 in Frequency Domain
+
+      // Get Series 2
+      LineSeries freq_2 = new LineSeries();
+      Complex[] fft_2;
+      {
+        {
+          List<Complex> temp = series_2.Points.Select(x => (Complex)x.Y).ToList();
+          int n = (int)Math.Ceiling(Math.Log(temp.Count) / Math.Log(2));
+          temp.AddRange(new Complex[(int)Math.Pow(2, (double)n) - temp.Count]);
+          fft_2 = temp.ToArray();
+          MathNet.Numerics.IntegralTransforms.Fourier.BluesteinForward(fft_2, MathNet.Numerics.IntegralTransforms.FourierOptions.Matlab);
+        }
+        
+        for (int x = fft_2.Length / 2; x < fft_2.Length; x++)
+          freq_2.Points.Add(new DataPoint((x - fft_2.Length), fft_2[x].Magnitude));
+        for (int x = 0; x < fft_2.Length / 2; x++)
+          freq_2.Points.Add(new DataPoint(x, fft_2[x].Magnitude));
+      }
+
+      // Plot Series 2
+      {
+        PlotModel temp_plot = new PlotModel();
+        temp_plot.Series.Add(freq_2);
+        CoherenceSignalFreq2 = temp_plot;
+      }
+
+      #endregion
+
+      #region Plot Coherence 
+
+      // Calculate Coherence
+      LineSeries coh = new LineSeries();
+      {
+        if (sample_period_1 == sample_period_2)
+        {
+          int length = Math.Min(fft_1.Length, fft_2.Length);
+          int num_windows = 8;
+          int window_size = length / num_windows;
+          int n = (int)Math.Ceiling(Math.Log(window_size) / Math.Log(2)); ;
+
+          List<Complex[]> diff_windows_1 = new List<Complex[]>();
+          List<Complex[]> diff_windows_2 = new List<Complex[]>();
+          for (int y = 0; y < num_windows; y++)
+          {
+            int StartIndex = Math.Max(0, window_size * y);
+            int EndIndex = Math.Min(length, window_size * (y + 1));
+
+            List<Complex> temp_1 = series_1.Points.Where(x => series_1.Points.IndexOf(x) >= StartIndex && series_1.Points.IndexOf(x) < EndIndex).Select(x => (Complex)x.Y).ToList();
+            temp_1.AddRange(new Complex[(int)Math.Pow(2, (double)n) - temp_1.Count]);
+            diff_windows_1.Add(temp_1.ToArray());
+
+            List<Complex> temp_2 = series_2.Points.Where(x => series_2.Points.IndexOf(x) >= StartIndex && series_2.Points.IndexOf(x) < EndIndex).Select(x => (Complex)x.Y).ToList();
+            temp_2.AddRange(new Complex[(int)Math.Pow(2, (double)n) - temp_2.Count]);
+            diff_windows_2.Add(temp_2.ToArray());
+          }
+
+          for (int x = 0; x < Math.Pow(2, (double)n); x++)
+          {
+            // Averaged SAB, SAA, SBB
+            Complex saa = new Complex(0, 0);
+            Complex sbb = new Complex(0, 0);
+            Complex sab = new Complex(0, 0);
+            for (int y = 0; y < num_windows; y++)
+            {
+              sab += diff_windows_1[y][x] * Complex.Conjugate(diff_windows_2[y][x]);
+              saa += diff_windows_1[y][x] * Complex.Conjugate(diff_windows_1[y][x]);
+              sbb += diff_windows_2[y][x] * Complex.Conjugate(diff_windows_2[y][x]);
+            }
+            sab /= num_windows;
+            saa /= num_windows;
+            sbb /= num_windows;
+
+            double numerator = Math.Pow(sab.Magnitude, 2);
+            double denominator = (saa * sbb).Magnitude;
+            double value = numerator / denominator;
+
+            coh.Points.Add(new DataPoint(x, value));
+          }
+        }
+        else
+        {
+          if (sample_period_1 < sample_period_2) // Upsample signal 2
+          {
+            /* TODO NOT YET IMPLEMENTED */
+          }
+          else // Upsample signal 1
+          {
+            /* TODO NOT YET IMPLEMENTED */
+          }
+        }
+
+        coh.YAxisKey = "Coherence";
+      }
+
+      // Plot Coherence
+      { 
+        PlotModel temp_plot = new PlotModel();
+        temp_plot.Series.Add(coh);
+
+        LinearAxis yAxis = new LinearAxis();
+        yAxis.MajorGridlineStyle = LineStyle.Solid;
+        yAxis.MinorGridlineStyle = LineStyle.Dot;
+        yAxis.Title = "Coherence";
+        yAxis.Key = "Coherence";
+        yAxis.Maximum = 1.25;
+        yAxis.Minimum = 0;
+        temp_plot.Axes.Add(yAxis);
+
+        CoherencePlot = temp_plot;
+      }
+
+      #endregion
+
+    }
+    private void BW_FinishCoherenceAnalysisEDF(object sender, RunWorkerCompletedEventArgs e)
+    {
+
+    }
+    public void PerformCoherenceAnalysisEDF()
+    {
+      BackgroundWorker bw = new BackgroundWorker();
+      bw.DoWork += BW_CoherenceAnalysisEDF;
+      bw.RunWorkerCompleted += BW_FinishCoherenceAnalysisEDF;
+      bw.RunWorkerAsync();
+    }
+
     /*********************************************************************************************************************************/
 
     #endregion
@@ -1482,6 +1742,9 @@ namespace SleepApneaDiagnoser
 
     //EEG Model
     private EEGModel eegm = new EEGModel();
+
+    // Coherence Model
+    private CoherenceModel cm = new CoherenceModel();
 
     /*********************************************************************************************************************************/
 
@@ -2192,6 +2455,117 @@ namespace SleepApneaDiagnoser
         eegm.EEGSignalPlot = value;
         OnPropertyChanged(nameof(EEGSignalPlot));
         p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
+      }
+    }
+
+    /**************************************************** COHERENCE ANALYSIS TAB ****************************************************/
+
+    public string CoherenceEDFSelectedSignal1
+    {
+      get
+      {
+        return cm.CoherenceEDFSelectedSignal1;
+      }
+      set
+      {
+        cm.CoherenceEDFSelectedSignal1 = value;
+        OnPropertyChanged(nameof(CoherenceEDFSelectedSignal1));
+      }
+    }
+    public string CoherenceEDFSelectedSignal2
+    {
+      get
+      {
+        return cm.CoherenceEDFSelectedSignal2;
+      }
+      set
+      {
+        cm.CoherenceEDFSelectedSignal2 = value;
+        OnPropertyChanged(nameof(CoherenceEDFSelectedSignal2));
+      }
+    }
+    public int? CoherenceEDFStartRecord
+    {
+      get
+      {
+        return cm.CoherenceEDFStartRecord;
+      }
+      set
+      {
+        cm.CoherenceEDFStartRecord = value ?? 0;
+        OnPropertyChanged(nameof(CoherenceEDFStartRecord));
+      }
+    }
+    public int? CoherenceEDFDuration
+    {
+      get
+      {
+        return cm.CoherenceEDFDuration;
+      }
+      set
+      {
+        cm.CoherenceEDFDuration = value ?? 0;
+        OnPropertyChanged(nameof(CoherenceEDFDuration));
+      }
+    }
+    public PlotModel CoherenceSignalPlot1
+    {
+      get
+      {
+        return cm.CoherenceSignalPlot1;
+      }
+      set
+      {
+        cm.CoherenceSignalPlot1 = value;
+        OnPropertyChanged(nameof(CoherenceSignalPlot1));
+      }
+    }
+    public PlotModel CoherenceSignalPlot2
+    {
+      get
+      {
+        return cm.CoherenceSignalPlot2;
+      }
+      set
+      {
+        cm.CoherenceSignalPlot2 = value;
+        OnPropertyChanged(nameof(CoherenceSignalPlot2));
+      }
+    }
+    public PlotModel CoherenceSignalFreq1
+    {
+      get
+      {
+        return cm.CoherenceSignalFreq1;
+      }
+      set
+      {
+        cm.CoherenceSignalFreq1 = value;
+        OnPropertyChanged(nameof(CoherenceSignalFreq1));
+      }
+    }
+    public PlotModel CoherenceSignalFreq2
+    {
+      get
+      {
+        return cm.CoherenceSignalFreq2;
+      }
+      set
+      {
+        cm.CoherenceSignalFreq2 = value;
+        OnPropertyChanged(nameof(CoherenceSignalFreq2));
+      }
+    }
+    public PlotModel CoherencePlot
+    {
+      get
+      {
+        return cm.CoherencePlot;
+      }
+      set
+      {
+        cm.CoherencePlot = value;
+        OnPropertyChanged(nameof(CoherencePlot));
       }
     }
 
