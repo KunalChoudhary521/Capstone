@@ -263,54 +263,159 @@ namespace SleepApneaDiagnoser
     {
       model.PerformEEGAnalysisEDF();
     }
+
+    // Tool Tab Events
     private void button_PerformCoherenceAnalysis_Click(object sender, RoutedEventArgs e)
     {
       model.PerformCoherenceAnalysisEDF();
-    }
+    }   
   }
-  
+
   public class ModelView : INotifyPropertyChanged
   {
     #region MODELS
 
+    /// <summary>
+    /// Model for variables used exclusively in the 'Preview' tab
+    /// </summary>
     public class PreviewModel
     {
+      /// <summary>
+      /// The index of the current category to be displayed in the signal selection list
+      /// -1 denotes displaying the 'All' category
+      /// </summary>
       public int PreviewCurrentCategory = -1;
+      /// <summary>
+      /// The list of user selected signals in the signal selection list
+      /// </summary>
       public List<string> PreviewSelectedSignals = new List<string>();
 
+      /// <summary>
+      /// If true, the user selection for the start time of the plot should be date and time
+      /// the user selection for the period of the plot should be in seconds
+      /// If false, the user selection for the start time of the plot should be 30s epochs
+      /// the user selection for the period of the plot should be in epochs
+      /// </summary>
       public bool PreviewUseAbsoluteTime = false;
+      /// <summary>
+      /// The user selected start time of the plot in Date and Time format
+      /// </summary>
       public DateTime PreviewViewStartTime = new DateTime();
+      /// <summary>
+      /// The user selected start time of the plot in epochs
+      /// </summary>
       public int PreviewViewStartRecord = 0;
+      /// <summary>
+      /// The user selected period of the plot in seconds
+      /// </summary>
       public int PreviewViewDuration = 0;
+      /// <summary>
+      /// The currently displayed preview plot
+      /// </summary>
       public PlotModel PreviewSignalPlot = null;
+      /// <summary>
+      /// If false, the plot is currently being drawn and the tab should be disabled
+      /// If true, the plot is done being drawn
+      /// </summary>
       public bool PreviewNavigationEnabled = false;
     }
+
+    /// <summary>
+    /// Model for variables used exclusively in the 'Respiratory' sub tab of the 'Analysis' tab
+    /// </summary>
     public class RespiratoryModel
     {
+      /// <summary>
+      /// The user selected signal to perform respiratory analysis on
+      /// </summary>
       public string RespiratoryEDFSelectedSignal;
+      /// <summary>
+      /// The user selected start time for the respiratory analysis in 30s epochs
+      /// </summary>
       public int RespiratoryEDFStartRecord;
+      /// <summary>
+      /// The user selected period for the respiratory analysis in 30s epochs
+      /// </summary>
       public int RespiratoryEDFDuration;
+      /// <summary>
+      /// The respiratory analysis plot to be displayed
+      /// </summary>
       public PlotModel RespiratorySignalPlot = null;
+      /// <summary>
+      /// The calculated mean average of the periods of the respiratory signal
+      /// </summary>
       public string RespiratoryBreathingPeriodMean;
+      /// <summary>
+      /// The calculated median average of the periods of the respiratory signal
+      /// </summary>
       public string RespiratoryBreathingPeriodMedian;
+      /// <summary>
+      /// A user selected option for setting the sensitivity of the peak detection of the analysis
+      /// Effect where the insets, onsets, and peaks are detected
+      /// </summary>
       public int RespiratoryMinimumPeakWidth = 500;
+      /// <summary>
+      /// A user selected option for choosing whether the analysis will allow for repeated peaks of
+      /// the same polarity
+      /// </summary>
       public bool RespiratoryRemoveMultiplePeaks = true;
     }
+
+    /// <summary>
+    /// Model for variables used exclusively in the 'EEG' sub tab of the 'Analysis' tab
+    /// </summary>
     public class EEGModel
     {
+      /// <summary>
+      /// The user selected signal to perform eeg analysis on
+      /// </summary>
       public string EEGEDFSelectedSignal;
+      /// <summary>
+      /// The user selected start time for the eeg analysis in 30s epochs
+      /// </summary>
       public int EEGEDFStartRecord;
+      /// <summary>
+      /// The user selected period for the eeg analysis in 30s epochs
+      /// </summary>
       public int EEGEDFDuration;
+      /// <summary>
+      /// The eeg analysis plot to be displayed
+      /// </summary>
       public PlotModel EEGSignalPlot = null;
     }
+
+    /// <summary>
+    /// Model for variables used exclusively in the 'Coherence' sub tab of the 'Tool' tab
+    /// </summary>
     public class CoherenceModel
     {
+      /// <summary>
+      /// The first selected signal
+      /// </summary>
       public string CoherenceEDFSelectedSignal1;
+      /// <summary>
+      /// The second selected signal
+      /// </summary>
       public string CoherenceEDFSelectedSignal2;
+      /// <summary>
+      /// The start time in 30s epochs of the signals to perform coherence analysis on
+      /// </summary>
       public int CoherenceEDFStartRecord;
+      /// <summary>
+      /// The duration in 30s epochs of the signals to perform coherence analysis on
+      /// </summary>
       public int CoherenceEDFDuration;
+      /// <summary>
+      /// A time domain plot of the first signal to perform coherence analysis on
+      /// </summary>
       public PlotModel CoherenceSignalPlot1 = null;
+      /// <summary>
+      /// A time domain plot of the second signal to perform coherence analysis on
+      /// </summary>
       public PlotModel CoherenceSignalPlot2 = null;
+      /// <summary>
+      /// The plot of the coherence signal
+      /// </summary>
       public PlotModel CoherencePlot = null;
     }
     #endregion
@@ -1102,28 +1207,25 @@ namespace SleepApneaDiagnoser
           int num_windows = 8;
           int window_size = (int) Math.Floor(length / (num_windows + 0.5));
           int overlap = window_size - (int)Math.Ceiling((double)length / (double)num_windows);
-          int n = (int)Math.Ceiling(Math.Log(window_size) / Math.Log(2)); ;
 
           List<Complex[]> diff_windows_1 = new List<Complex[]>();
           List<Complex[]> diff_windows_2 = new List<Complex[]>();
           for (int y = 0; y < num_windows; y++)
           {
-            int StartIndex = Math.Max(0, (window_size - overlap) * y);
-            int EndIndex = Math.Min(length, (window_size - overlap) * y + window_size);
+            int StartIndex = (window_size - overlap) * y;
+            int EndIndex = (window_size - overlap) * y + window_size;
 
             List<Complex> temp_1 = series_1.Points.Where(x => series_1.Points.IndexOf(x) >= StartIndex && series_1.Points.IndexOf(x) < EndIndex).Select(x => (Complex)x.Y).ToList();
-            temp_1.AddRange(new Complex[(int)Math.Pow(2, (double)n) - temp_1.Count]);
             diff_windows_1.Add(temp_1.ToArray());
 
             List<Complex> temp_2 = series_2.Points.Where(x => series_2.Points.IndexOf(x) >= StartIndex && series_2.Points.IndexOf(x) < EndIndex).Select(x => (Complex)x.Y).ToList();
-            temp_2.AddRange(new Complex[(int)Math.Pow(2, (double)n) - temp_2.Count]);
             diff_windows_2.Add(temp_2.ToArray());
 
-            MathNet.Numerics.IntegralTransforms.Fourier.Radix2Forward(diff_windows_1[diff_windows_1.Count - 1], MathNet.Numerics.IntegralTransforms.FourierOptions.Matlab);
-            MathNet.Numerics.IntegralTransforms.Fourier.Radix2Forward(diff_windows_2[diff_windows_2.Count - 1], MathNet.Numerics.IntegralTransforms.FourierOptions.Matlab);
+            MathNet.Numerics.IntegralTransforms.Fourier.BluesteinForward(diff_windows_1[diff_windows_1.Count - 1], MathNet.Numerics.IntegralTransforms.FourierOptions.Matlab);
+            MathNet.Numerics.IntegralTransforms.Fourier.BluesteinForward(diff_windows_2[diff_windows_2.Count - 1], MathNet.Numerics.IntegralTransforms.FourierOptions.Matlab);
           }
 
-          for (int x = 0; x < Math.Pow(2, (double)n); x++)
+          for (int x = 0; x < window_size; x++)
           {
             // Averaged SAB, SAA, SBB
             Complex saa = new Complex(0, 0);
