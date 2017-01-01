@@ -268,54 +268,53 @@ namespace SleepApneaDiagnoser
       model.PerformCoherenceAnalysisEDF();
     }
   }
-
-  #region Models
-  public class PreviewModel
-  {
-    public int PreviewCurrentCategory = -1;
-    public List<string> PreviewSelectedSignals = new List<string>();
-
-    public bool PreviewUseAbsoluteTime = false;
-    public DateTime PreviewViewStartTime = new DateTime();
-    public int PreviewViewStartRecord = 0;
-    public int PreviewViewDuration = 0;
-    public PlotModel PreviewSignalPlot = null;
-    public bool PreviewNavigationEnabled = false;
-  }
-  public class RespiratoryModel
-  {
-    public string RespiratoryEDFSelectedSignal;
-    public int RespiratoryEDFStartRecord;
-    public int RespiratoryEDFDuration;
-    public PlotModel RespiratorySignalPlot = null;
-    public string RespiratoryBreathingPeriodMean;
-    public string RespiratoryBreathingPeriodMedian;
-    public int RespiratoryMinimumPeakWidth = 500;
-    public bool RespiratoryRemoveMultiplePeaks = true;
-  }
-  public class EEGModel
-  {
-    public string EEGEDFSelectedSignal;
-    public int EEGEDFStartRecord;
-    public int EEGEDFDuration;
-    public PlotModel EEGSignalPlot = null;
-  }
-  public class CoherenceModel
-  {
-    public string CoherenceEDFSelectedSignal1;
-    public string CoherenceEDFSelectedSignal2;
-    public int CoherenceEDFStartRecord;
-    public int CoherenceEDFDuration;
-    public PlotModel CoherenceSignalPlot1 = null;
-    public PlotModel CoherenceSignalPlot2 = null;
-    public PlotModel CoherenceSignalFreq1 = null;
-    public PlotModel CoherenceSignalFreq2 = null;
-    public PlotModel CoherencePlot= null;
-  }
-  #endregion
-
+  
   public class ModelView : INotifyPropertyChanged
   {
+    #region MODELS
+
+    public class PreviewModel
+    {
+      public int PreviewCurrentCategory = -1;
+      public List<string> PreviewSelectedSignals = new List<string>();
+
+      public bool PreviewUseAbsoluteTime = false;
+      public DateTime PreviewViewStartTime = new DateTime();
+      public int PreviewViewStartRecord = 0;
+      public int PreviewViewDuration = 0;
+      public PlotModel PreviewSignalPlot = null;
+      public bool PreviewNavigationEnabled = false;
+    }
+    public class RespiratoryModel
+    {
+      public string RespiratoryEDFSelectedSignal;
+      public int RespiratoryEDFStartRecord;
+      public int RespiratoryEDFDuration;
+      public PlotModel RespiratorySignalPlot = null;
+      public string RespiratoryBreathingPeriodMean;
+      public string RespiratoryBreathingPeriodMedian;
+      public int RespiratoryMinimumPeakWidth = 500;
+      public bool RespiratoryRemoveMultiplePeaks = true;
+    }
+    public class EEGModel
+    {
+      public string EEGEDFSelectedSignal;
+      public int EEGEDFStartRecord;
+      public int EEGEDFDuration;
+      public PlotModel EEGSignalPlot = null;
+    }
+    public class CoherenceModel
+    {
+      public string CoherenceEDFSelectedSignal1;
+      public string CoherenceEDFSelectedSignal2;
+      public int CoherenceEDFStartRecord;
+      public int CoherenceEDFDuration;
+      public PlotModel CoherenceSignalPlot1 = null;
+      public PlotModel CoherenceSignalPlot2 = null;
+      public PlotModel CoherencePlot = null;
+    }
+    #endregion
+
     #region HELPER FUNCTIONS 
 
     /******************************************************* STATIC FUNCTIONS *******************************************************/
@@ -1091,65 +1090,7 @@ namespace SleepApneaDiagnoser
       }
 
       #endregion
-
-      #region Plot Series 1 in Frequency Domain
-
-      // Get Series 1
-      LineSeries freq_1 = new LineSeries();
-      Complex[] fft_1;
-      {
-        {
-          List<Complex> temp = series_1.Points.Select(x => (Complex)x.Y).ToList();
-          int n = (int)Math.Ceiling(Math.Log(temp.Count) / Math.Log(2));
-          temp.AddRange(new Complex[(int)Math.Pow(2, (double)n) - temp.Count]);
-          fft_1 = temp.ToArray();
-          MathNet.Numerics.IntegralTransforms.Fourier.BluesteinForward(fft_1, MathNet.Numerics.IntegralTransforms.FourierOptions.Matlab);
-        }
-
-        for (int x = fft_1.Length / 2; x < fft_1.Length; x++)
-          freq_1.Points.Add(new DataPoint((x - fft_1.Length), fft_1[x].Magnitude));
-        for (int x = 0; x < fft_1.Length / 2; x++)
-          freq_1.Points.Add(new DataPoint(x, fft_1[x].Magnitude));
-      }
-
-      // Plot Series 1
-      {
-        PlotModel temp_plot = new PlotModel();
-        temp_plot.Series.Add(freq_1);
-        CoherenceSignalFreq1 = temp_plot;
-      }
-
-      #endregion
-
-      #region Plot Series 2 in Frequency Domain
-
-      // Get Series 2
-      LineSeries freq_2 = new LineSeries();
-      Complex[] fft_2;
-      {
-        {
-          List<Complex> temp = series_2.Points.Select(x => (Complex)x.Y).ToList();
-          int n = (int)Math.Ceiling(Math.Log(temp.Count) / Math.Log(2));
-          temp.AddRange(new Complex[(int)Math.Pow(2, (double)n) - temp.Count]);
-          fft_2 = temp.ToArray();
-          MathNet.Numerics.IntegralTransforms.Fourier.BluesteinForward(fft_2, MathNet.Numerics.IntegralTransforms.FourierOptions.Matlab);
-        }
-        
-        for (int x = fft_2.Length / 2; x < fft_2.Length; x++)
-          freq_2.Points.Add(new DataPoint((x - fft_2.Length), fft_2[x].Magnitude));
-        for (int x = 0; x < fft_2.Length / 2; x++)
-          freq_2.Points.Add(new DataPoint(x, fft_2[x].Magnitude));
-      }
-
-      // Plot Series 2
-      {
-        PlotModel temp_plot = new PlotModel();
-        temp_plot.Series.Add(freq_2);
-        CoherenceSignalFreq2 = temp_plot;
-      }
-
-      #endregion
-
+      
       #region Plot Coherence 
 
       // Calculate Coherence
@@ -1157,7 +1098,7 @@ namespace SleepApneaDiagnoser
       {
         if (sample_period_1 == sample_period_2)
         {
-          int length = Math.Min(fft_1.Length, fft_2.Length);
+          int length = Math.Min(series_1.Points.Count, series_2.Points.Count);
           int num_windows = 8;
           int window_size = length / num_windows;
           int n = (int)Math.Ceiling(Math.Log(window_size) / Math.Log(2)); ;
@@ -1234,7 +1175,6 @@ namespace SleepApneaDiagnoser
       }
 
       #endregion
-
     }
     private void BW_FinishCoherenceAnalysisEDF(object sender, RunWorkerCompletedEventArgs e)
     {
@@ -2530,30 +2470,6 @@ namespace SleepApneaDiagnoser
       {
         cm.CoherenceSignalPlot2 = value;
         OnPropertyChanged(nameof(CoherenceSignalPlot2));
-      }
-    }
-    public PlotModel CoherenceSignalFreq1
-    {
-      get
-      {
-        return cm.CoherenceSignalFreq1;
-      }
-      set
-      {
-        cm.CoherenceSignalFreq1 = value;
-        OnPropertyChanged(nameof(CoherenceSignalFreq1));
-      }
-    }
-    public PlotModel CoherenceSignalFreq2
-    {
-      get
-      {
-        return cm.CoherenceSignalFreq2;
-      }
-      set
-      {
-        cm.CoherenceSignalFreq2 = value;
-        OnPropertyChanged(nameof(CoherenceSignalFreq2));
       }
     }
     public PlotModel CoherencePlot
