@@ -1894,22 +1894,38 @@ namespace SleepApneaDiagnoser
     #region Members
 
     /*********************************************************************************************************************************/
-
-    // General Private Variables
+    
+    /// <summary>
+    /// The Window
+    /// </summary>
     private MainWindow p_window;
+    /// <summary>
+    /// The Loaded EDF File
+    /// </summary>
     private EDFFile p_LoadedEDFFile;
+    /// <summary>
+    /// The Loaded EDF Filename
+    /// </summary>
     private string p_LoadedEDFFileName = null;
 
-    // Preview Model
+    /// <summary>
+    /// Preview Model
+    /// </summary>
     private PreviewModel pm = new PreviewModel();
 
-    // Respiratory Model
+    /// <summary>
+    /// Respiratory Model
+    /// </summary>
     private RespiratoryModel rm = new RespiratoryModel();
 
-    //EEG Model
+    /// <summary>
+    /// EEG Model
+    /// </summary>
     private EEGModel eegm = new EEGModel();
 
-    // Coherence Model
+    /// <summary>
+    /// Coherence Model
+    /// </summary>
     private CoherenceModel cm = new CoherenceModel();
 
     /*********************************************************************************************************************************/
