@@ -687,11 +687,21 @@ namespace SleepApneaDiagnoser
     /*********************************************************** HOME TAB ***********************************************************/
 
     // Load EDF File
+    /// <summary>
+    /// Used to control progress bar shown when edf file is being loaded
+    /// </summary>
     private ProgressDialogController controller;
+    /// <summary>
+    /// Background process for loading edf file
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void BW_LoadEDFFile(object sender, DoWorkEventArgs e)
     {
+      // Progress Bar should not be cancelable
       controller.SetCancelable(false);
 
+      // Read EDF File
       EDFFile temp = new EDFFile();
       temp.readFile(e.Argument.ToString());
       LoadedEDFFile = temp;
@@ -699,10 +709,17 @@ namespace SleepApneaDiagnoser
       // Load Settings Files
       LoadSettings();
     }
+    /// <summary>
+    /// Function called after background process for loading edf file finishes
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private async void BW_FinishLoad(object sender, RunWorkerCompletedEventArgs e)
     {
+      // Add loaded EDF file to Recent Files list
       RecentFiles_Add(LoadedEDFFileName);
 
+      // Close progress bar and display message
       await controller.CloseAsync();
       await p_window.ShowMessageAsync("Success!", "EDF file loaded");
     }
@@ -723,20 +740,28 @@ namespace SleepApneaDiagnoser
 
     /********************************************************* PREVIEW TAB **********************************************************/
     
+    /// <summary>
+    /// Background process for drawing preview chart
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void BW_CreateChart(object sender, DoWorkEventArgs e)
     {
+      // Create temporary plot model class
       PlotModel temp_PreviewSignalPlot = new PlotModel();
       temp_PreviewSignalPlot.Series.Clear();
       temp_PreviewSignalPlot.Axes.Clear();
 
       if (pm.PreviewSelectedSignals.Count > 0)
       {
+        // Create X Axis and add to plot model
         DateTimeAxis xAxis = new DateTimeAxis();
         xAxis.Key = "DateTime";
         xAxis.Minimum = DateTimeAxis.ToDouble(PreviewViewStartTime);
         xAxis.Maximum = DateTimeAxis.ToDouble(PreviewViewEndTime);
         temp_PreviewSignalPlot.Axes.Add(xAxis);
 
+        // In the background create series for every chart to be displayed
         List<BackgroundWorker> bw_array = new List<BackgroundWorker>();
         LineSeries[] series_array = new LineSeries[pm.PreviewSelectedSignals.Count];
         LinearAxis[] axis_array = new LinearAxis[pm.PreviewSelectedSignals.Count];
@@ -746,6 +771,7 @@ namespace SleepApneaDiagnoser
           bw.DoWork += new DoWorkEventHandler(
             delegate (object sender1, DoWorkEventArgs e1)
             {
+              // Get Series for each signal
               int y = (int)e1.Argument;
               double? min_y, max_y;
               float sample_period;
@@ -758,6 +784,8 @@ namespace SleepApneaDiagnoser
                                                           );
               series.YAxisKey = pm.PreviewSelectedSignals[y];
               series.XAxisKey = "DateTime";
+
+              // Create Y Axis for each signal
               LinearAxis yAxis = new LinearAxis();
               yAxis.MajorGridlineStyle = LineStyle.Solid;
               yAxis.MinorGridlineStyle = LineStyle.Dot;
@@ -774,6 +802,8 @@ namespace SleepApneaDiagnoser
           bw.RunWorkerAsync(x);
           bw_array.Add(bw);
         }
+
+        // Wait for all background processes to finish then add all series and y axises to plot model
         bool all_done = false;
         while (!all_done)
         {
@@ -793,9 +823,6 @@ namespace SleepApneaDiagnoser
 
       PreviewSignalPlot = temp_PreviewSignalPlot;
     }
-    private void BW_FinishChart(object sender, RunWorkerCompletedEventArgs e)
-    {
-    }
     /// <summary>
     /// Draws a chart in the Preview tab 
     /// </summary>
@@ -805,7 +832,6 @@ namespace SleepApneaDiagnoser
 
       BackgroundWorker bw = new BackgroundWorker();
       bw.DoWork += BW_CreateChart;
-      bw.RunWorkerCompleted += BW_FinishChart;
       bw.RunWorkerAsync();
     }
 
@@ -918,6 +944,12 @@ namespace SleepApneaDiagnoser
     /************************************************** RESPIRATORY ANALYSIS TAB ****************************************************/
 
     // Respiratory Analysis From EDF File
+    
+    /// <summary>
+    /// Background process for performing respiratory analysis
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void BW_RespiratoryAnalysisEDF(object sender, DoWorkEventArgs e)
     {
       PlotModel temp_SignalPlot = new PlotModel();
@@ -1119,9 +1151,6 @@ namespace SleepApneaDiagnoser
       }
 
     }
-    private void BW_FinishRespiratoryAnalysisEDF(object sender, RunWorkerCompletedEventArgs e)
-    {
-    }
     /// <summary>
     /// Peforms respiratory analysis 
     /// </summary>
@@ -1129,7 +1158,6 @@ namespace SleepApneaDiagnoser
     {
       BackgroundWorker bw = new BackgroundWorker();
       bw.DoWork += BW_RespiratoryAnalysisEDF;
-      bw.RunWorkerCompleted += BW_FinishRespiratoryAnalysisEDF;
       bw.RunWorkerAsync();
     }
 
@@ -1201,6 +1229,11 @@ namespace SleepApneaDiagnoser
 
     /**************************************************** COHERENCE ANALYSIS TAB ****************************************************/
 
+    /// <summary>
+    /// Background process for performing coherence analysis
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void BW_CoherenceAnalysisEDF(object sender, DoWorkEventArgs e)
     {
       #region Plot Series 1 in Time Domain 
@@ -1371,10 +1404,6 @@ namespace SleepApneaDiagnoser
 
       #endregion
     }
-    private void BW_FinishCoherenceAnalysisEDF(object sender, RunWorkerCompletedEventArgs e)
-    {
-
-    }
     /// <summary>
     /// Performs coherence analysis between two signals
     /// </summary>
@@ -1382,7 +1411,6 @@ namespace SleepApneaDiagnoser
     {
       BackgroundWorker bw = new BackgroundWorker();
       bw.DoWork += BW_CoherenceAnalysisEDF;
-      bw.RunWorkerCompleted += BW_FinishCoherenceAnalysisEDF;
       bw.RunWorkerAsync();
     }
 
