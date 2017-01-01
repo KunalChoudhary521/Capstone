@@ -273,7 +273,7 @@ namespace SleepApneaDiagnoser
 
   public class ModelView : INotifyPropertyChanged
   {
-    #region MODELS
+    #region Models
 
     /// <summary>
     /// Model for variables used exclusively in the 'Preview' tab
@@ -352,6 +352,7 @@ namespace SleepApneaDiagnoser
       /// <summary>
       /// A user selected option for setting the sensitivity of the peak detection of the analysis
       /// Effect where the insets, onsets, and peaks are detected
+      /// Any "spike" that is less wide than the user setting in ms will be ignored
       /// </summary>
       public int RespiratoryMinimumPeakWidth = 500;
       /// <summary>
@@ -420,80 +421,142 @@ namespace SleepApneaDiagnoser
     }
     #endregion
 
-    #region HELPER FUNCTIONS 
+    #region Helper Functions 
 
     /******************************************************* STATIC FUNCTIONS *******************************************************/
-
-    // Static Functions
+    
+    /// <summary>
+    /// The definition of epochs in seconds
+    /// </summary>
     private static int EPOCH_SEC = 30;
+    /// <summary>
+    /// Converts an epoch point in time to a DateTime structure
+    /// </summary>
+    /// <param name="epoch"> The epoch point in time to convert </param>
+    /// <param name="file"> 
+    /// The EDFFile class used to determine the start 
+    /// DateTime corresponding to epoch 0 
+    /// </param>
+    /// <returns> A DateTime structure corresponding the input epoch point in time </returns>
     private static DateTime EpochtoDateTime(int epoch, EDFFile file)
     {
+      // DateTime = StartTime + epoch * EPOCH_SEC
       return file.Header.StartDateTime + new TimeSpan(0, 0, epoch * EPOCH_SEC);
     }
+    /// <summary>
+    /// Converts an epoch duration into a TimeSpan structure
+    /// </summary>
+    /// <param name="period"> The epoch duration to convert </param>
+    /// <returns> The TimeSpan structure corresponding to the epoch duration </returns>
     private static TimeSpan EpochPeriodtoTimeSpan(int period)
     {
+      // TimeSpan = period * EPOCH_SEC
       return new TimeSpan(0, 0, 0, period * EPOCH_SEC);
     }
+    /// <summary>
+    /// Converts a DateTime structure into an epoch point in time
+    /// </summary>
+    /// <param name="time"> The DateTime structure to convert </param>
+    /// <param name="file"> 
+    /// The EDFFile class used to determine the start
+    /// DateTime corresponding to epoch 0 
+    /// </param>
+    /// <returns> The epoch point in time corresponding to the input DateTime </returns>
     private static int DateTimetoEpoch(DateTime time, EDFFile file)
     {
+      // epoch = (DateTime - StartTime) / EPOCH_SEC
       return (int)((time - file.Header.StartDateTime).TotalSeconds / (double)EPOCH_SEC);
     }
+    /// <summary>
+    /// Converts a TimeSpan structure into an epoch duration
+    /// </summary>
+    /// <param name="period"> The TimeSpan structure to convert </param>
+    /// <returns> The epoch duration corresponding to the input TimeSpan </returns>
     private static int TimeSpantoEpochPeriod(TimeSpan period)
     {
+      // epoch = TimeSpan / EPOCH_SEC
       return (int)(period.TotalSeconds / (double)EPOCH_SEC);
     }
 
+    /// <summary>
+    /// Gets a value at a specified percentile from an array
+    /// </summary>
+    /// <param name="values_array"> The input array </param>
+    /// <param name="percentile"> The percentile of the desired value </param>
+    /// <returns> The desired value at the specified percentile </returns>
     private static double? GetPercentileValue(float[] values_array, int percentile)
     {
+      // Sort values in ascending order
       List<float> values = values_array.ToList();
       values.Sort();
 
+      // index = percent * length 
       int index = (int)((double)percentile / (double)100 * (double)values.Count);
 
+      // return desired value
       return values[index];
     }
+    /// <summary>
+    /// Gets a value at a specified percentile from the difference between two arrays
+    /// </summary>
+    /// <param name="values_array_1"> The input minuend array </param>
+    /// <param name="values_array_2"> The input subtrahend array </param>
+    /// <param name="percentile"> The percentile of the desired value </param>
+    /// <returns> The desired value at the specified percentile </returns>
     private static double? GetPercentileValueDeriv(float[] values_array_1, float[] values_array_2, int percentile)
     {
+      // Subtract two input arrays from each other
       List<float> values1 = values_array_1.ToList();
       List<float> values2 = values_array_2.ToList();
-
       List<float> values = new List<float>();
       for (int x = 0; x < Math.Min(values_array_1.Length, values_array_2.Length); x++)
         values.Add(values_array_1[x] - values_array_2[x]);
 
+      // Call GetPercentileValue on difference
       return GetPercentileValue(values.ToArray(), percentile);
     }
 
+    /// <summary>
+    /// Gets the signal samples from one period of time to another
+    /// </summary>
+    /// <param name="file"> The EDFFile class </param>
+    /// <param name="signal_to_retrieve"> The signal to get samples from </param>
+    /// <param name="StartTime"> The start time to get samples from </param>
+    /// <param name="EndTime"> The end time to get samples from </param>
+    /// <returns> A list of the retrieved samples </returns>
     private static List<float> retrieveSignalSampleValuesMod(EDFFile file, EDFSignal signal_to_retrieve, DateTime StartTime, DateTime EndTime)
     {
       int start_sample, start_record;
       int end_sample, end_record;
       #region Find Start and End Points
+      // Duration of record in seconds
+      double record_duration = file.Header.DurationOfDataRecordInSeconds;
+      // Samples per record
+      double samples_per_record = signal_to_retrieve.NumberOfSamplesPerDataRecord;
+      // The sample period of the signal (Duration of Record)/(Samples per Record)
+      double sample_period = record_duration / samples_per_record;
       {
-        double record_duration = file.Header.DurationOfDataRecordInSeconds;
-        double samples_per_record = signal_to_retrieve.NumberOfSamplesPerDataRecord;
+        // Time of start point in seconds
         double total_seconds = (StartTime - file.Header.StartDateTime).TotalSeconds;
-        double sample_period = record_duration / samples_per_record;
+        // Time of start point in samples 
         double total_samples = total_seconds / sample_period;
 
-        start_sample = ((int)(total_samples)) % ((int)samples_per_record);
-        start_record = (int)((total_samples - start_sample) / samples_per_record);
+        start_sample = ((int)(total_samples)) % ((int)samples_per_record); // Start Sample in Record
+        start_record = (int)((total_samples - start_sample) / samples_per_record); // Start Record
       }
       {
-        double record_duration = file.Header.DurationOfDataRecordInSeconds;
-        double samples_per_record = signal_to_retrieve.NumberOfSamplesPerDataRecord;
+        // Time of end point in seconds
         double total_seconds = (EndTime - file.Header.StartDateTime).TotalSeconds;
-        double sample_period = record_duration / samples_per_record;
+        // Time of end point in samples
         double total_samples = total_seconds / sample_period - 1;
 
-        end_sample = ((int)total_samples) % ((int)samples_per_record);
-        end_record = (((int)total_samples) - end_sample) / ((int)samples_per_record);
+        end_sample = ((int)total_samples) % ((int)samples_per_record); // End Sample in Record
+        end_record = (((int)total_samples) - end_sample) / ((int)samples_per_record); // End Record
       }
       #endregion
       List<float> signalSampleValues = new List<float>();
       if (file.Header.Signals.Contains(signal_to_retrieve))
       {
-        //Remove Signal DataRecords
         for (int x = start_record; x <= end_record; x++)
         {
           EDFDataRecord dr = file.DataRecords[x];
@@ -513,6 +576,12 @@ namespace SleepApneaDiagnoser
       }
       return signalSampleValues;
     }
+    /// <summary>
+    /// Performs upsampling and downsampling on an array of values
+    /// </summary>
+    /// <param name="values"> The input array to resample </param>
+    /// <param name="ratio"> The ratio between upsampling and downsampling to perform </param>
+    /// <returns> The resampled array </returns>
     private static List<float> MATLAB_Resample(List<float> values, float ratio)
     {
       // Prepare Input for MATLAB function
@@ -527,9 +596,20 @@ namespace SleepApneaDiagnoser
                   ).ToVector(MWArrayComponent.Real)
                 ).ToList().Select(temp => (float)temp).ToList();
     }
-    
+
     /***************************************************** NON-STATIC FUNCTIONS *****************************************************/
 
+    /// <summary>
+    /// From a signal, returns a series of X,Y values for use with a PlotModel
+    /// Also returns y axis information and the sample_period of the signal
+    /// </summary>
+    /// <param name="sample_period"> Variable to contain the sample period of the signal </param>
+    /// <param name="max_y"> Variable to contain the maximum y axis value </param>
+    /// <param name="min_y"> Variable to contain the minimum y axis value </param>
+    /// <param name="Signal"> The input signal name </param>
+    /// <param name="StartTime">  The input start time to be contained in the series </param>
+    /// <param name="EndTime"> The input end time to be contained in the series </param>
+    /// <returns> The series of X,Y values to draw on the plot </returns>
     private LineSeries GetSeriesFromSignalName(out float sample_period, out double? max_y, out double? min_y, string Signal, DateTime StartTime, DateTime EndTime)
     {
       // Variable To Return
@@ -602,7 +682,7 @@ namespace SleepApneaDiagnoser
 
     #endregion
 
-    #region ACTIONS
+    #region Actions
 
     /*********************************************************** HOME TAB ***********************************************************/
 
@@ -626,6 +706,10 @@ namespace SleepApneaDiagnoser
       await controller.CloseAsync();
       await p_window.ShowMessageAsync("Success!", "EDF file loaded");
     }
+    /// <summary>
+    /// Loads an EDF File into memory
+    /// </summary>
+    /// <param name="fileNameIn"> Path to the EDF file to load </param>
     public async void LoadEDFFile(string fileNameIn)
     {
       controller = await p_window.ShowProgressAsync("Please wait...", "Loading EDF File: " + fileNameIn);
@@ -638,8 +722,7 @@ namespace SleepApneaDiagnoser
     }
 
     /********************************************************* PREVIEW TAB **********************************************************/
-
-    // Create Preview Chart
+    
     private void BW_CreateChart(object sender, DoWorkEventArgs e)
     {
       PlotModel temp_PreviewSignalPlot = new PlotModel();
@@ -713,6 +796,9 @@ namespace SleepApneaDiagnoser
     private void BW_FinishChart(object sender, RunWorkerCompletedEventArgs e)
     {
     }
+    /// <summary>
+    /// Draws a chart in the Preview tab 
+    /// </summary>
     public void DrawChart()
     {
       PreviewNavigationEnabled = false;
@@ -1036,6 +1122,9 @@ namespace SleepApneaDiagnoser
     private void BW_FinishRespiratoryAnalysisEDF(object sender, RunWorkerCompletedEventArgs e)
     {
     }
+    /// <summary>
+    /// Peforms respiratory analysis 
+    /// </summary>
     public void PerformRespiratoryAnalysisEDF()
     {
       BackgroundWorker bw = new BackgroundWorker();
@@ -1286,6 +1375,9 @@ namespace SleepApneaDiagnoser
     {
 
     }
+    /// <summary>
+    /// Performs coherence analysis between two signals
+    /// </summary>
     public void PerformCoherenceAnalysisEDF()
     {
       BackgroundWorker bw = new BackgroundWorker();
@@ -1298,7 +1390,7 @@ namespace SleepApneaDiagnoser
 
     #endregion
 
-    #region SETTINGS
+    #region Settings
 
     /*********************************************************************************************************************************/
 
@@ -1771,7 +1863,7 @@ namespace SleepApneaDiagnoser
 
     #endregion
 
-    #region MEMBERS
+    #region Members
 
     /*********************************************************************************************************************************/
 
@@ -1796,7 +1888,7 @@ namespace SleepApneaDiagnoser
 
     #endregion
 
-    #region PROPERTIES 
+    #region Properties 
 
     /*********************************************************************************************************************************/
 
@@ -2595,7 +2687,7 @@ namespace SleepApneaDiagnoser
 
     #endregion
 
-    #region ETC
+    #region etc
 
     // INotify Interface
     public event PropertyChangedEventHandler PropertyChanged;
