@@ -1100,15 +1100,16 @@ namespace SleepApneaDiagnoser
         {
           int length = Math.Min(series_1.Points.Count, series_2.Points.Count);
           int num_windows = 8;
-          int window_size = length / num_windows;
+          int window_size = (int) Math.Floor(length / (num_windows + 0.5));
+          int overlap = window_size - (int)Math.Ceiling((double)length / (double)num_windows);
           int n = (int)Math.Ceiling(Math.Log(window_size) / Math.Log(2)); ;
 
           List<Complex[]> diff_windows_1 = new List<Complex[]>();
           List<Complex[]> diff_windows_2 = new List<Complex[]>();
           for (int y = 0; y < num_windows; y++)
           {
-            int StartIndex = Math.Max(0, window_size * y);
-            int EndIndex = Math.Min(length, window_size * (y + 1));
+            int StartIndex = Math.Max(0, (window_size - overlap) * y);
+            int EndIndex = Math.Min(length, (window_size - overlap) * y + window_size);
 
             List<Complex> temp_1 = series_1.Points.Where(x => series_1.Points.IndexOf(x) >= StartIndex && series_1.Points.IndexOf(x) < EndIndex).Select(x => (Complex)x.Y).ToList();
             temp_1.AddRange(new Complex[(int)Math.Pow(2, (double)n) - temp_1.Count]);
@@ -1117,6 +1118,9 @@ namespace SleepApneaDiagnoser
             List<Complex> temp_2 = series_2.Points.Where(x => series_2.Points.IndexOf(x) >= StartIndex && series_2.Points.IndexOf(x) < EndIndex).Select(x => (Complex)x.Y).ToList();
             temp_2.AddRange(new Complex[(int)Math.Pow(2, (double)n) - temp_2.Count]);
             diff_windows_2.Add(temp_2.ToArray());
+
+            MathNet.Numerics.IntegralTransforms.Fourier.Radix2Forward(diff_windows_1[diff_windows_1.Count - 1], MathNet.Numerics.IntegralTransforms.FourierOptions.Matlab);
+            MathNet.Numerics.IntegralTransforms.Fourier.Radix2Forward(diff_windows_2[diff_windows_2.Count - 1], MathNet.Numerics.IntegralTransforms.FourierOptions.Matlab);
           }
 
           for (int x = 0; x < Math.Pow(2, (double)n); x++)
