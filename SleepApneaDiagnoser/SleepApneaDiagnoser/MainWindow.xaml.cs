@@ -689,28 +689,43 @@ namespace SleepApneaDiagnoser
     private void BW_ExportSignals(object sender, DoWorkEventArgs e)
     {
       ExportSignalModel signals_data = ((List<dynamic>)e.Argument)[0];
-      string location = ((List<dynamic>)e.Argument)[1];
-
-      //hdr file contains metadata of the binary file
-      FileStream hdr_file = new FileStream(location + "/" + signals_data.Subject_ID + ".hdr", FileMode.OpenOrCreate);
-      hdr_file.SetLength(0); //clear it's contents
-      hdr_file.Close(); //flush
-      hdr_file = new FileStream(location + "/" + signals_data.Subject_ID + ".hdr", FileMode.OpenOrCreate); //reload
-
-      StringBuilder sb_hdr = new StringBuilder(); // string builder used for writing into the file
-
-      sb_hdr.AppendLine(signals_data.Subject_ID.ToString()) // subject id
-          .AppendLine(signals_data.Epochs_From.ToString()) // epoch start
-          .AppendLine(signals_data.Epochs_To.ToString()); // epoch end         
+      string location = ((List<dynamic>)e.Argument)[1];     
 
       foreach (var signal in pm.PreviewSelectedSignals)
       {
+        #region signal_header
+        EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == signal);
+
+        float sample_period = LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
+
+        //hdr file contains metadata of the binary file
+        FileStream hdr_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".hdr", FileMode.OpenOrCreate);
+        hdr_file.SetLength(0); //clear it's contents
+        hdr_file.Close(); //flush
+        hdr_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".hdr", FileMode.OpenOrCreate); //reload
+
+        StringBuilder sb_hdr = new StringBuilder(); // string builder used for writing into the file
+
+        sb_hdr.AppendLine(edfsignal.Label) // name
+            .AppendLine(signals_data.Subject_ID.ToString()) // subject id
+            .AppendLine(signals_data.Epochs_From.ToString()) // epoch start
+            .AppendLine(signals_data.Epochs_To.ToString()) // epoch end
+            .AppendLine(sample_period.ToString()); // sample_rate 
+
+        var bytes_to_write = Encoding.ASCII.GetBytes(sb_hdr.ToString());
+        hdr_file.Write(bytes_to_write, 0, bytes_to_write.Length);
+        hdr_file.Close();
+
         var edfSignal = LoadedEDFFile.Header.Signals.Find(s => s.Label.Trim() == signal.Trim());
         var signalValues = LoadedEDFFile.retrieveSignalSampleValues(edfSignal).ToArray();
 
         FileStream bin_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".bin", FileMode.OpenOrCreate); //the binary file for each signal
         bin_file.SetLength(0); //clear it's contents
         bin_file.Close(); //flush
+
+        #endregion
+
+        #region signal_binary_contents
 
         bin_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".bin", FileMode.OpenOrCreate); //reload
         BinaryWriter bin_writer = new BinaryWriter(bin_file);
@@ -729,11 +744,9 @@ namespace SleepApneaDiagnoser
         }
 
         bin_writer.Close();
-      }
 
-      var bytes_to_write = Encoding.ASCII.GetBytes(sb_hdr.ToString());
-      hdr_file.Write(bytes_to_write, 0, bytes_to_write.Length);
-      hdr_file.Close();
+        #endregion
+      }
     }
 
     /// <summary>
@@ -742,6 +755,9 @@ namespace SleepApneaDiagnoser
     public void PerformRespiratoryAnalysisBinary()
     {
       System.Windows.Forms.OpenFileDialog dialog = new System.Windows.Forms.OpenFileDialog();
+
+      dialog.Filter = "|*.bin";
+
       if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
       {
         // select the binary file
@@ -774,11 +790,25 @@ namespace SleepApneaDiagnoser
         // close the binary file
         bin_file.Close();
 
+        // get the file metadata from the header file
+        bin_file = new FileStream(dialog.FileName.Remove(dialog.FileName.Length - 4, 4) + ".hdr", FileMode.Open);
+
+        StreamReader file_reader = new StreamReader(bin_file);
         // get the signal name
-        string signal_name = Get_Signal_Name_From_File(dialog.FileName);
+        string signal_name = file_reader.ReadLine();
+        string subject_id = file_reader.ReadLine();
+        string epochs_from = file_reader.ReadLine();
+        string epochs_to = file_reader.ReadLine();
+        string sample_period = file_reader.ReadLine();
+
+        double? min_y;
+        double? max_y;
+
+        DateTime epochs_from_datetime = EpochtoDateTime(int.Parse(epochs_from), LoadedEDFFile);
+        DateTime epochs_to_datetime = EpochtoDateTime(int.Parse(epochs_to), LoadedEDFFile);
 
         // perform all of the respiratory analysis
-        RespiratoryAnalysisBinary(signal_name, signal_values);                                      
+        RespiratoryAnalysisBinary(signal_name, signal_values, out min_y, out max_y, epochs_from_datetime, epochs_to_datetime);                                      
       }
       else
       {
@@ -786,52 +816,32 @@ namespace SleepApneaDiagnoser
       }
     }
 
-    private string Get_Signal_Name_From_File(string name) {
-      string signal_name = "";
-      int i = 0;
-      for (i = 0; i < name.Length; i++) {
-        if (name[i] == '-')
-        {
-          i++;
-          break;
-        }
-      }
-      while (name[i] != '.' && i < name.Length) {
-        signal_name += name[i];
-        i++;
-      }
-      return signal_name;
-    }
-
-    private void RespiratoryAnalysisBinary(string signal_name, List<float> signal_values)
+    private void RespiratoryAnalysisBinary(string Signal, List<float> values, out double? min_y, out double? max_y, DateTime epochs_from, DateTime epochs_to)
     {
       // Variable To Return
       LineSeries series = new LineSeries();
+
+      series.MinimumSegmentLength = 10;
+
+      // Determine Y Axis Bounds
+      min_y = GetMinSignalValue(Signal, values);
+      max_y = GetMaxSignalValue(Signal, values);
 
       //if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal.Trim()) != null) // Normal EDF Signal
       //{
       //  // Get Signal using API
       //  EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal);
-
-      //  // Determine Array Portion
       //  sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
-      //  int startIndex, indexCount;
-      //  TimeSpan startPoint = StartTime - LoadedEDFFile.Header.StartDateTime;
-      //  TimeSpan duration = EndTime - StartTime;
-      //  startIndex = (int)(startPoint.TotalSeconds / sample_period);
-      //  indexCount = (int)(duration.TotalSeconds / sample_period);
 
       //  // Get Array
-      //  List<float> values = LoadedEDFFile.retrieveSignalSampleValues(edfsignal);
+      //  List<float> values = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal, StartTime, EndTime);
 
-      //  // Determine Y Axis Bounds
-      //  min_y = GetMinSignalValue(Signal, values);
-      //  max_y = GetMaxSignalValue(Signal, values);
+        
 
       //  // Add Points to Series
-      //  for (int y = startIndex; y < indexCount + startIndex; y++)
+      //  for (int y = 0; y < values.Count; y++)
       //  {
-      //    series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
+      //    series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(StartTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
       //  }
       //}
       //else // Derivative Signal
@@ -846,62 +856,33 @@ namespace SleepApneaDiagnoser
       //  List<float> values2;
       //  if (edfsignal1.NumberOfSamplesPerDataRecord == edfsignal2.NumberOfSamplesPerDataRecord) // No resampling
       //  {
-      //    values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-      //    values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
+      //    values1 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
+      //    values2 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
       //    sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
       //  }
       //  else if (edfsignal1.NumberOfSamplesPerDataRecord > edfsignal2.NumberOfSamplesPerDataRecord) // Upsample signal 2
       //  {
-      //    // Prepare Input for MATLAB function
-      //    Processing proc = new Processing();
-      //    MWArray[] input = new MWArray[2];
-      //    input[0] = new MWNumericArray(LoadedEDFFile.retrieveSignalSampleValues(edfsignal2).ToArray());
-      //    input[1] = edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord;
-
-      //    values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-      //    // Call MATLAB function
-      //    values2 = (
-      //                (double[])(
-      //                    (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
-      //                ).ToVector(MWArrayComponent.Real)
-      //              ).ToList().Select(temp => (float)temp).ToList();
-
+      //    values1 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
+      //    values2 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
+      //    values2 = MATLAB_Resample(values2, edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord);
       //    sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
       //  }
       //  else // Upsample signal 1
       //  {
-      //    // Prepare Input for MATLAB function
-      //    Processing proc = new Processing();
-      //    MWArray[] input = new MWArray[2];
-      //    input[0] = new MWNumericArray(LoadedEDFFile.retrieveSignalSampleValues(edfsignal1).ToArray());
-      //    input[1] = edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord;
-
-      //    // Call MATLAB function
-      //    values1 = (
-      //                (double[])(
-      //                    (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
-      //                ).ToVector(MWArrayComponent.Real)
-      //              ).ToList().Select(temp => (float)temp).ToList();
-      //    values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
-
+      //    values1 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
+      //    values2 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
+      //    values1 = MATLAB_Resample(values1, edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord);
       //    sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal2.NumberOfSamplesPerDataRecord;
       //  }
-
-      //  // Determine Array Portions
-      //  int startIndex, indexCount;
-      //  TimeSpan startPoint = StartTime - LoadedEDFFile.Header.StartDateTime;
-      //  TimeSpan duration = EndTime - StartTime;
-      //  startIndex = (int)(startPoint.TotalSeconds / sample_period);
-      //  indexCount = (int)(duration.TotalSeconds / sample_period);
 
       //  // Get Y Axis Bounds
       //  min_y = GetMinSignalValue(Signal, values1, values2);
       //  max_y = GetMaxSignalValue(Signal, values1, values2);
 
       //  // Add Points to Series
-      //  for (int y = startIndex; y < indexCount + startIndex; y++)
+      //  for (int y = 0; y < Math.Min(values1.Count, values2.Count); y++)
       //  {
-      //    series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values1[y] - values2[y]));
+      //    series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(StartTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values1[y] - values2[y]));
       //  }
       //}
 
