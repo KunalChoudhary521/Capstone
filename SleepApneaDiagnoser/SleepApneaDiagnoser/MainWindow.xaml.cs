@@ -45,7 +45,7 @@ namespace SleepApneaDiagnoser
   public partial class MainWindow : MetroWindow
   {
     ModelView model;
-
+    
     /// <summary>
     /// Modified From Sample MahApps.Metro Project
     /// </summary>
@@ -582,12 +582,12 @@ namespace SleepApneaDiagnoser
     /// <param name="values"> The input array to resample </param>
     /// <param name="ratio"> The ratio between upsampling and downsampling to perform </param>
     /// <returns> The resampled array </returns>
-    private static List<float> MATLAB_Resample(List<float> values, float ratio)
+    private static List<float> MATLAB_Resample(float[] values, float ratio)
     {
       // Prepare Input for MATLAB function
       Processing proc = new Processing();
       MWArray[] input = new MWArray[2];
-      input[0] = new MWNumericArray(values.ToArray());
+      input[0] = new MWNumericArray(values);
       input[1] = ratio;
       // Call MATLAB function
       return (
@@ -595,6 +595,32 @@ namespace SleepApneaDiagnoser
                       (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
                   ).ToVector(MWArrayComponent.Real)
                 ).ToList().Select(temp => (float)temp).ToList();
+    }
+    /// <summary>
+    /// Performs coherence analysis on 2 lists of values
+    /// </summary>
+    /// <param name="values1"> First list of values </param>
+    /// <param name="values2"> Second list of values </param>
+    /// <returns> Index 1 is Y axis, Index 2 is X axis </returns>
+    private static LineSeries MATLAB_Coherence(float[] values1, float[] values2)
+    {
+      // Prepare Input for MATLAB function
+      Processing proc = new Processing();
+      MWArray[] input = new MWArray[3];
+      input[0] = new MWNumericArray(values1.ToArray());
+      input[1] = new MWNumericArray(values2.ToArray());
+      input[2] = Math.Round(Math.Sqrt(Math.Max(values1.Length, values2.Length)));
+
+      // Call MATLAB function
+      MWArray[] output = proc.m_cohere(2, input[0], input[1], input[2]);
+      double[] y_values = (double[])((MWNumericArray)output[0]).ToVector(MWArrayComponent.Real);
+      double[] x_values = (double[])((MWNumericArray)output[1]).ToVector(MWArrayComponent.Real);
+
+      LineSeries series = new LineSeries();
+      for (int x = 0; x < y_values.Length; x++)
+        series.Points.Add(new DataPoint(x_values[x], y_values[x]));
+      
+      return series;
     }
 
     /***************************************************** NON-STATIC FUNCTIONS *****************************************************/
@@ -656,14 +682,14 @@ namespace SleepApneaDiagnoser
         {
           values1 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
           values2 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
-          values2 = MATLAB_Resample(values2, edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord);
+          values2 = MATLAB_Resample(values2.ToArray(), edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord);
           sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
         }
         else // Upsample signal 1
         {
           values1 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
           values2 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
-          values1 = MATLAB_Resample(values1, edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord);
+          values1 = MATLAB_Resample(values1.ToArray(), edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord);
           sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal2.NumberOfSamplesPerDataRecord;
         }
 
@@ -1323,65 +1349,31 @@ namespace SleepApneaDiagnoser
       // Calculate Coherence
       LineSeries coh = new LineSeries();
       {
+        List<float> values1;
+        List<float> values2;
+
         if (sample_period_1 == sample_period_2)
         {
-          int length = Math.Min(series_1.Points.Count, series_2.Points.Count);
-          int num_windows = 8;
-          int window_size = (int) Math.Floor(length / (num_windows + 0.5));
-          int overlap = window_size - (int)Math.Ceiling((double)length / (double)num_windows);
-
-          List<Complex[]> diff_windows_1 = new List<Complex[]>();
-          List<Complex[]> diff_windows_2 = new List<Complex[]>();
-          for (int y = 0; y < num_windows; y++)
-          {
-            int StartIndex = (window_size - overlap) * y;
-            int EndIndex = (window_size - overlap) * y + window_size;
-
-            List<Complex> temp_1 = series_1.Points.Where(x => series_1.Points.IndexOf(x) >= StartIndex && series_1.Points.IndexOf(x) < EndIndex).Select(x => (Complex)x.Y).ToList();
-            diff_windows_1.Add(temp_1.ToArray());
-
-            List<Complex> temp_2 = series_2.Points.Where(x => series_2.Points.IndexOf(x) >= StartIndex && series_2.Points.IndexOf(x) < EndIndex).Select(x => (Complex)x.Y).ToList();
-            diff_windows_2.Add(temp_2.ToArray());
-
-            MathNet.Numerics.IntegralTransforms.Fourier.BluesteinForward(diff_windows_1[diff_windows_1.Count - 1], MathNet.Numerics.IntegralTransforms.FourierOptions.Matlab);
-            MathNet.Numerics.IntegralTransforms.Fourier.BluesteinForward(diff_windows_2[diff_windows_2.Count - 1], MathNet.Numerics.IntegralTransforms.FourierOptions.Matlab);
-          }
-
-          for (int x = 0; x < window_size; x++)
-          {
-            // Averaged SAB, SAA, SBB
-            Complex saa = new Complex(0, 0);
-            Complex sbb = new Complex(0, 0);
-            Complex sab = new Complex(0, 0);
-            for (int y = 0; y < num_windows; y++)
-            {
-              sab += diff_windows_1[y][x] * Complex.Conjugate(diff_windows_2[y][x]);
-              saa += diff_windows_1[y][x] * Complex.Conjugate(diff_windows_1[y][x]);
-              sbb += diff_windows_2[y][x] * Complex.Conjugate(diff_windows_2[y][x]);
-            }
-            sab /= num_windows;
-            saa /= num_windows;
-            sbb /= num_windows;
-
-            double numerator = Math.Pow(sab.Magnitude, 2);
-            double denominator = (saa * sbb).Magnitude;
-            double value = numerator / denominator;
-
-            coh.Points.Add(new DataPoint(x, value));
-          }
+          values1 = series_1.Points.Select(temp => (float) temp.Y).ToList();
+          values2 = series_2.Points.Select(temp => (float) temp.Y).ToList();
         }
         else
         {
           if (sample_period_1 < sample_period_2) // Upsample signal 2
           {
-            /* TODO NOT YET IMPLEMENTED */
+            values1 = series_1.Points.Select(temp => (float)temp.Y).ToList();
+            values2 = series_2.Points.Select(temp => (float)temp.Y).ToList();
+            values2 = MATLAB_Resample(values2.ToArray(), sample_period_2 / sample_period_1);
           }
           else // Upsample signal 1
           {
-            /* TODO NOT YET IMPLEMENTED */
+            values1 = series_1.Points.Select(temp => (float)temp.Y).ToList();
+            values2 = series_2.Points.Select(temp => (float)temp.Y).ToList();
+            values1 = MATLAB_Resample(values1.ToArray(), sample_period_1 / sample_period_2);
           }
         }
 
+        coh = MATLAB_Coherence(values1.ToArray(), values2.ToArray());
         coh.YAxisKey = "Coherence";
       }
 
