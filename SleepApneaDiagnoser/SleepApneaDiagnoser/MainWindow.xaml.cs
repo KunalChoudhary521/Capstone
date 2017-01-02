@@ -418,6 +418,11 @@ namespace SleepApneaDiagnoser
       /// The plot of the coherence signal
       /// </summary>
       public PlotModel CoherencePlot = null;
+      /// <summary>
+      /// If true, the progress ring should be shown
+      /// If false, the progress ring should not be shown
+      /// </summary>
+      public bool CoherenceProgressRingEnabled = false;
     }
     #endregion
 
@@ -1401,6 +1406,8 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public void PerformCoherenceAnalysisEDF()
     {
+      CoherenceProgressRingEnabled = true; 
+
       BackgroundWorker bw = new BackgroundWorker();
       bw.DoWork += BW_CoherenceAnalysisEDF;
       bw.RunWorkerAsync();
@@ -2016,6 +2023,10 @@ namespace SleepApneaDiagnoser
     private void PreviewSignalPlot_Changed()
     {
       PreviewNavigationEnabled = true;
+    }
+    private void CoherencePlot_Changed()
+    {
+      CoherenceProgressRingEnabled = false;
     }
 
     /*********************************************************** GENERAL ************************************************************/
@@ -2716,6 +2727,19 @@ namespace SleepApneaDiagnoser
       {
         cm.CoherencePlot = value;
         OnPropertyChanged(nameof(CoherencePlot));
+        CoherencePlot_Changed();
+      }
+    }
+    public bool CoherenceProgressRingEnabled
+    {
+      get
+      {
+        return cm.CoherenceProgressRingEnabled;
+      }
+      set
+      {
+        cm.CoherenceProgressRingEnabled = value;
+        OnPropertyChanged(nameof(CoherenceProgressRingEnabled));
       }
     }
 

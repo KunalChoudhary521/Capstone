@@ -302,6 +302,7 @@
                                     <Label Content="From Binary File" FontSize="18" Margin="0,4,20,4"/>
                                     <Button Content="Open" Width="122" Margin="10,6,0,6" HorizontalAlignment="Left" Grid.Column="1"/>
                                 </Grid>
+                                <mtr:ProgressRing Name="ProgressRing_CoherenceTab" IsActive="{Binding CoherenceProgressRingEnabled}"></mtr:ProgressRing>
                             </Grid>
                         </Grid>
                     </mtr:MetroTabItem>
