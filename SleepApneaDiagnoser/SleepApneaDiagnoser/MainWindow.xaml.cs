@@ -214,7 +214,9 @@ namespace SleepApneaDiagnoser
     public string EEGEDFSelectedSignal;
     public int EEGEDFStartRecord;
     public int EEGEDFDuration;
-    public PlotModel EEGSignalPlot = null;
+    public PlotModel PlotAbsPwr = null;
+    public PlotModel PlotRelPwr = null;
+    public PlotModel PlotSpecGram = null;
   }
   #endregion
 
@@ -786,11 +788,7 @@ namespace SleepApneaDiagnoser
     //EEG Analysis From EDF File
     private void BW_EEGAnalysisEDF(object sender, DoWorkEventArgs e)
     {
-      PlotModel EEGSignalPlot = new PlotModel();
-
-      EEGSignalPlot.Series.Clear();
-      EEGSignalPlot.Axes.Clear();
-
+      
       double? max_y, min_y;
       float sample_period;
       LineSeries series = GetSeriesFromSignalName(out sample_period,
@@ -800,6 +798,13 @@ namespace SleepApneaDiagnoser
                                                   EpochtoDateTime(EEGEDFStartRecord ?? 0, LoadedEDFFile),
                                                   EpochtoDateTime(EEGEDFStartRecord ?? 0, LoadedEDFFile) + EpochPeriodtoTimeSpan(EEGEDFDuration ?? 0)
                                                   );
+
+      if(series.Points.Count == 0)//select length to be more than From (on GUI)
+      {
+        //need to type error message for User
+        return;
+      }
+
       const int freqbands = 7;
       MWNumericArray[] freqRange = new MWNumericArray[freqbands];
       freqRange[0] = new MWNumericArray(1, 2, new double[] { 0.1, 3 });//delta band
@@ -821,18 +826,92 @@ namespace SleepApneaDiagnoser
       double totalPower = 0.0;
       MWNumericArray[] absPower = new MWNumericArray[freqbands];
       MWNumericArray sampleFreq = new MWNumericArray(1/sample_period);
-      for(int i = 0; i < freqRange.Length; i++)
+      ColumnItem[] absPlotbandItems = new ColumnItem[freqbands];
+      for (int i = 0; i < freqRange.Length; i++)
       {
         absPower[i] = (MWNumericArray)pwr.eeg_bandpower(mlabArraySignal, sampleFreq, freqRange[i]);
         totalPower += (double)absPower[i];
+        absPlotbandItems[i] = new ColumnItem { Value = (double)absPower[i] };//bars for abs pwr plot
       }
 
+      ColumnItem[] relPlotbandItems = new ColumnItem[freqbands];
       double[] relPower = new double[freqbands];
       for (int i = 0; i < relPower.Length; i++)
       {
         relPower[i] = ((double)absPower[i]) / totalPower;
+        relPlotbandItems[i] = new ColumnItem { Value = relPower[i] };//bars for rel pwr plot
       }
 
+
+      //Plotting absolute power graph
+      PlotModel PlotAbsPwr = new PlotModel()//rename to plotAbsPwr
+      {
+        Title = "Absolute Power",
+        LegendPlacement = LegendPlacement.Outside,
+        LegendPosition = LegendPosition.BottomCenter,
+        LegendOrientation = LegendOrientation.Horizontal,
+        LegendBorderThickness = 0
+      };
+      ColumnSeries absPlotbars = new ColumnSeries
+      {
+        //Title = "Abs_Pwr",
+        StrokeColor = OxyColors.Black,
+        StrokeThickness = 1,
+        FillColor = OxyColors.Blue//changes color of bars
+      };
+      for (int i = 0; i < freqRange.Length; i++)
+      {
+        absPlotbars.Items.AddRange(absPlotbandItems);
+      }    
+
+      //order of bands MUST match the order of bands in freqRange array (see above)
+      String[] freqBandName = new String[] { "delta", "theta", "alpha", "beta1", "beta2", "gamma1", "gamma2" };
+      CategoryAxis bandLabels = new CategoryAxis { Position = AxisPosition.Bottom };
+      for(int i = 0; i < freqBandName.Length; i++)
+      {
+        bandLabels.Labels.Add(freqBandName[i]);
+      }
+      LinearAxis voltYAxis = new LinearAxis { Position = AxisPosition.Left, MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0};
+      PlotAbsPwr.Series.Add(absPlotbars);
+      PlotAbsPwr.Axes.Add(bandLabels);
+      PlotAbsPwr.Axes.Add(voltYAxis);
+
+      //PlotAbsPwr.Series.Clear(); PlotAbsPwr.Axes.Clear();//is this necessary?      
+      /**********************End of Absolute Power Plotting***********************/
+
+      //Plotting relative power graph      
+      PlotModel PlotRelPwr = new PlotModel()//rename to plotAbsPwr
+      {
+        Title = "Relative Power",
+        LegendPlacement = LegendPlacement.Outside,
+        LegendPosition = LegendPosition.BottomCenter,
+        LegendOrientation = LegendOrientation.Horizontal,
+        LegendBorderThickness = 0
+      };
+      ColumnSeries relPlotbars = new ColumnSeries
+      {
+        //Title = "Rel_Pwr",
+        StrokeColor = OxyColors.Black,
+        StrokeThickness = 1,
+        FillColor = OxyColors.Red//changes color of bars
+      };
+      for (int i = 0; i < freqRange.Length; i++)
+      {
+        relPlotbars.Items.AddRange(relPlotbandItems);
+      }
+      bandLabels = new CategoryAxis { Position = AxisPosition.Bottom };
+      for (int i = 0; i < freqBandName.Length; i++)//re-create bandItems for relPwrPlot
+      {
+        bandLabels.Labels.Add(freqBandName[i]);
+      }
+      //re-create voltYAxis for relPwrPlot
+      voltYAxis = new LinearAxis { Position = AxisPosition.Left, MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0 };
+      PlotRelPwr.Series.Add(relPlotbars);
+      PlotRelPwr.Axes.Add(bandLabels);
+      PlotRelPwr.Axes.Add(voltYAxis);
+
+      //todo: create a heatmap (from oxyplot) for spectrogram
+      //todo: create a graph (from oxyplot) for power spectral density
       return;//for debugging only
     }
     private void BW_FinishEEGAnalysisEDF(object sender, RunWorkerCompletedEventArgs e)
@@ -2015,16 +2094,43 @@ namespace SleepApneaDiagnoser
         OnPropertyChanged(nameof(EEGEDFDuration));
       }
     }
-    public PlotModel EEGSignalPlot
+    public PlotModel PlotAbsPwr
     {
       get
       {
-        return eegm.EEGSignalPlot;
+        return eegm.PlotAbsPwr;
       }
       set
       {
-        eegm.EEGSignalPlot = value;
-        OnPropertyChanged(nameof(EEGSignalPlot));
+        eegm.PlotAbsPwr = value;
+        OnPropertyChanged(nameof(PlotAbsPwr));
+        p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
+      }
+    }
+    public PlotModel PlotRelPwr
+    {
+      get
+      {
+        return eegm.PlotRelPwr;
+      }
+      set
+      {
+        eegm.PlotRelPwr = value;
+        OnPropertyChanged(nameof(PlotRelPwr));
+        p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
+      }
+    }
+
+    public PlotModel PlotSpecGram
+    {
+      get
+      {
+        return eegm.PlotSpecGram;
+      }
+      set
+      {
+        eegm.PlotSpecGram = value;
+        OnPropertyChanged(nameof(PlotSpecGram));
         p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
       }
     }
