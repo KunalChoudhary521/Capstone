@@ -2777,9 +2777,15 @@ namespace SleepApneaDiagnoser
       p_window = i_window;
 
       // Preload MATLAB functions into memory
-      MATLAB_Coherence(new float[] { 1, 1, 1, 1, 1, 1, 1, 1}, new float[] { 1, 1, 1, 1, 1, 1, 1, 1});
-      MATLAB_Resample(new float[] { 1, 1, 1, 1, 1, 1, 1, 1 }, 2);
-
+      BackgroundWorker bw = new BackgroundWorker();
+      bw.DoWork += new DoWorkEventHandler(
+        delegate (object sender1, DoWorkEventArgs e1)
+        {
+          MATLAB_Coherence(new float[] { 1, 1, 1, 1, 1, 1, 1, 1 }, new float[] { 1, 1, 1, 1, 1, 1, 1, 1 });
+          MATLAB_Resample(new float[] { 1, 1, 1, 1, 1, 1, 1, 1 }, 2);
+        }
+        );
+      bw.RunWorkerAsync();
     }
   }
 }
