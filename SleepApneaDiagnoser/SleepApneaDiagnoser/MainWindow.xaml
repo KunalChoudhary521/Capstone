@@ -263,14 +263,14 @@
                                     </Grid.ColumnDefinitions>
                                     <Label Content="From Loaded EDF File" FontSize="18" Margin="0,4,20,4"/>
                                     <Label Content="Signal 1" HorizontalAlignment="Left" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" Width="70" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="1"/>
-                                    <ComboBox Margin="85,6,10,6" RenderTransformOrigin="1.025,1.5" Grid.Column="1" IsEnabled="{Binding IsEDFLoaded}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding CoherenceEDFSelectedSignal1}"/>
+                                    <ComboBox Margin="85,6,10,6" RenderTransformOrigin="1.025,1.5" Grid.Column="1" IsEnabled="{Binding CoherenceEDFNavigationEnabled}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding CoherenceEDFSelectedSignal1}"/>
                                     <Label Content="Signal 2" HorizontalAlignment="Left" Margin="6,6,0,6" RenderTransformOrigin="-5.432,0.857" Width="74" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="2"/>
-                                    <ComboBox Margin="85,6,10,6" RenderTransformOrigin="1.025,1.5" Grid.Column="2" IsEnabled="{Binding IsEDFLoaded}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding CoherenceEDFSelectedSignal2}"/>
+                                    <ComboBox Margin="85,6,10,6" RenderTransformOrigin="1.025,1.5" Grid.Column="2" IsEnabled="{Binding CoherenceEDFNavigationEnabled}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding CoherenceEDFSelectedSignal2}"/>
                                     <Label Content="From" HorizontalAlignment="Left" Margin="10,8,0,4" RenderTransformOrigin="-5.432,0.857" Width="47" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="3"/>
-                                    <mtr:NumericUpDown Margin="57,8,10,4" TextAlignment="Center" FontSize="14" Grid.Column="3" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding CoherenceEDFStartRecord}"/>
+                                    <mtr:NumericUpDown Margin="57,8,10,4" TextAlignment="Center" FontSize="14" Grid.Column="3" IsEnabled="{Binding CoherenceEDFNavigationEnabled}" Value="{Binding CoherenceEDFStartRecord}"/>
                                     <Label Content="Length" Margin="10,7,0,5" RenderTransformOrigin="-5.432,0.857" HorizontalContentAlignment="Center" FontSize="14" HorizontalAlignment="Left" Width="62" Grid.Column="4"/>
-                                    <mtr:NumericUpDown Margin="72,8,10,4"  TextAlignment="Center" FontSize="14" Grid.Column="4" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding CoherenceEDFDuration}"/>
-                                    <Button x:Name="button_PerformCoherenceAnalysis" Content="Go" Margin="10,8,0,4" HorizontalAlignment="Left" Width="91" Grid.Column="5" IsEnabled="{Binding IsEDFLoaded}" Click="button_PerformCoherenceAnalysis_Click" />
+                                    <mtr:NumericUpDown Margin="72,8,10,4"  TextAlignment="Center" FontSize="14" Grid.Column="4" IsEnabled="{Binding CoherenceEDFNavigationEnabled}" Value="{Binding CoherenceEDFDuration}"/>
+                                    <Button x:Name="button_PerformCoherenceAnalysis" Content="Go" Margin="10,8,0,4" HorizontalAlignment="Left" Width="91" Grid.Column="5" IsEnabled="{Binding CoherenceEDFNavigationEnabled}" Click="button_PerformCoherenceAnalysis_Click" />
                                 </Grid>
                                 <Grid Margin="0,100,10.333,0">
                                     <Grid.ColumnDefinitions>

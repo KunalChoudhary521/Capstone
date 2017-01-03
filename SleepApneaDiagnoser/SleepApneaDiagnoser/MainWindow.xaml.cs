@@ -1986,6 +1986,9 @@ namespace SleepApneaDiagnoser
 
       // Misc
       OnPropertyChanged(nameof(IsEDFLoaded));
+
+      // Coherence
+      OnPropertyChanged(nameof(CoherenceEDFNavigationEnabled));
     }
     private void PreviewCurrentCategory_Changed()
     {
@@ -2740,6 +2743,17 @@ namespace SleepApneaDiagnoser
       {
         cm.CoherenceProgressRingEnabled = value;
         OnPropertyChanged(nameof(CoherenceProgressRingEnabled));
+        OnPropertyChanged(nameof(CoherenceEDFNavigationEnabled));
+      }
+    }
+    public bool CoherenceEDFNavigationEnabled
+    {
+      get
+      {
+        if (!IsEDFLoaded)
+          return false;
+        else
+          return !CoherenceProgressRingEnabled;
       }
     }
 
