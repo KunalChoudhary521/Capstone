@@ -382,7 +382,18 @@ namespace SleepApneaDiagnoser
       /// <summary>
       /// The eeg analysis plot to be displayed
       /// </summary>
-      public PlotModel EEGSignalPlot = null;
+      public PlotModel PlotAbsPwr = null;
+      /// <summary>
+      /// Displays the eeg absolute power plot
+      /// </summary>
+      public PlotModel PlotRelPwr = null;
+      /// <summary>
+      /// Displays the eeg relative power plot
+      /// </summary>
+      public PlotModel PlotSpecGram = null;
+      /// <summary>
+      /// Displays the eeg spectrogram power plot
+      /// </summary>
     }
 
     /// <summary>
@@ -1264,7 +1275,7 @@ namespace SleepApneaDiagnoser
         LegendOrientation = LegendOrientation.Horizontal,
         LegendBorderThickness = 0
       };
-      //PlotAbsPwr.Series.Clear(); PlotAbsPwr.Axes.Clear();////is this necessary?
+      
       ColumnSeries absPlotbars = new ColumnSeries
       {
         //Title = "Abs_Pwr",
