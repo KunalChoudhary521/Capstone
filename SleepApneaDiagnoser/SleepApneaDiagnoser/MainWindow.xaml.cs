@@ -842,9 +842,12 @@ namespace SleepApneaDiagnoser
         relPlotbandItems[i] = new ColumnItem { Value = relPower[i] };//bars for rel pwr plot
       }
 
+      //order of bands MUST match the order of bands in freqRange array (see above)
+      String[] freqBandName = new String[] { "delta", "theta", "alpha", "beta1", "beta2", "gamma1", "gamma2" };
 
-      //Plotting absolute power graph
-      PlotModel PlotAbsPwr = new PlotModel()//rename to plotAbsPwr
+
+      //Plotting absolute power graph      
+      PlotModel tempAbsPwr = new PlotModel()
       {
         Title = "Absolute Power",
         LegendPlacement = LegendPlacement.Outside,
@@ -852,35 +855,30 @@ namespace SleepApneaDiagnoser
         LegendOrientation = LegendOrientation.Horizontal,
         LegendBorderThickness = 0
       };
+      //PlotAbsPwr.Series.Clear(); PlotAbsPwr.Axes.Clear();////is this necessary?
       ColumnSeries absPlotbars = new ColumnSeries
       {
         //Title = "Abs_Pwr",
         StrokeColor = OxyColors.Black,
         StrokeThickness = 1,
         FillColor = OxyColors.Blue//changes color of bars
-      };
-      for (int i = 0; i < freqRange.Length; i++)
-      {
-        absPlotbars.Items.AddRange(absPlotbandItems);
-      }    
+      };      
+      absPlotbars.Items.AddRange(absPlotbandItems);            
 
-      //order of bands MUST match the order of bands in freqRange array (see above)
-      String[] freqBandName = new String[] { "delta", "theta", "alpha", "beta1", "beta2", "gamma1", "gamma2" };
-      CategoryAxis bandLabels = new CategoryAxis { Position = AxisPosition.Bottom };
-      for(int i = 0; i < freqBandName.Length; i++)
-      {
-        bandLabels.Labels.Add(freqBandName[i]);
-      }
-      LinearAxis voltYAxis = new LinearAxis { Position = AxisPosition.Left, MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0};
-      PlotAbsPwr.Series.Add(absPlotbars);
-      PlotAbsPwr.Axes.Add(bandLabels);
-      PlotAbsPwr.Axes.Add(voltYAxis);
+      CategoryAxis absbandLabels = new CategoryAxis { Position = AxisPosition.Bottom };
+            
+      absbandLabels.Labels.AddRange(freqBandName);      
+      
+      LinearAxis absvoltYAxis = new LinearAxis { Position = AxisPosition.Left, MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0};
+      tempAbsPwr.Series.Add(absPlotbars);
+      tempAbsPwr.Axes.Add(absbandLabels);
+      tempAbsPwr.Axes.Add(absvoltYAxis);
 
-      //PlotAbsPwr.Series.Clear(); PlotAbsPwr.Axes.Clear();//is this necessary?      
+      PlotAbsPwr = tempAbsPwr;
       /**********************End of Absolute Power Plotting***********************/
 
       //Plotting relative power graph      
-      PlotModel PlotRelPwr = new PlotModel()//rename to plotAbsPwr
+      PlotModel tempRelPwr = new PlotModel()
       {
         Title = "Relative Power",
         LegendPlacement = LegendPlacement.Outside,
@@ -894,21 +892,19 @@ namespace SleepApneaDiagnoser
         StrokeColor = OxyColors.Black,
         StrokeThickness = 1,
         FillColor = OxyColors.Red//changes color of bars
-      };
-      for (int i = 0; i < freqRange.Length; i++)
-      {
-        relPlotbars.Items.AddRange(relPlotbandItems);
-      }
-      bandLabels = new CategoryAxis { Position = AxisPosition.Bottom };
-      for (int i = 0; i < freqBandName.Length; i++)//re-create bandItems for relPwrPlot
-      {
-        bandLabels.Labels.Add(freqBandName[i]);
-      }
-      //re-create voltYAxis for relPwrPlot
-      voltYAxis = new LinearAxis { Position = AxisPosition.Left, MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0 };
-      PlotRelPwr.Series.Add(relPlotbars);
-      PlotRelPwr.Axes.Add(bandLabels);
-      PlotRelPwr.Axes.Add(voltYAxis);
+      };      
+      relPlotbars.Items.AddRange(relPlotbandItems);
+      
+      CategoryAxis relbandLabels = new CategoryAxis { Position = AxisPosition.Bottom };
+      
+      relbandLabels.Labels.AddRange(freqBandName);
+      
+      LinearAxis relvoltYAxis = new LinearAxis { Position = AxisPosition.Left, MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0 };
+      tempRelPwr.Series.Add(relPlotbars);
+      tempRelPwr.Axes.Add(relbandLabels);
+      tempRelPwr.Axes.Add(relvoltYAxis);
+
+      PlotRelPwr = tempRelPwr;
 
       //todo: create a heatmap (from oxyplot) for spectrogram
       //todo: create a graph (from oxyplot) for power spectral density
