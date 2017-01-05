@@ -35,12 +35,14 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="EDF, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
+    <Reference Include="EDF">
       <HintPath>..\..\References\EDF.dll</HintPath>
     </Reference>
     <Reference Include="EEGBandpower">
       <HintPath>..\..\References\EEGBandpower.dll</HintPath>
+    </Reference>
+    <Reference Include="EEGBandpowerNative">
+      <HintPath>..\..\References\EEGBandpowerNative.dll</HintPath>
     </Reference>
     <Reference Include="MahApps.Metro, Version=1.3.0.0, Culture=neutral, PublicKeyToken=f4fb5a3c4d1e5b4f, processorArchitecture=MSIL">
       <HintPath>..\packages\MahApps.Metro.1.3.0\lib\net45\MahApps.Metro.dll</HintPath>
@@ -56,6 +58,9 @@
     </Reference>
     <Reference Include="MATLAB_496">
       <HintPath>..\..\References\MATLAB_496.dll</HintPath>
+    </Reference>
+    <Reference Include="MATLAB_496Native">
+      <HintPath>..\..\References\MATLAB_496Native.dll</HintPath>
     </Reference>
     <Reference Include="MWArray, Version=2.16.0.0, Culture=neutral, PublicKeyToken=e1d84a0da19db86f, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>

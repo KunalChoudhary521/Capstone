@@ -45,7 +45,7 @@ namespace SleepApneaDiagnoser
   public partial class MainWindow : MetroWindow
   {
     ModelView model;
-    
+
     /// <summary>
     /// Modified From Sample MahApps.Metro Project
     /// </summary>
@@ -115,7 +115,7 @@ namespace SleepApneaDiagnoser
       var applicationTheme = ThemeManager.AppThemes.First(x => string.Equals(x.Name, "BaseLight"));
       ThemeManager.ChangeAppStyle(application, newAccent, applicationTheme);
     }
-    
+
     /// <summary>
     /// Function called to populate recent files list. Called when application is first loaded and if the recent files list changes.
     /// </summary>
@@ -128,7 +128,7 @@ namespace SleepApneaDiagnoser
         if (!itemControl_RecentEDF.Items.Contains(array[x].Split('\\')[array[x].Split('\\').Length - 1]))
           itemControl_RecentEDF.Items.Add(array[x].Split('\\')[array[x].Split('\\').Length - 1]);
     }
-    
+
     /// <summary>
     /// Constructor for GUI class.
     /// </summary>
@@ -139,10 +139,13 @@ namespace SleepApneaDiagnoser
       model = new ModelView(this);
       this.DataContext = model;
       LoadRecent();
-      
-      try {
+
+      try
+      {
         UseWindowsThemeColor();
-      } catch {
+      }
+      catch
+      {
       }
     }
 
@@ -268,14 +271,15 @@ namespace SleepApneaDiagnoser
     private void button_PerformCoherenceAnalysis_Click(object sender, RoutedEventArgs e)
     {
       model.PerformCoherenceAnalysisEDF();
-    }   
-  }
+    }
 
     private void button_Load_Respiratory_Click(object sender, RoutedEventArgs e)
-    {     
+    {
       model.PerformRespiratoryAnalysisBinary();
     }
   }
+
+
 
   public class ModelView : INotifyPropertyChanged
   {
@@ -430,7 +434,7 @@ namespace SleepApneaDiagnoser
     #region Helper Functions 
 
     /******************************************************* STATIC FUNCTIONS *******************************************************/
-    
+
     /// <summary>
     /// The definition of epochs in seconds
     /// </summary>
@@ -625,7 +629,7 @@ namespace SleepApneaDiagnoser
       LineSeries series = new LineSeries();
       for (int x = 0; x < y_values.Length; x++)
         series.Points.Add(new DataPoint(x_values[x], y_values[x]));
-      
+
       return series;
     }
 
@@ -771,7 +775,7 @@ namespace SleepApneaDiagnoser
     }
 
     /********************************************************* PREVIEW TAB **********************************************************/
-    
+
     /// <summary>
     /// Background process for drawing preview chart
     /// </summary>
@@ -803,8 +807,8 @@ namespace SleepApneaDiagnoser
           bw.DoWork += new DoWorkEventHandler(
             delegate (object sender1, DoWorkEventArgs e1)
             {
-              // Get Series for each signal
-              int y = (int)e1.Argument;
+            // Get Series for each signal
+            int y = (int)e1.Argument;
               double? min_y, max_y;
               float sample_period;
               LineSeries series = GetSeriesFromSignalName(out sample_period,
@@ -817,8 +821,8 @@ namespace SleepApneaDiagnoser
               series.YAxisKey = pm.PreviewSelectedSignals[y];
               series.XAxisKey = "DateTime";
 
-              // Create Y Axis for each signal
-              LinearAxis yAxis = new LinearAxis();
+            // Create Y Axis for each signal
+            LinearAxis yAxis = new LinearAxis();
               yAxis.MajorGridlineStyle = LineStyle.Solid;
               yAxis.MinorGridlineStyle = LineStyle.Dot;
               yAxis.Title = pm.PreviewSelectedSignals[y];
@@ -926,7 +930,7 @@ namespace SleepApneaDiagnoser
     private void BW_ExportSignals(object sender, DoWorkEventArgs e)
     {
       ExportSignalModel signals_data = ((List<dynamic>)e.Argument)[0];
-      string location = ((List<dynamic>)e.Argument)[1];     
+      string location = ((List<dynamic>)e.Argument)[1];
 
       foreach (var signal in pm.PreviewSelectedSignals)
       {
@@ -945,9 +949,9 @@ namespace SleepApneaDiagnoser
 
         sb_hdr.AppendLine(edfsignal.Label) // name
             .AppendLine(signals_data.Subject_ID.ToString()) // subject id
-            .AppendLine(signals_data.Epochs_From.ToString()) // epoch start
-            .AppendLine(signals_data.Epochs_To.ToString()) // epoch end
-            .AppendLine(sample_period.ToString()); // sample_rate 
+            .AppendLine(EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile).ToString()) // epoch start
+            .AppendLine(EpochtoDateTime(signals_data.Epochs_To, LoadedEDFFile).ToString()) // epoch end
+            .AppendLine(sample_period.ToString()); // sample_period 
 
         var bytes_to_write = Encoding.ASCII.GetBytes(sb_hdr.ToString());
         hdr_file.Write(bytes_to_write, 0, bytes_to_write.Length);
@@ -967,13 +971,10 @@ namespace SleepApneaDiagnoser
         bin_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".bin", FileMode.OpenOrCreate); //reload
         BinaryWriter bin_writer = new BinaryWriter(bin_file);
 
-        int start_index = signals_data.Epochs_From * 30 * edfSignal.NumberOfSamplesPerDataRecord; // from epoch number * 30 seconds per epoch * sample rate = start time
-        int end_index = signals_data.Epochs_To * 30 * edfSignal.NumberOfSamplesPerDataRecord; // to epoch number * 30 seconds per epoch * sample rate = end time
+        int start_index = ((signals_data.Epochs_From * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds)* edfsignal.NumberOfSamplesPerDataRecord; // from epoch number * 30 seconds per epoch * sample rate = start time
+        int end_index = ((signals_data.Epochs_To * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds)* edfsignal.NumberOfSamplesPerDataRecord; // to epoch number * 30 seconds per epoch * sample rate = end time
 
-        if (end_index > signalValues.Count()) { end_index = signalValues.Count(); }
-
-
-        sb_hdr.AppendLine(signal); //append signal name that is being exported in order to parse binary file later
+        if (end_index > signalValues.Count()) { end_index = signalValues.Count(); }        
 
         for (int i = start_index; i < end_index; i++)
         {
@@ -1001,26 +1002,22 @@ namespace SleepApneaDiagnoser
         FileStream bin_file = new FileStream(dialog.FileName, FileMode.Open);
         BinaryReader reader = new BinaryReader(bin_file);
 
-        byte value = 0;
+        byte[] value =  new byte[4];
         bool didReachEnd = false;
         List<float> signal_values = new List<float>();
-
         // read the whole binary file and build the signal values
-        while (!didReachEnd) {
+        while (reader.BaseStream.Position != reader.BaseStream.Length)
+        {
           try
           {
-            value = reader.ReadByte();
-            signal_values.Add((float)value);
+            value = reader.ReadBytes(4);
+            float myFloat = System.BitConverter.ToSingle(value, 0);
+            signal_values.Add(myFloat);
           }
-          catch (Exception ex) {
-            if (ex.Message == "Unable to read beyond the end of the stream.")
-            {
-              didReachEnd = true;
-            }
-            else {
-              p_window.ShowMessageAsync("Error", "Error in reading file.");
-              break;
-            }
+          catch (Exception ex)
+          {
+            didReachEnd = true;
+            break;
           }
         }
 
@@ -1034,18 +1031,20 @@ namespace SleepApneaDiagnoser
         // get the signal name
         string signal_name = file_reader.ReadLine();
         string subject_id = file_reader.ReadLine();
-        string epochs_from = file_reader.ReadLine();
-        string epochs_to = file_reader.ReadLine();
-        string sample_period = file_reader.ReadLine();
+        string date_time_from = file_reader.ReadLine();
+        string date_time_to = file_reader.ReadLine();
+        string sample_period_s = file_reader.ReadLine();
+
+        float sample_period = float.Parse(sample_period_s);
 
         double? min_y;
         double? max_y;
 
-        DateTime epochs_from_datetime = EpochtoDateTime(int.Parse(epochs_from), LoadedEDFFile);
-        DateTime epochs_to_datetime = EpochtoDateTime(int.Parse(epochs_to), LoadedEDFFile);
+        DateTime epochs_from_datetime = DateTime.Parse(date_time_from);
+        DateTime epochs_to_datetime = DateTime.Parse(date_time_to);
 
         // perform all of the respiratory analysis
-        RespiratoryAnalysisBinary(signal_name, signal_values, out min_y, out max_y, epochs_from_datetime, epochs_to_datetime);                                      
+        RespiratoryAnalysisBinary(signal_name, signal_values, out min_y, out max_y, epochs_from_datetime, epochs_to_datetime, sample_period);
       }
       else
       {
@@ -1053,83 +1052,212 @@ namespace SleepApneaDiagnoser
       }
     }
 
-    private void RespiratoryAnalysisBinary(string Signal, List<float> values, out double? min_y, out double? max_y, DateTime epochs_from, DateTime epochs_to)
+    private void RespiratoryAnalysisBinary(string Signal, List<float> values, out double? min_y, out double? max_y, DateTime epochs_from, DateTime epochs_to, float sample_period)
     {
       // Variable To Return
       LineSeries series = new LineSeries();
-
-      series.MinimumSegmentLength = 10;
 
       // Determine Y Axis Bounds
       min_y = GetMinSignalValue(Signal, values);
       max_y = GetMaxSignalValue(Signal, values);
 
-      //if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal.Trim()) != null) // Normal EDF Signal
-      //{
-      //  // Get Signal using API
-      //  EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal);
-      //  sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
-
-      //  // Get Array
-      //  List<float> values = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal, StartTime, EndTime);
-
-        
-
       //  // Add Points to Series
-      //  for (int y = 0; y < values.Count; y++)
-      //  {
-      //    series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(StartTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
-      //  }
-      //}
-      //else // Derivative Signal
-      //{
-      //  // Get Signals
-      //  string[] deriv_info = sm.DerivedSignals.Find(temp => temp[0] == Signal);
-      //  EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[1].Trim());
-      //  EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[2].Trim());
+      for (int y = 0; y < values.Count; y++)
+      {
+        series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(epochs_from + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
+      }
 
-      //  // Get Arrays and Perform Resampling if needed
-      //  List<float> values1;
-      //  List<float> values2;
-      //  if (edfsignal1.NumberOfSamplesPerDataRecord == edfsignal2.NumberOfSamplesPerDataRecord) // No resampling
-      //  {
-      //    values1 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
-      //    values2 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
-      //    sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
-      //  }
-      //  else if (edfsignal1.NumberOfSamplesPerDataRecord > edfsignal2.NumberOfSamplesPerDataRecord) // Upsample signal 2
-      //  {
-      //    values1 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
-      //    values2 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
-      //    values2 = MATLAB_Resample(values2, edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord);
-      //    sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
-      //  }
-      //  else // Upsample signal 1
-      //  {
-      //    values1 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
-      //    values2 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
-      //    values1 = MATLAB_Resample(values1, edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord);
-      //    sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal2.NumberOfSamplesPerDataRecord;
-      //  }
+      PlotModel temp_SignalPlot = new PlotModel();
 
-      //  // Get Y Axis Bounds
-      //  min_y = GetMinSignalValue(Signal, values1, values2);
-      //  max_y = GetMaxSignalValue(Signal, values1, values2);
+      temp_SignalPlot.Series.Clear();
+      temp_SignalPlot.Axes.Clear();
 
-      //  // Add Points to Series
-      //  for (int y = 0; y < Math.Min(values1.Count, values2.Count); y++)
-      //  {
-      //    series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(StartTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values1[y] - values2[y]));
-      //  }
-      //}
+      // Calculate Bias
+      double bias = 0;
+      for (int x = 0; x < series.Points.Count; x++)
+      {
+        double point_1 = series.Points[x].Y;
+        double point_2 = x + 1 < series.Points.Count ? series.Points[x + 1].Y : series.Points[x].Y;
+        double average = (point_1 + point_2) / 2;
+        bias += average / (double)series.Points.Count;
+      }
 
-      //return series;
+      // Weighted Running Average (Smoothing) and Normalization
+      LineSeries series_norm = new LineSeries();
+      int LENGTH = (int)(0.05 / sample_period) * 2;
+      LENGTH = Math.Max(1, LENGTH);
+      for (int x = 0; x < series.Points.Count; x++)
+      {
+        double sum = 0;
+        double weight_sum = 0;
+        for (int y = -LENGTH / 2; y <= LENGTH / 2; y++)
+        {
+          double weight = (LENGTH / 2 + 1) - Math.Abs(y);
+          weight_sum += weight;
+          sum += weight * series.Points[Math.Min(series.Points.Count - 1, Math.Max(0, x - y))].Y;
+        }
+        double average = sum / weight_sum;
+
+        series_norm.Points.Add(new DataPoint(series.Points[x].X, average - bias));
+      }
+
+      // Find Peaks and Zero Crossings
+      int min_spike_length = (int)((double)((double)RespiratoryMinimumPeakWidth / (double)1000) / sample_period);
+      int spike_length = 0;
+      int maxima = 0;
+      int start = 0;
+      bool? positive = null;
+      ScatterSeries series_pos_peaks = new ScatterSeries();
+      ScatterSeries series_neg_peaks = new ScatterSeries();
+      ScatterSeries series_insets = new ScatterSeries();
+      ScatterSeries series_onsets = new ScatterSeries();
+      for (int x = 0; x < series_norm.Points.Count; x++)
+      {
+        if (positive != false)
+        {
+          if (series_norm.Points[x].Y < 0 || x == series_norm.Points.Count - 1)
+          {
+            if (maxima != 0 && spike_length > min_spike_length)
+            {
+              if (!RespiratoryRemoveMultiplePeaks || series_pos_peaks.Points.Count == 0 || series_neg_peaks.Points.Count == 0 ||
+                  (DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) > DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))) // Last Peak Was Negative
+              {
+                series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
+                series_onsets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
+              }
+              else
+              {
+                if (series_norm.Points[maxima].Y < series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].Y) // This Peak is Less than the previous
+                {
+                  // Do Nothing
+                }
+                else
+                {
+                  series_pos_peaks.Points.Remove(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1]);
+                  series_onsets.Points.Remove(series_onsets.Points[series_onsets.Points.Count - 1]);
+
+                  series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
+                  series_onsets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
+                }
+              }
+            }
+            positive = false;
+            spike_length = 1;
+            maxima = x;
+            start = x;
+          }
+          else
+          {
+            if (Math.Abs(series_norm.Points[x].Y) > Math.Abs(series_norm.Points[maxima].Y))
+              maxima = x;
+            spike_length++;
+          }
+        }
+        else
+        {
+          if (series_norm.Points[x].Y > 0 || x == series_norm.Points.Count - 1)
+          {
+            if (maxima != 0 && spike_length > min_spike_length)
+            {
+              if (!RespiratoryRemoveMultiplePeaks || series_pos_peaks.Points.Count == 0 || series_neg_peaks.Points.Count == 0 ||
+                  (DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) < DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))) // Last Peak Was Positive
+              {
+                series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
+                series_insets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
+              }
+              else
+              {
+                if (series_norm.Points[maxima].Y > series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].Y) // This Peak is Less than the previous
+                {
+                  // Do Nothing
+                }
+                else // Remove Previous Peak
+                {
+                  series_neg_peaks.Points.Remove(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1]);
+                  series_insets.Points.Remove(series_insets.Points[series_insets.Points.Count - 1]);
+
+                  series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
+                  series_insets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
+                }
+              }
+            }
+            positive = true;
+            spike_length = 1;
+            maxima = x;
+            start = x;
+          }
+          else
+          {
+            if (Math.Abs(series_norm.Points[x].Y) > Math.Abs(series_norm.Points[maxima].Y))
+              maxima = x;
+            spike_length++;
+          }
+        }
+      }
+
+      series_norm.YAxisKey = Signal;
+      series_norm.XAxisKey = "DateTime";
+      series_onsets.YAxisKey = Signal;
+      series_onsets.XAxisKey = "DateTime";
+      series_insets.YAxisKey = Signal;
+      series_insets.XAxisKey = "DateTime";
+      series_pos_peaks.YAxisKey = Signal;
+      series_pos_peaks.XAxisKey = "DateTime";
+      series_neg_peaks.YAxisKey = Signal;
+      series_neg_peaks.XAxisKey = "DateTime";
+
+      DateTimeAxis xAxis = new DateTimeAxis();
+      xAxis.Key = "DateTime";
+      xAxis.Minimum = DateTimeAxis.ToDouble(epochs_from);
+      xAxis.Maximum = DateTimeAxis.ToDouble(epochs_to);
+      temp_SignalPlot.Axes.Add(xAxis);
+
+      LinearAxis yAxis = new LinearAxis();
+      yAxis.MajorGridlineStyle = LineStyle.Solid;
+      yAxis.MinorGridlineStyle = LineStyle.Dot;
+      yAxis.Title = Signal;
+      yAxis.Key = Signal;
+      yAxis.Maximum = (max_y ?? Double.NaN) - bias;
+      yAxis.Minimum = (min_y ?? Double.NaN) - bias;
+
+      series_onsets.MarkerFill = OxyColor.FromRgb(255, 0, 0);
+      series_insets.MarkerFill = OxyColor.FromRgb(0, 255, 0);
+      series_pos_peaks.MarkerFill = OxyColor.FromRgb(0, 0, 255);
+      series_neg_peaks.MarkerFill = OxyColor.FromRgb(255, 255, 0);
+
+      temp_SignalPlot.Axes.Add(yAxis);
+      temp_SignalPlot.Series.Add(series_norm);
+      temp_SignalPlot.Series.Add(series_onsets);
+      temp_SignalPlot.Series.Add(series_insets);
+      temp_SignalPlot.Series.Add(series_pos_peaks);
+      temp_SignalPlot.Series.Add(series_neg_peaks);
+
+      RespiratorySignalPlot = temp_SignalPlot;
+
+      // Find Breathing Rate
+      List<double> breathing_periods = new List<double>();
+      for (int x = 1; x < series_insets.Points.Count; x++)
+        breathing_periods.Add((DateTimeAxis.ToDateTime(series_insets.Points[x].X) - DateTimeAxis.ToDateTime(series_insets.Points[x - 1].X)).TotalSeconds);
+      for (int x = 1; x < series_onsets.Points.Count; x++)
+        breathing_periods.Add((DateTimeAxis.ToDateTime(series_onsets.Points[x].X) - DateTimeAxis.ToDateTime(series_onsets.Points[x - 1].X)).TotalSeconds);
+      for (int x = 1; x < series_pos_peaks.Points.Count; x++)
+        breathing_periods.Add((DateTimeAxis.ToDateTime(series_pos_peaks.Points[x].X) - DateTimeAxis.ToDateTime(series_pos_peaks.Points[x - 1].X)).TotalSeconds);
+      for (int x = 1; x < series_neg_peaks.Points.Count; x++)
+        breathing_periods.Add((DateTimeAxis.ToDateTime(series_neg_peaks.Points[x].X) - DateTimeAxis.ToDateTime(series_neg_peaks.Points[x - 1].X)).TotalSeconds);
+
+      breathing_periods.Sort();
+
+      if (breathing_periods.Count > 0)
+      {
+        RespiratoryBreathingPeriodMean = (breathing_periods.Average()).ToString("0.## sec/breath");
+        RespiratoryBreathingPeriodMedian = (breathing_periods[breathing_periods.Count / 2 - 1]).ToString("0.## sec/breath");
+      }
     }
-  
+
     /************************************************** RESPIRATORY ANALYSIS TAB ****************************************************/
 
     // Respiratory Analysis From EDF File
-    
+
     /// <summary>
     /// Background process for performing respiratory analysis
     /// </summary>
@@ -1376,17 +1504,17 @@ namespace SleepApneaDiagnoser
       freqRange[6] = new MWNumericArray(1, 2, new double[] { 41, 50 });//gamma2 band
 
       double[] signal = new double[series.Points.Count];//select length to be more than From (on GUI)
-      for(int i = 0; i < series.Points.Count; i++)
+      for (int i = 0; i < series.Points.Count; i++)
       {
         signal[i] = series.Points[i].Y;
       }
 
-      MWNumericArray mlabArraySignal = new MWNumericArray(signal);      
+      MWNumericArray mlabArraySignal = new MWNumericArray(signal);
       EEGPower pwr = new EEGPower();
       double totalPower = 0.0;
       MWNumericArray[] absPower = new MWNumericArray[freqbands];
-      MWNumericArray sampleFreq = new MWNumericArray(1/sample_period);
-      for(int i = 0; i < freqRange.Length; i++)
+      MWNumericArray sampleFreq = new MWNumericArray(1 / sample_period);
+      for (int i = 0; i < freqRange.Length; i++)
       {
         absPower[i] = (MWNumericArray)pwr.eeg_bandpower(mlabArraySignal, sampleFreq, freqRange[i]);
         totalPower += (double)absPower[i];
@@ -1502,7 +1630,7 @@ namespace SleepApneaDiagnoser
       }
 
       #endregion
-      
+
       #region Plot Coherence 
 
       // Calculate Coherence
@@ -1513,8 +1641,8 @@ namespace SleepApneaDiagnoser
 
         if (sample_period_1 == sample_period_2)
         {
-          values1 = series_1.Points.Select(temp => (float) temp.Y).ToList();
-          values2 = series_2.Points.Select(temp => (float) temp.Y).ToList();
+          values1 = series_1.Points.Select(temp => (float)temp.Y).ToList();
+          values2 = series_2.Points.Select(temp => (float)temp.Y).ToList();
         }
         else
         {
@@ -1537,7 +1665,7 @@ namespace SleepApneaDiagnoser
       }
 
       // Plot Coherence
-      { 
+      {
         PlotModel temp_plot = new PlotModel();
         temp_plot.Series.Add(coh);
 
@@ -1740,9 +1868,9 @@ namespace SleepApneaDiagnoser
     {
       Dialog_Manage_Categories dlg = new Dialog_Manage_Categories(p_window,
                                                                   this,
-                                                                  p_SignalCategories.ToArray(), 
-                                                                  p_SignalCategoryContents.Select(temp => temp.ToArray()).ToArray(), 
-                                                                  LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray(), 
+                                                                  p_SignalCategories.ToArray(),
+                                                                  p_SignalCategoryContents.Select(temp => temp.ToArray()).ToArray(),
+                                                                  LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray(),
                                                                   p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
       p_window.ShowMetroDialogAsync(dlg);
     }
@@ -1836,7 +1964,7 @@ namespace SleepApneaDiagnoser
     {
       Dialog_Add_Derivative dlg = new Dialog_Add_Derivative(p_window,
                                                             this,
-                                                            LoadedEDFFile.Header.Signals.Select(temp => temp.Label.Trim()).ToArray(), 
+                                                            LoadedEDFFile.Header.Signals.Select(temp => temp.Label.Trim()).ToArray(),
                                                             p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
       p_window.ShowMetroDialogAsync(dlg);
     }
@@ -1912,7 +2040,7 @@ namespace SleepApneaDiagnoser
 
       Dialog_Hide_Signals dlg = new Dialog_Hide_Signals(p_window,
                                                         this,
-                                                        EDFAllSignals.ToArray(), 
+                                                        EDFAllSignals.ToArray(),
                                                         input);
       p_window.ShowMetroDialogAsync(dlg);
     }
@@ -2045,7 +2173,7 @@ namespace SleepApneaDiagnoser
     #region Members
 
     /*********************************************************************************************************************************/
-    
+
     /// <summary>
     /// The Window
     /// </summary>
