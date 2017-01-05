@@ -392,7 +392,18 @@ namespace SleepApneaDiagnoser
       /// <summary>
       /// The eeg analysis plot to be displayed
       /// </summary>
-      public PlotModel EEGSignalPlot = null;
+      public PlotModel PlotAbsPwr = null;
+      /// <summary>
+      /// Displays the eeg absolute power plot
+      /// </summary>
+      public PlotModel PlotRelPwr = null;
+      /// <summary>
+      /// Displays the eeg relative power plot
+      /// </summary>
+      public PlotModel PlotSpecGram = null;
+      /// <summary>
+      /// Displays the eeg spectrogram power plot
+      /// </summary>
     }
 
     /// <summary>
@@ -428,6 +439,11 @@ namespace SleepApneaDiagnoser
       /// The plot of the coherence signal
       /// </summary>
       public PlotModel CoherencePlot = null;
+      /// <summary>
+      /// If true, the progress ring should be shown
+      /// If false, the progress ring should not be shown
+      /// </summary>
+      public bool CoherenceProgressRingEnabled = false;
     }
     #endregion
 
@@ -1479,11 +1495,7 @@ namespace SleepApneaDiagnoser
     //EEG Analysis From EDF File
     private void BW_EEGAnalysisEDF(object sender, DoWorkEventArgs e)
     {
-      PlotModel EEGSignalPlot = new PlotModel();
-
-      EEGSignalPlot.Series.Clear();
-      EEGSignalPlot.Axes.Clear();
-
+      
       double? max_y, min_y;
       float sample_period;
       LineSeries series = GetSeriesFromSignalName(out sample_period,
@@ -1493,6 +1505,13 @@ namespace SleepApneaDiagnoser
                                                   EpochtoDateTime(EEGEDFStartRecord ?? 0, LoadedEDFFile),
                                                   EpochtoDateTime(EEGEDFStartRecord ?? 0, LoadedEDFFile) + EpochPeriodtoTimeSpan(EEGEDFDuration ?? 0)
                                                   );
+
+      if(series.Points.Count == 0)//select length to be more than From (on GUI)
+      {
+        //need to type error message for User
+        return;
+      }
+
       const int freqbands = 7;
       MWNumericArray[] freqRange = new MWNumericArray[freqbands];
       freqRange[0] = new MWNumericArray(1, 2, new double[] { 0.1, 3 });//delta band
@@ -1513,19 +1532,89 @@ namespace SleepApneaDiagnoser
       EEGPower pwr = new EEGPower();
       double totalPower = 0.0;
       MWNumericArray[] absPower = new MWNumericArray[freqbands];
-      MWNumericArray sampleFreq = new MWNumericArray(1 / sample_period);
+      MWNumericArray sampleFreq = new MWNumericArray(1/sample_period);
+      ColumnItem[] absPlotbandItems = new ColumnItem[freqbands];
       for (int i = 0; i < freqRange.Length; i++)
       {
         absPower[i] = (MWNumericArray)pwr.eeg_bandpower(mlabArraySignal, sampleFreq, freqRange[i]);
         totalPower += (double)absPower[i];
+        absPlotbandItems[i] = new ColumnItem { Value = (double)absPower[i] };//bars for abs pwr plot
       }
 
+      ColumnItem[] relPlotbandItems = new ColumnItem[freqbands];
       double[] relPower = new double[freqbands];
       for (int i = 0; i < relPower.Length; i++)
       {
         relPower[i] = ((double)absPower[i]) / totalPower;
+        relPlotbandItems[i] = new ColumnItem { Value = relPower[i] };//bars for rel pwr plot
       }
 
+      //order of bands MUST match the order of bands in freqRange array (see above)
+      String[] freqBandName = new String[] { "delta", "theta", "alpha", "beta1", "beta2", "gamma1", "gamma2" };
+
+
+      //Plotting absolute power graph      
+      PlotModel tempAbsPwr = new PlotModel()
+      {
+        Title = "Absolute Power",
+        LegendPlacement = LegendPlacement.Outside,
+        LegendPosition = LegendPosition.BottomCenter,
+        LegendOrientation = LegendOrientation.Horizontal,
+        LegendBorderThickness = 0
+      };
+      
+      ColumnSeries absPlotbars = new ColumnSeries
+      {
+        //Title = "Abs_Pwr",
+        StrokeColor = OxyColors.Black,
+        StrokeThickness = 1,
+        FillColor = OxyColors.Blue//changes color of bars
+      };      
+      absPlotbars.Items.AddRange(absPlotbandItems);            
+
+      CategoryAxis absbandLabels = new CategoryAxis { Position = AxisPosition.Bottom };
+            
+      absbandLabels.Labels.AddRange(freqBandName);      
+      
+      LinearAxis absvoltYAxis = new LinearAxis { Position = AxisPosition.Left, MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0};
+      tempAbsPwr.Series.Add(absPlotbars);
+      tempAbsPwr.Axes.Add(absbandLabels);
+      tempAbsPwr.Axes.Add(absvoltYAxis);
+
+      PlotAbsPwr = tempAbsPwr;
+      /**********************End of Absolute Power Plotting***********************/
+
+      //Plotting relative power graph      
+      PlotModel tempRelPwr = new PlotModel()
+      {
+        Title = "Relative Power",
+        LegendPlacement = LegendPlacement.Outside,
+        LegendPosition = LegendPosition.BottomCenter,
+        LegendOrientation = LegendOrientation.Horizontal,
+        LegendBorderThickness = 0
+      };
+      ColumnSeries relPlotbars = new ColumnSeries
+      {
+        //Title = "Rel_Pwr",
+        StrokeColor = OxyColors.Black,
+        StrokeThickness = 1,
+        FillColor = OxyColors.Red//changes color of bars
+      };      
+      relPlotbars.Items.AddRange(relPlotbandItems);
+      
+      CategoryAxis relbandLabels = new CategoryAxis { Position = AxisPosition.Bottom };
+      
+      relbandLabels.Labels.AddRange(freqBandName);
+      
+      LinearAxis relvoltYAxis = new LinearAxis { Position = AxisPosition.Left, MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0 };
+      tempRelPwr.Series.Add(relPlotbars);
+      tempRelPwr.Axes.Add(relbandLabels);
+      tempRelPwr.Axes.Add(relvoltYAxis);
+
+      PlotRelPwr = tempRelPwr;
+
+      //todo: create a heatmap (from oxyplot) for spectrogram
+      //todo: create a graph (from oxyplot) for power spectral density
       return;//for debugging only
     }
     private void BW_FinishEEGAnalysisEDF(object sender, RunWorkerCompletedEventArgs e)
@@ -1688,6 +1777,8 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public void PerformCoherenceAnalysisEDF()
     {
+      CoherenceProgressRingEnabled = true; 
+
       BackgroundWorker bw = new BackgroundWorker();
       bw.DoWork += BW_CoherenceAnalysisEDF;
       bw.RunWorkerAsync();
@@ -2266,6 +2357,9 @@ namespace SleepApneaDiagnoser
 
       // Misc
       OnPropertyChanged(nameof(IsEDFLoaded));
+
+      // Coherence
+      OnPropertyChanged(nameof(CoherenceEDFNavigationEnabled));
     }
     private void PreviewCurrentCategory_Changed()
     {
@@ -2303,6 +2397,10 @@ namespace SleepApneaDiagnoser
     private void PreviewSignalPlot_Changed()
     {
       PreviewNavigationEnabled = true;
+    }
+    private void CoherencePlot_Changed()
+    {
+      CoherenceProgressRingEnabled = false;
     }
 
     /*********************************************************** GENERAL ************************************************************/
@@ -2905,16 +3003,43 @@ namespace SleepApneaDiagnoser
         OnPropertyChanged(nameof(EEGEDFDuration));
       }
     }
-    public PlotModel EEGSignalPlot
+    public PlotModel PlotAbsPwr
     {
       get
       {
-        return eegm.EEGSignalPlot;
+        return eegm.PlotAbsPwr;
       }
       set
       {
-        eegm.EEGSignalPlot = value;
-        OnPropertyChanged(nameof(EEGSignalPlot));
+        eegm.PlotAbsPwr = value;
+        OnPropertyChanged(nameof(PlotAbsPwr));
+        p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
+      }
+    }
+    public PlotModel PlotRelPwr
+    {
+      get
+      {
+        return eegm.PlotRelPwr;
+      }
+      set
+      {
+        eegm.PlotRelPwr = value;
+        OnPropertyChanged(nameof(PlotRelPwr));
+        p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
+      }
+    }
+
+    public PlotModel PlotSpecGram
+    {
+      get
+      {
+        return eegm.PlotSpecGram;
+      }
+      set
+      {
+        eegm.PlotSpecGram = value;
+        OnPropertyChanged(nameof(PlotSpecGram));
         p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
       }
     }
@@ -3003,6 +3128,30 @@ namespace SleepApneaDiagnoser
       {
         cm.CoherencePlot = value;
         OnPropertyChanged(nameof(CoherencePlot));
+        CoherencePlot_Changed();
+      }
+    }
+    public bool CoherenceProgressRingEnabled
+    {
+      get
+      {
+        return cm.CoherenceProgressRingEnabled;
+      }
+      set
+      {
+        cm.CoherenceProgressRingEnabled = value;
+        OnPropertyChanged(nameof(CoherenceProgressRingEnabled));
+        OnPropertyChanged(nameof(CoherenceEDFNavigationEnabled));
+      }
+    }
+    public bool CoherenceEDFNavigationEnabled
+    {
+      get
+      {
+        if (!IsEDFLoaded)
+          return false;
+        else
+          return !CoherenceProgressRingEnabled;
       }
     }
 
@@ -3024,6 +3173,29 @@ namespace SleepApneaDiagnoser
     public ModelView(MainWindow i_window)
     {
       p_window = i_window;
+
+      #region Preload MATLAB functions into memory
+      {
+        BackgroundWorker bw = new BackgroundWorker();
+        bw.DoWork += new DoWorkEventHandler(
+          delegate (object sender1, DoWorkEventArgs e1)
+          {
+            MATLAB_Coherence(new float[] { 1, 1, 1, 1, 1, 1, 1, 1 }, new float[] { 1, 1, 1, 1, 1, 1, 1, 1 });
+          }
+          );
+        bw.RunWorkerAsync();
+      }
+      {
+        BackgroundWorker bw = new BackgroundWorker();
+        bw.DoWork += new DoWorkEventHandler(
+          delegate (object sender1, DoWorkEventArgs e1)
+          {
+            MATLAB_Resample(new float[] { 1, 1, 1, 1, 1, 1, 1, 1 }, 2);
+          }
+          );
+        bw.RunWorkerAsync();
+      }
+      #endregion 
     }
   }
 }
