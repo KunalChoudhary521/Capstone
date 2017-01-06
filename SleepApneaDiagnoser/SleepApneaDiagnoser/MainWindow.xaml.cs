@@ -1117,7 +1117,7 @@ namespace SleepApneaDiagnoser
       }
 
       // Find Peaks and Zero Crossings
-      int min_spike_length = (int)((double)((double)RespiratoryMinimumPeakWidth / (double)1000) / sample_period);
+      int min_spike_length = (int)((double)((double)RespiratoryMinimumPeakWidth / (double)1000) / (double)sample_period);
       int spike_length = 0;
       int maxima = 0;
       int start = 0;
@@ -1128,39 +1128,51 @@ namespace SleepApneaDiagnoser
       ScatterSeries series_onsets = new ScatterSeries();
       for (int x = 0; x < series_norm.Points.Count; x++)
       {
+        // If positive spike
         if (positive != false)
         {
+          // If end of positive spike
           if (series_norm.Points[x].Y < 0 || x == series_norm.Points.Count - 1)
           {
-            if (maxima != 0 && spike_length > min_spike_length)
+            // If spike is appropriate length
+            if (spike_length > min_spike_length)
             {
-              if (!RespiratoryRemoveMultiplePeaks || series_pos_peaks.Points.Count == 0 || series_neg_peaks.Points.Count == 0 ||
-                  (DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) > DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))) // Last Peak Was Negative
+              if (
+                  // If user does not mind consequent peaks of same sign
+                  !RespiratoryRemoveMultiplePeaks ||
+                  // If first positive peak
+                  series_pos_peaks.Points.Count == 0 ||
+                  // If last peak was negative
+                  (series_neg_peaks.Points.Count != 0 &&
+                  DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) >
+                  DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))
+                 )
               {
+                // Add new positive peak and onset 
                 series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
                 series_onsets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
               }
               else
               {
-                if (series_norm.Points[maxima].Y < series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].Y) // This Peak is Less than the previous
+                // If this peak is greater than the previous
+                if (series_norm.Points[maxima].Y > series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].Y)
                 {
-                  // Do Nothing
-                }
-                else
-                {
+                  // Replace previous spike maxima with latest spike maxima
                   series_pos_peaks.Points.Remove(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1]);
                   series_onsets.Points.Remove(series_onsets.Points[series_onsets.Points.Count - 1]);
-
                   series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
                   series_onsets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
                 }
               }
             }
+
+            // Initialization for analyzing negative peak
             positive = false;
             spike_length = 1;
             maxima = x;
             start = x;
           }
+          // If middle of positive spike
           else
           {
             if (Math.Abs(series_norm.Points[x].Y) > Math.Abs(series_norm.Points[maxima].Y))
@@ -1168,39 +1180,51 @@ namespace SleepApneaDiagnoser
             spike_length++;
           }
         }
+        // If negative spike
         else
         {
+          // If end of negative spike
           if (series_norm.Points[x].Y > 0 || x == series_norm.Points.Count - 1)
           {
-            if (maxima != 0 && spike_length > min_spike_length)
+            // If spike is appropriate length
+            if (spike_length > min_spike_length)
             {
-              if (!RespiratoryRemoveMultiplePeaks || series_pos_peaks.Points.Count == 0 || series_neg_peaks.Points.Count == 0 ||
-                  (DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) < DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))) // Last Peak Was Positive
+              if (
+                  // If user does not mind consequent peaks of same sign
+                  !RespiratoryRemoveMultiplePeaks ||
+                  // If first negative peak
+                  series_neg_peaks.Points.Count == 0 ||
+                  // If last peak was positive 
+                  (series_pos_peaks.Points.Count != 0 &&
+                  DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) <
+                  DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))
+                )
               {
+                // Add new negative peak and onset 
                 series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
                 series_insets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
               }
               else
               {
-                if (series_norm.Points[maxima].Y > series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].Y) // This Peak is Less than the previous
+                // If this peak is less than the previous
+                if (series_norm.Points[maxima].Y < series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].Y)
                 {
-                  // Do Nothing
-                }
-                else // Remove Previous Peak
-                {
+                  // Replace previous spike maxima with latest spike maxima
                   series_neg_peaks.Points.Remove(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1]);
                   series_insets.Points.Remove(series_insets.Points[series_insets.Points.Count - 1]);
-
                   series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
                   series_insets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
                 }
               }
             }
+
+            // Initialization for analyzing positive peak
             positive = true;
             spike_length = 1;
             maxima = x;
             start = x;
           }
+          // If middle of negative spike
           else
           {
             if (Math.Abs(series_norm.Points[x].Y) > Math.Abs(series_norm.Points[maxima].Y))
@@ -1337,39 +1361,51 @@ namespace SleepApneaDiagnoser
       ScatterSeries series_onsets = new ScatterSeries();
       for (int x = 0; x < series_norm.Points.Count; x++)
       {
-        if (positive != false)
+        // If positive spike
+        if (positive != false) 
         {
-          if (series_norm.Points[x].Y < 0 || x == series_norm.Points.Count - 1)
+          // If end of positive spike
+          if (series_norm.Points[x].Y < 0 || x == series_norm.Points.Count - 1) 
           {
-            if (maxima != 0 && spike_length > min_spike_length)
+            // If spike is appropriate length
+            if (spike_length > min_spike_length) 
             {
-              if (!RespiratoryRemoveMultiplePeaks || series_pos_peaks.Points.Count == 0 || series_neg_peaks.Points.Count == 0 ||
-                  (DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) > DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))) // Last Peak Was Negative
+              if (
+                  // If user does not mind consequent peaks of same sign
+                  !RespiratoryRemoveMultiplePeaks || 
+                  // If first positive peak
+                  series_pos_peaks.Points.Count == 0 ||
+                  // If last peak was negative
+                  (series_neg_peaks.Points.Count != 0 && 
+                  DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) > 
+                  DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))
+                 ) 
               {
+                // Add new positive peak and onset 
                 series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
                 series_onsets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
               }
               else
               {
-                if (series_norm.Points[maxima].Y < series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].Y) // This Peak is Less than the previous
+                // If this peak is greater than the previous
+                if (series_norm.Points[maxima].Y > series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].Y) 
                 {
-                  // Do Nothing
-                }
-                else
-                {
+                  // Replace previous spike maxima with latest spike maxima
                   series_pos_peaks.Points.Remove(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1]);
                   series_onsets.Points.Remove(series_onsets.Points[series_onsets.Points.Count - 1]);
-
                   series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
                   series_onsets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
                 }
               }
             }
+
+            // Initialization for analyzing negative peak
             positive = false;
             spike_length = 1;
             maxima = x;
             start = x;
           }
+          // If middle of positive spike
           else
           {
             if (Math.Abs(series_norm.Points[x].Y) > Math.Abs(series_norm.Points[maxima].Y))
@@ -1377,39 +1413,51 @@ namespace SleepApneaDiagnoser
             spike_length++;
           }
         }
+        // If negative spike
         else
         {
+          // If end of negative spike
           if (series_norm.Points[x].Y > 0 || x == series_norm.Points.Count - 1)
           {
-            if (maxima != 0 && spike_length > min_spike_length)
+            // If spike is appropriate length
+            if (spike_length > min_spike_length)
             {
-              if (!RespiratoryRemoveMultiplePeaks || series_pos_peaks.Points.Count == 0 || series_neg_peaks.Points.Count == 0 ||
-                  (DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) < DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))) // Last Peak Was Positive
+              if (
+                  // If user does not mind consequent peaks of same sign
+                  !RespiratoryRemoveMultiplePeaks ||
+                  // If first negative peak
+                  series_neg_peaks.Points.Count == 0 ||
+                  // If last peak was positive 
+                  (series_pos_peaks.Points.Count != 0 && 
+                  DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) < 
+                  DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))
+                ) 
               {
+                // Add new negative peak and onset 
                 series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
                 series_insets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
               }
               else
               {
-                if (series_norm.Points[maxima].Y > series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].Y) // This Peak is Less than the previous
+                // If this peak is less than the previous
+                if (series_norm.Points[maxima].Y < series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].Y) 
                 {
-                  // Do Nothing
-                }
-                else // Remove Previous Peak
-                {
+                  // Replace previous spike maxima with latest spike maxima
                   series_neg_peaks.Points.Remove(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1]);
                   series_insets.Points.Remove(series_insets.Points[series_insets.Points.Count - 1]);
-
                   series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
                   series_insets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
                 }
               }
             }
+
+            // Initialization for analyzing positive peak
             positive = true;
             spike_length = 1;
             maxima = x;
             start = x;
           }
+          // If middle of negative spike
           else
           {
             if (Math.Abs(series_norm.Points[x].Y) > Math.Abs(series_norm.Points[maxima].Y))
