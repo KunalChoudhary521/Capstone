@@ -1067,7 +1067,6 @@ namespace SleepApneaDiagnoser
         p_window.ShowMessageAsync("Error", "File could not be opened.");
       }
     }
-
     private void RespiratoryAnalysisBinary(string Signal, List<float> values, out double? min_y, out double? max_y, DateTime epochs_from, DateTime epochs_to, float sample_period)
     {
       // Variable To Return
@@ -1273,7 +1272,6 @@ namespace SleepApneaDiagnoser
     /************************************************** RESPIRATORY ANALYSIS TAB ****************************************************/
 
     // Respiratory Analysis From EDF File
-
     /// <summary>
     /// Background process for performing respiratory analysis
     /// </summary>
