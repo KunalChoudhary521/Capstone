@@ -2372,6 +2372,14 @@ namespace SleepApneaDiagnoser
         RespiratoryEDFSelectedSignal = null;
         RespiratoryEDFDuration = null;
         RespiratoryEDFStartRecord = null;
+
+        CoherenceEDFSelectedSignal1 = null;
+        CoherenceEDFSelectedSignal2 = null;
+        CoherenceSignalPlot1 = null;
+        CoherenceSignalPlot2 = null;
+        CoherencePlot = null;
+        CoherenceEDFDuration = null;
+        CoherenceEDFStartRecord = null;
       }
       else
       {
@@ -2386,6 +2394,14 @@ namespace SleepApneaDiagnoser
         RespiratorySignalPlot = null;
         RespiratoryEDFDuration = 1;
         RespiratoryEDFStartRecord = 0;
+
+        CoherenceEDFSelectedSignal1 = null;
+        CoherenceEDFSelectedSignal2 = null;
+        CoherenceSignalPlot1 = null;
+        CoherenceSignalPlot2 = null;
+        CoherencePlot = null;
+        CoherenceEDFDuration = 1;
+        CoherenceEDFStartRecord = 0;
       }
       OnPropertyChanged(nameof(PreviewNavigationEnabled));
 
