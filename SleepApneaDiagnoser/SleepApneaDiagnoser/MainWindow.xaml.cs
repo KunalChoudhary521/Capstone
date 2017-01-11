@@ -48,6 +48,7 @@ namespace SleepApneaDiagnoser
 
     /// <summary>
     /// Modified From Sample MahApps.Metro Project
+    /// https://github.com/punker76/code-samples/blob/master/MahAppsMetroThemesSample/MahAppsMetroThemesSample/ThemeManagerHelper.cs
     /// </summary>
     public static void UseWindowsThemeColor()
     {
