@@ -278,6 +278,11 @@ namespace SleepApneaDiagnoser
     {
       model.PerformRespiratoryAnalysisBinary();
     }
+
+    private void Button_EEG_From_Bin(object sender, RoutedEventArgs e)
+    {
+      model.PerformEEGAnalysisBinary();
+    }
   }
 
 
@@ -1539,10 +1544,199 @@ namespace SleepApneaDiagnoser
 
     /****************************************************** EEG ANALYSIS TAB ********************************************************/
 
+    //EEG Analysis From Binary File
+    public void PerformEEGAnalysisBinary()
+    {
+      System.Windows.Forms.OpenFileDialog dialog = new System.Windows.Forms.OpenFileDialog();
+
+      dialog.Filter = "|*.bin";
+
+      if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+      {
+        // select the binary file
+        FileStream bin_file = new FileStream(dialog.FileName, FileMode.Open);
+        BinaryReader reader = new BinaryReader(bin_file);
+
+        byte[] value = new byte[4];
+        bool didReachEnd = false;
+        List<float> signal_values = new List<float>();
+        // read the whole binary file and build the signal values
+        while (reader.BaseStream.Position != reader.BaseStream.Length)
+        {
+          try
+          {
+            value = reader.ReadBytes(4);
+            float myFloat = System.BitConverter.ToSingle(value, 0);
+            signal_values.Add(myFloat);
+          }
+          catch (Exception ex)
+          {
+            didReachEnd = true;
+            break;
+          }
+        }
+
+        // close the binary file
+        bin_file.Close();
+
+        // get the file metadata from the header file
+        bin_file = new FileStream(dialog.FileName.Remove(dialog.FileName.Length - 4, 4) + ".hdr", FileMode.Open);
+
+        StreamReader file_reader = new StreamReader(bin_file);
+        // get the signal name
+        string signal_name = file_reader.ReadLine();
+        string subject_id = file_reader.ReadLine();
+        string date_time_from = file_reader.ReadLine();
+        string date_time_to = file_reader.ReadLine();
+        string sample_period_s = file_reader.ReadLine();
+
+        float sample_period = float.Parse(sample_period_s);
+
+        double? min_y;
+        double? max_y;
+
+        DateTime epochs_from_datetime = DateTime.Parse(date_time_from);
+        DateTime epochs_to_datetime = DateTime.Parse(date_time_to);
+
+        // perform all of the respiratory analysis
+        BW_EEGAnalysisBin(signal_name, signal_values, out min_y, out max_y, epochs_from_datetime, epochs_to_datetime, sample_period);
+      }
+      else
+      {
+        p_window.ShowMessageAsync("Error", "File could not be opened.");
+      }
+    }
+
+    private void BW_EEGAnalysisBin(string Signal, List<float> values, out double? min_y, out double? max_y, DateTime epochs_from, DateTime epochs_to, float sample_period)
+    {
+      // Variable To Return
+      LineSeries series = new LineSeries();
+
+      // Determine Y Axis Bounds
+      min_y = GetMinSignalValue(Signal, values);
+      max_y = GetMaxSignalValue(Signal, values);
+
+      //  // Add Points to Series
+      for (int y = 0; y < values.Count; y++)
+      {
+        series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(epochs_from + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
+      }
+
+      if (series.Points.Count == 0)//select length to be more than From (on GUI)
+      {
+        //need to type error message for User
+        return;
+      }
+
+      const int freqbands = 7;
+      MWNumericArray[] freqRange = new MWNumericArray[freqbands];
+      freqRange[0] = new MWNumericArray(1, 2, new double[] { 0.1, 3 });//delta band
+      freqRange[1] = new MWNumericArray(1, 2, new double[] { 4, 7 });//theta band
+      freqRange[2] = new MWNumericArray(1, 2, new double[] { 8, 12 });//alpha band
+      freqRange[3] = new MWNumericArray(1, 2, new double[] { 13, 17 });//beta1 band
+      freqRange[4] = new MWNumericArray(1, 2, new double[] { 18, 30 });//beta2 band
+      freqRange[5] = new MWNumericArray(1, 2, new double[] { 31, 40 });//gamma1 band
+      freqRange[6] = new MWNumericArray(1, 2, new double[] { 41, 50 });//gamma2 band
+
+      double[] signal = new double[series.Points.Count];//select length to be more than From (on GUI)
+      for (int i = 0; i < series.Points.Count; i++)
+      {
+        signal[i] = series.Points[i].Y;
+      }
+
+      MWNumericArray mlabArraySignal = new MWNumericArray(signal);
+      EEGPower pwr = new EEGPower();
+      double totalPower = 0.0;
+      MWNumericArray[] absPower = new MWNumericArray[freqbands];
+      MWNumericArray sampleFreq = new MWNumericArray(1 / sample_period);
+      ColumnItem[] absPlotbandItems = new ColumnItem[freqbands];
+      for (int i = 0; i < freqRange.Length; i++)
+      {
+        absPower[i] = (MWNumericArray)pwr.eeg_bandpower(mlabArraySignal, sampleFreq, freqRange[i]);
+        totalPower += (double)absPower[i];
+        absPlotbandItems[i] = new ColumnItem { Value = (double)absPower[i] };//bars for abs pwr plot
+      }
+
+      ColumnItem[] relPlotbandItems = new ColumnItem[freqbands];
+      double[] relPower = new double[freqbands];
+      for (int i = 0; i < relPower.Length; i++)
+      {
+        relPower[i] = ((double)absPower[i]) / totalPower;
+        relPlotbandItems[i] = new ColumnItem { Value = relPower[i] };//bars for rel pwr plot
+      }
+
+      //order of bands MUST match the order of bands in freqRange array (see above)
+      String[] freqBandName = new String[] { "delta", "theta", "alpha", "beta1", "beta2", "gamma1", "gamma2" };
+
+
+      //Plotting absolute power graph      
+      PlotModel tempAbsPwr = new PlotModel()
+      {
+        Title = "Absolute Power",
+        LegendPlacement = LegendPlacement.Outside,
+        LegendPosition = LegendPosition.BottomCenter,
+        LegendOrientation = LegendOrientation.Horizontal,
+        LegendBorderThickness = 0
+      };
+
+      ColumnSeries absPlotbars = new ColumnSeries
+      {
+        //Title = "Abs_Pwr",
+        StrokeColor = OxyColors.Black,
+        StrokeThickness = 1,
+        FillColor = OxyColors.Blue//changes color of bars
+      };
+      absPlotbars.Items.AddRange(absPlotbandItems);
+
+      CategoryAxis absbandLabels = new CategoryAxis { Position = AxisPosition.Bottom };
+
+      absbandLabels.Labels.AddRange(freqBandName);
+
+      LinearAxis absvoltYAxis = new LinearAxis { Position = AxisPosition.Left, MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0 };
+      tempAbsPwr.Series.Add(absPlotbars);
+      tempAbsPwr.Axes.Add(absbandLabels);
+      tempAbsPwr.Axes.Add(absvoltYAxis);
+
+      PlotAbsPwr = tempAbsPwr;
+      /**********************End of Absolute Power Plotting***********************/
+
+      //Plotting relative power graph      
+      PlotModel tempRelPwr = new PlotModel()
+      {
+        Title = "Relative Power",
+        LegendPlacement = LegendPlacement.Outside,
+        LegendPosition = LegendPosition.BottomCenter,
+        LegendOrientation = LegendOrientation.Horizontal,
+        LegendBorderThickness = 0
+      };
+      ColumnSeries relPlotbars = new ColumnSeries
+      {
+        //Title = "Rel_Pwr",
+        StrokeColor = OxyColors.Black,
+        StrokeThickness = 1,
+        FillColor = OxyColors.Red//changes color of bars
+      };
+      relPlotbars.Items.AddRange(relPlotbandItems);
+
+      CategoryAxis relbandLabels = new CategoryAxis { Position = AxisPosition.Bottom };
+
+      relbandLabels.Labels.AddRange(freqBandName);
+
+      LinearAxis relvoltYAxis = new LinearAxis { Position = AxisPosition.Left, MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0 };
+      tempRelPwr.Series.Add(relPlotbars);
+      tempRelPwr.Axes.Add(relbandLabels);
+      tempRelPwr.Axes.Add(relvoltYAxis);
+
+      PlotRelPwr = tempRelPwr;
+
+      //todo: create a heatmap (from oxyplot) for spectrogram
+      //todo: create a graph (from oxyplot) for power spectral density
+      return;//for debugging only
+    }
+
     //EEG Analysis From EDF File
     private void BW_EEGAnalysisEDF(object sender, DoWorkEventArgs e)
-    {
-      
+    {      
       double? max_y, min_y;
       float sample_period;
       LineSeries series = GetSeriesFromSignalName(out sample_period,
