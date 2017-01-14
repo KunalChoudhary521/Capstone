@@ -61,7 +61,8 @@
                     <Button x:Name="button_AddDerivative" Content="Add Derivative" HorizontalAlignment="Left" Margin="10,0,0,46.667" Width="122" Height="32" VerticalAlignment="Bottom" IsEnabled="{Binding IsEDFLoaded}" Click="button_AddDerivative_Click" FontSize="10"/>
                     <Button x:Name="button_RemoveDerivative" Content="Remove Derivative" HorizontalAlignment="Left" Margin="10,0,0,9.667" Width="122" Height="32" VerticalAlignment="Bottom" IsEnabled="{Binding IsEDFLoaded}" Click="button_RemoveDerivative_Click" FontSize="10"/>
                     <Button x:Name="button_Categories" Content="Categories" HorizontalAlignment="Left" Margin="138,0,0,84" Width="122" Height="32" VerticalAlignment="Bottom" IsEnabled="{Binding IsEDFLoaded}" Click="button_Categories_Click" FontSize="10"/>
-                    <Button x:Name="export_button" Margin="138,0,0,47" Content="Export to Binary" IsEnabled="{Binding IsEDFLoaded}" Click="export_button_Click" HorizontalAlignment="Left" Width="122" Height="32" VerticalAlignment="Bottom"/>
+                    <Button x:Name="button_Filter" Content="Add Filtered Signal" HorizontalAlignment="Left" Margin="138,0,0,47" Width="122" Height="32" VerticalAlignment="Bottom" IsEnabled="{Binding IsEDFLoaded}" FontSize="10"/>
+                    <Button x:Name="export_button" Margin="138,0,0,10" Content="Export to Binary" IsEnabled="{Binding IsEDFLoaded}" Click="export_button_Click" HorizontalAlignment="Left" Width="122" Height="32" VerticalAlignment="Bottom"/>
 
                     <!-- Navigation and Plot -->
                     <Label Content="Plot" FontSize="18" HorizontalAlignment="Left" Margin="265,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="42" Width="47"/>
