@@ -218,7 +218,7 @@
                                     <ColumnDefinition Width="831*"/>
                                 </Grid.ColumnDefinitions>
                                 <Label Content="From Binary File" FontSize="18" Margin="0,4,20,4"/>
-                                <Button Content="Open" Width="122" Margin="10,6,0,6" HorizontalAlignment="Left" Grid.Column="1"/>
+                                <Button Content="Open" Width="122" Margin="10,6,0,6" HorizontalAlignment="Left" Grid.Column="1" Click="Button_EEG_From_Bin"/>
                             </Grid>
 
                             <Grid Height="40" VerticalAlignment="Top" Margin="0,50,10,0">
