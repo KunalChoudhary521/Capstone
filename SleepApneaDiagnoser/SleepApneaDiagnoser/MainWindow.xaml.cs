@@ -32,7 +32,7 @@ using MahApps.Metro.Controls.Dialogs;
 using MahApps.Metro;
 using System.Windows.Forms;
 using EEGBandpower;
-
+using PSD_Welch;
 using System.Numerics;
 using MathNet.Filtering;
 using MathNet.Numerics;
@@ -391,6 +391,10 @@ namespace SleepApneaDiagnoser
       /// Displays the eeg relative power plot
       /// </summary>
       public PlotModel PlotSpecGram = null;
+      /// <summary>
+      /// Displays the eeg spectrogram power plot
+      /// </summary>
+      public PlotModel PlotPSD = null;
       /// <summary>
       /// Displays the eeg spectrogram power plot
       /// </summary>
@@ -1224,7 +1228,7 @@ namespace SleepApneaDiagnoser
         //need to type error message for User
         return;
       }
-
+      
       const int freqbands = 7;
       MWNumericArray[] freqRange = new MWNumericArray[freqbands];
       freqRange[0] = new MWNumericArray(1, 2, new double[] { 0.1, 3 });//delta band
@@ -1241,6 +1245,7 @@ namespace SleepApneaDiagnoser
         signal[i] = series.Points[i].Y;
       }
 
+      /********************Computing Absolute, Relative & TotalPower*************************/
       MWNumericArray mlabArraySignal = new MWNumericArray(signal);      
       EEGPower pwr = new EEGPower();
       double totalPower = 0.0;
@@ -1251,22 +1256,38 @@ namespace SleepApneaDiagnoser
       {
         absPower[i] = (MWNumericArray)pwr.eeg_bandpower(mlabArraySignal, sampleFreq, freqRange[i]);
         totalPower += (double)absPower[i];
-        absPlotbandItems[i] = new ColumnItem { Value = (double)absPower[i] };//bars for abs pwr plot
+        absPlotbandItems[i] = new ColumnItem { Value = 10 * Math.Log10((double)absPower[i]) };//bars for abs pwr plot
       }
 
       ColumnItem[] relPlotbandItems = new ColumnItem[freqbands];
       double[] relPower = new double[freqbands];
       for (int i = 0; i < relPower.Length; i++)
       {
-        relPower[i] = ((double)absPower[i]) / totalPower;
+        relPower[i] = 100 * ((double)absPower[i]) / totalPower;
         relPlotbandItems[i] = new ColumnItem { Value = relPower[i] };//bars for rel pwr plot
       }
 
+      /*************Computing Power spectral Density (line 841 - PSG_viewer_v7.m)****************/
+      EEG_PSD computePSD = new EEG_PSD();
+      MWArray[] mLabResult = null;
+
+      mLabResult = computePSD.eeg_psd(2, mlabArraySignal, sampleFreq);
+      MWNumericArray tempPsdValues = (MWNumericArray)mLabResult[0];
+      MWNumericArray tempFrqValues = (MWNumericArray)mLabResult[1];
+
+      double[] psdValues = new double[tempPsdValues.NumberOfElements];
+      double[] frqValues = new double[tempFrqValues.NumberOfElements];
+      for (int i = 0; i < tempPsdValues.NumberOfElements - 1; i++)
+      {
+        psdValues[i] = (double)tempPsdValues[i + 1];
+        frqValues[i] = (double)tempFrqValues[i + 1];
+      }
+
+      /*****************************Plotting absolute power graph***************************/
       //order of bands MUST match the order of bands in freqRange array (see above)
       String[] freqBandName = new String[] { "delta", "theta", "alpha", "beta1", "beta2", "gamma1", "gamma2" };
 
 
-      //Plotting absolute power graph      
       PlotModel tempAbsPwr = new PlotModel()
       {
         Title = "Absolute Power",
@@ -1289,15 +1310,15 @@ namespace SleepApneaDiagnoser
             
       absbandLabels.Labels.AddRange(freqBandName);      
       
-      LinearAxis absvoltYAxis = new LinearAxis { Position = AxisPosition.Left, MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0};
+      LinearAxis absYAxis = new LinearAxis { Position = AxisPosition.Left, Title="Power (db)", MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0};
       tempAbsPwr.Series.Add(absPlotbars);
       tempAbsPwr.Axes.Add(absbandLabels);
-      tempAbsPwr.Axes.Add(absvoltYAxis);
+      tempAbsPwr.Axes.Add(absYAxis);
 
       PlotAbsPwr = tempAbsPwr;
-      /**********************End of Absolute Power Plotting***********************/
+      
 
-      //Plotting relative power graph      
+      /*************************************Plotting relative power graph****************************/
       PlotModel tempRelPwr = new PlotModel()
       {
         Title = "Relative Power",
@@ -1319,15 +1340,48 @@ namespace SleepApneaDiagnoser
       
       relbandLabels.Labels.AddRange(freqBandName);
       
-      LinearAxis relvoltYAxis = new LinearAxis { Position = AxisPosition.Left, MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0 };
+      LinearAxis relYAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Power (%)", MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0 };
       tempRelPwr.Series.Add(relPlotbars);
       tempRelPwr.Axes.Add(relbandLabels);
-      tempRelPwr.Axes.Add(relvoltYAxis);
+      tempRelPwr.Axes.Add(relYAxis);
 
       PlotRelPwr = tempRelPwr;
 
-      //todo: create a heatmap (from oxyplot) for spectrogram
-      //todo: create a graph (from oxyplot) for power spectral density
+      /********************Plotting a heatmap for spectrogram (line 820 - PSG_viewer_v7.m)*********************/
+      /*PlotModel tempSpectGram = new PlotModel()
+      {
+        Title = "Spectrogram",         
+      };
+      LinearColorAxis specLegend = new LinearColorAxis() { Position = AxisPosition.Right, Palette = OxyPalettes.Jet(500), HighColor = OxyColors.Red, LowColor = OxyColors.Green };
+      LinearAxis specYAxis = new LinearAxis() { Position = AxisPosition.Left, Title = "Frequency (Hz)" };
+      LinearAxis specXAxis = new LinearAxis() { Position = AxisPosition.Bottom, Title = "Time (s)" };     
+      
+      tempSpectGram.Axes.Add(specLegend);
+      tempSpectGram.Axes.Add(specXAxis);
+      tempSpectGram.Axes.Add(specYAxis);
+
+      //double minTime, maxTime, minFreq, maxFreq;
+      //HeatMapSeries specGram = new HeatMapSeries() { //X0 = minTime, X1 = maxTime, Y0 = minFreq, Y1 = maxFreq, Data = psdValues };
+      tempSpectGram.Series.Add(specGram);*/
+
+      //PlotSpecGram = tempSpectGram;
+
+      /***************************Plotting Power Spectral Density ****************************/
+      PlotModel tempPSD = new PlotModel()
+      {
+        Title = "Power Spectral Density"       
+      };
+      LineSeries psdSeries = new LineSeries() { Color = OxyColors.Green};
+      for(int i = 0; i < psdValues.Length; i++)
+      {
+        psdSeries.Points.Add(new DataPoint(frqValues[i], 10 * Math.Log10(psdValues[i])));
+      }
+      tempPSD.Series.Add(psdSeries);
+      tempPSD.Axes.Add(new LinearAxis() { Position = AxisPosition.Left, Title = "Power (dB)" });
+      tempPSD.Axes.Add(new LinearAxis() { Position = AxisPosition.Bottom, Title = "Frequency (Hz)" });
+
+      PlotPSD = tempPSD;
+
       return;//for debugging only
     }
     private void BW_FinishEEGAnalysisEDF(object sender, RunWorkerCompletedEventArgs e)
@@ -2753,6 +2807,20 @@ namespace SleepApneaDiagnoser
       {
         eegm.PlotSpecGram = value;
         OnPropertyChanged(nameof(PlotSpecGram));
+        p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
+      }
+    }
+
+    public PlotModel PlotPSD
+    {
+      get
+      {
+        return eegm.PlotPSD;
+      }
+      set
+      {
+        eegm.PlotPSD = value;
+        OnPropertyChanged(nameof(PlotPSD));
         p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
       }
     }
