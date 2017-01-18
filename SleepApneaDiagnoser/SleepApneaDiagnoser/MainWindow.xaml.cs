@@ -36,6 +36,7 @@ using PSD_Welch;
 using System.Numerics;
 using MathNet.Filtering;
 using MathNet.Numerics;
+using System.Diagnostics;
 
 namespace SleepApneaDiagnoser
 {
@@ -754,6 +755,24 @@ namespace SleepApneaDiagnoser
     /// </summary>
     private ProgressDialogController controller;
     /// <summary>
+    /// Background task that updates the progress bar
+    /// </summary>
+    private BackgroundWorker bw_progressbar = new BackgroundWorker();
+    private void BW_LoadEDFFileUpDateProgress(object sender, DoWorkEventArgs e)
+    {
+      long process_start = Process.GetCurrentProcess().PagedMemorySize64;
+      long file_size = new FileInfo(e.Argument.ToString()).Length * 2;
+      long current_progress = 0;
+
+      while (!bw_progressbar.CancellationPending)
+      {
+        current_progress = Math.Max(current_progress, Process.GetCurrentProcess().PagedMemorySize64 - process_start);
+        double progress = Math.Min(99, (current_progress * 100 / (double) file_size));
+
+        controller.SetProgress(progress);
+      }
+    }
+    /// <summary>
     /// Background process for loading edf file
     /// </summary>
     /// <param name="sender"></param>
@@ -762,6 +781,13 @@ namespace SleepApneaDiagnoser
     {
       // Progress Bar should not be cancelable
       controller.SetCancelable(false);
+      controller.Maximum = 100;
+
+      // 'Update Progress Bar' Task 
+      bw_progressbar = new BackgroundWorker();
+      bw_progressbar.WorkerSupportsCancellation = true;
+      bw_progressbar.DoWork += BW_LoadEDFFileUpDateProgress;
+      bw_progressbar.RunWorkerAsync(e.Argument.ToString());
 
       // Read EDF File
       EDFFile temp = new EDFFile();
@@ -770,6 +796,11 @@ namespace SleepApneaDiagnoser
 
       // Load Settings Files
       LoadSettings();
+
+      // End 'Update Progress Bar' Task 
+      bw_progressbar.CancelAsync();
+      while (bw_progressbar.IsBusy)
+      { }
     }
     /// <summary>
     /// Function called after background process for loading edf file finishes
@@ -997,8 +1028,8 @@ namespace SleepApneaDiagnoser
         bin_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".bin", FileMode.OpenOrCreate); //reload
         BinaryWriter bin_writer = new BinaryWriter(bin_file);
 
-        int start_index = ((signals_data.Epochs_From * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds)* edfsignal.NumberOfSamplesPerDataRecord; // from epoch number * 30 seconds per epoch * sample rate = start time
-        int end_index = ((signals_data.Epochs_To * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds)* edfsignal.NumberOfSamplesPerDataRecord; // to epoch number * 30 seconds per epoch * sample rate = end time
+        int start_index = (int)((signals_data.Epochs_From * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds)* edfsignal.NumberOfSamplesPerDataRecord; // from epoch number * 30 seconds per epoch * sample rate = start time
+        int end_index = (int)((signals_data.Epochs_To * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds)* edfsignal.NumberOfSamplesPerDataRecord; // to epoch number * 30 seconds per epoch * sample rate = end time
 
         if (end_index > signalValues.Count()) { end_index = signalValues.Count(); }        
 
@@ -2767,7 +2798,7 @@ namespace SleepApneaDiagnoser
       get
       {
         if (IsEDFLoaded)
-          return (LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.DurationOfDataRecordInSeconds * LoadedEDFFile.Header.NumberOfDataRecords)).ToString();
+          return (LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, (int)(LoadedEDFFile.Header.DurationOfDataRecordInSeconds * LoadedEDFFile.Header.NumberOfDataRecords))).ToString();
         else
           return "";
       }
@@ -3061,7 +3092,7 @@ namespace SleepApneaDiagnoser
       {
         if (LoadedEDFFile != null)
           return LoadedEDFFile.Header.StartDateTime // Start Time
-              + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds) // Total Duration
+              + new TimeSpan(0, 0, (int)(LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)) // Total Duration
               - new TimeSpan(0, 0, pm.PreviewViewDuration); // View Duration
         else
           return new DateTime();
@@ -3103,12 +3134,12 @@ namespace SleepApneaDiagnoser
           if (pm.PreviewUseAbsoluteTime)
             return Math.Min(
                 2 * 60 * 60,
-                (int)((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)) - (PreviewViewStartTime ?? new DateTime())).TotalSeconds
+                (int)((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, (int)(LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds))) - (PreviewViewStartTime ?? new DateTime())).TotalSeconds
                 );
           else
             return Math.Min(
                 (int)((2 * 60 * 60) / ((double)EPOCH_SEC)),
-                DateTimetoEpoch((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)), LoadedEDFFile) - DateTimetoEpoch((PreviewViewStartTime ?? new DateTime()), LoadedEDFFile)
+                DateTimetoEpoch((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, (int)(LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds))), LoadedEDFFile) - DateTimetoEpoch((PreviewViewStartTime ?? new DateTime()), LoadedEDFFile)
                 );
         }
         else // No File Loaded
