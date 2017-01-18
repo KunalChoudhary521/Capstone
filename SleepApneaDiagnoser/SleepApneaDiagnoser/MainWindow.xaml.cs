@@ -1031,6 +1031,7 @@ namespace SleepApneaDiagnoser
         int start_index = (int)((signals_data.Epochs_From * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds)* edfsignal.NumberOfSamplesPerDataRecord; // from epoch number * 30 seconds per epoch * sample rate = start time
         int end_index = (int)((signals_data.Epochs_To * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds)* edfsignal.NumberOfSamplesPerDataRecord; // to epoch number * 30 seconds per epoch * sample rate = end time
 
+        if (start_index < 0) { start_index = 0; }
         if (end_index > signalValues.Count()) { end_index = signalValues.Count(); }        
 
         for (int i = start_index; i < end_index; i++)
@@ -2798,7 +2799,13 @@ namespace SleepApneaDiagnoser
       get
       {
         if (IsEDFLoaded)
-          return (LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, (int)(LoadedEDFFile.Header.DurationOfDataRecordInSeconds * LoadedEDFFile.Header.NumberOfDataRecords))).ToString();
+        {
+          DateTime EndTime = LoadedEDFFile.Header.StartDateTime 
+                             + new TimeSpan(
+                               (long)(TimeSpan.TicksPerSecond * LoadedEDFFile.Header.DurationOfDataRecordInSeconds * LoadedEDFFile.Header.NumberOfDataRecords)
+                               );
+          return EndTime.ToString();
+        }
         else
           return "";
       }
@@ -3091,9 +3098,11 @@ namespace SleepApneaDiagnoser
       get
       {
         if (LoadedEDFFile != null)
-          return LoadedEDFFile.Header.StartDateTime // Start Time
-              + new TimeSpan(0, 0, (int)(LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)) // Total Duration
-              - new TimeSpan(0, 0, pm.PreviewViewDuration); // View Duration
+        {
+          DateTime EndTime = DateTime.Parse(EDFEndTime); // EDF End Time
+          TimeSpan duration = new TimeSpan(TimeSpan.TicksPerSecond * pm.PreviewViewDuration); // User Selected Duration 
+          return EndTime - duration; 
+        }
         else
           return new DateTime();
       }
@@ -3131,15 +3140,19 @@ namespace SleepApneaDiagnoser
       {
         if (LoadedEDFFile != null) // File Loaded
         {
+          DateTime EndTime = DateTime.Parse(EDFEndTime); // EDF End Time
+          TimeSpan duration = EndTime - (PreviewViewStartTime ?? new DateTime()); // Theoretical Limit Duration
+          TimeSpan limit = new TimeSpan(TimeSpan.TicksPerHour * 2); // Practical Limit Duration
+
           if (pm.PreviewUseAbsoluteTime)
             return Math.Min(
-                2 * 60 * 60,
-                (int)((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, (int)(LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds))) - (PreviewViewStartTime ?? new DateTime())).TotalSeconds
+                (int)limit.TotalSeconds,
+                (int)duration.TotalSeconds
                 );
           else
             return Math.Min(
-                (int)((2 * 60 * 60) / ((double)EPOCH_SEC)),
-                DateTimetoEpoch((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, (int)(LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds))), LoadedEDFFile) - DateTimetoEpoch((PreviewViewStartTime ?? new DateTime()), LoadedEDFFile)
+                TimeSpantoEpochPeriod(limit),
+                TimeSpantoEpochPeriod(duration)
                 );
         }
         else // No File Loaded
