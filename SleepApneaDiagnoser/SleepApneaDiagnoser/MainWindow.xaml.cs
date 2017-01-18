@@ -32,7 +32,7 @@ using MahApps.Metro.Controls.Dialogs;
 using MahApps.Metro;
 using System.Windows.Forms;
 using EEGBandpower;
-
+using PSD_Welch;
 using System.Numerics;
 using MathNet.Filtering;
 using MathNet.Numerics;
@@ -48,6 +48,7 @@ namespace SleepApneaDiagnoser
 
     /// <summary>
     /// Modified From Sample MahApps.Metro Project
+    /// https://github.com/punker76/code-samples/blob/master/MahAppsMetroThemesSample/MahAppsMetroThemesSample/ThemeManagerHelper.cs
     /// </summary>
     public static void UseWindowsThemeColor()
     {
@@ -277,6 +278,11 @@ namespace SleepApneaDiagnoser
     {
       model.PerformRespiratoryAnalysisBinary();
     }
+
+    private void Button_EEG_From_Bin(object sender, RoutedEventArgs e)
+    {
+      model.PerformEEGAnalysisBinary();
+    }
   }
 
 
@@ -401,6 +407,10 @@ namespace SleepApneaDiagnoser
       /// Displays the eeg relative power plot
       /// </summary>
       public PlotModel PlotSpecGram = null;
+      /// <summary>
+      /// Displays the eeg spectrogram power plot
+      /// </summary>
+      public PlotModel PlotPSD = null;
       /// <summary>
       /// Displays the eeg spectrogram power plot
       /// </summary>
@@ -1538,21 +1548,85 @@ namespace SleepApneaDiagnoser
 
     /****************************************************** EEG ANALYSIS TAB ********************************************************/
 
-    //EEG Analysis From EDF File
-    private void BW_EEGAnalysisEDF(object sender, DoWorkEventArgs e)
+    //EEG Analysis From Binary File
+    public void PerformEEGAnalysisBinary()
     {
-      
-      double? max_y, min_y;
-      float sample_period;
-      LineSeries series = GetSeriesFromSignalName(out sample_period,
-                                                  out max_y,
-                                                  out min_y,
-                                                  EEGEDFSelectedSignal,
-                                                  EpochtoDateTime(EEGEDFStartRecord ?? 0, LoadedEDFFile),
-                                                  EpochtoDateTime(EEGEDFStartRecord ?? 0, LoadedEDFFile) + EpochPeriodtoTimeSpan(EEGEDFDuration ?? 0)
-                                                  );
+      System.Windows.Forms.OpenFileDialog dialog = new System.Windows.Forms.OpenFileDialog();
 
-      if(series.Points.Count == 0)//select length to be more than From (on GUI)
+      dialog.Filter = "|*.bin";
+
+      if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+      {
+        // select the binary file
+        FileStream bin_file = new FileStream(dialog.FileName, FileMode.Open);
+        BinaryReader reader = new BinaryReader(bin_file);
+
+        byte[] value = new byte[4];
+        bool didReachEnd = false;
+        List<float> signal_values = new List<float>();
+        // read the whole binary file and build the signal values
+        while (reader.BaseStream.Position != reader.BaseStream.Length)
+        {
+          try
+          {
+            value = reader.ReadBytes(4);
+            float myFloat = System.BitConverter.ToSingle(value, 0);
+            signal_values.Add(myFloat);
+          }
+          catch (Exception ex)
+          {
+            didReachEnd = true;
+            break;
+          }
+        }
+
+        // close the binary file
+        bin_file.Close();
+
+        // get the file metadata from the header file
+        bin_file = new FileStream(dialog.FileName.Remove(dialog.FileName.Length - 4, 4) + ".hdr", FileMode.Open);
+
+        StreamReader file_reader = new StreamReader(bin_file);
+        // get the signal name
+        string signal_name = file_reader.ReadLine();
+        string subject_id = file_reader.ReadLine();
+        string date_time_from = file_reader.ReadLine();
+        string date_time_to = file_reader.ReadLine();
+        string sample_period_s = file_reader.ReadLine();
+
+        float sample_period = float.Parse(sample_period_s);
+
+        double? min_y;
+        double? max_y;
+
+        DateTime epochs_from_datetime = DateTime.Parse(date_time_from);
+        DateTime epochs_to_datetime = DateTime.Parse(date_time_to);
+
+        // perform all of the respiratory analysis
+        BW_EEGAnalysisBin(signal_name, signal_values, out min_y, out max_y, epochs_from_datetime, epochs_to_datetime, sample_period);
+      }
+      else
+      {
+        p_window.ShowMessageAsync("Error", "File could not be opened.");
+      }
+    }
+
+    private void BW_EEGAnalysisBin(string Signal, List<float> values, out double? min_y, out double? max_y, DateTime epochs_from, DateTime epochs_to, float sample_period)
+    {
+      // Variable To Return
+      LineSeries series = new LineSeries();
+
+      // Determine Y Axis Bounds
+      min_y = GetMinSignalValue(Signal, values);
+      max_y = GetMaxSignalValue(Signal, values);
+
+      //  // Add Points to Series
+      for (int y = 0; y < values.Count; y++)
+      {
+        series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(epochs_from + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
+      }
+
+      if (series.Points.Count == 0)//select length to be more than From (on GUI)
       {
         //need to type error message for User
         return;
@@ -1578,7 +1652,7 @@ namespace SleepApneaDiagnoser
       EEGPower pwr = new EEGPower();
       double totalPower = 0.0;
       MWNumericArray[] absPower = new MWNumericArray[freqbands];
-      MWNumericArray sampleFreq = new MWNumericArray(1/sample_period);
+      MWNumericArray sampleFreq = new MWNumericArray(1 / sample_period);
       ColumnItem[] absPlotbandItems = new ColumnItem[freqbands];
       for (int i = 0; i < freqRange.Length; i++)
       {
@@ -1608,21 +1682,21 @@ namespace SleepApneaDiagnoser
         LegendOrientation = LegendOrientation.Horizontal,
         LegendBorderThickness = 0
       };
-      
+
       ColumnSeries absPlotbars = new ColumnSeries
       {
         //Title = "Abs_Pwr",
         StrokeColor = OxyColors.Black,
         StrokeThickness = 1,
         FillColor = OxyColors.Blue//changes color of bars
-      };      
-      absPlotbars.Items.AddRange(absPlotbandItems);            
+      };
+      absPlotbars.Items.AddRange(absPlotbandItems);
 
       CategoryAxis absbandLabels = new CategoryAxis { Position = AxisPosition.Bottom };
-            
-      absbandLabels.Labels.AddRange(freqBandName);      
-      
-      LinearAxis absvoltYAxis = new LinearAxis { Position = AxisPosition.Left, MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0};
+
+      absbandLabels.Labels.AddRange(freqBandName);
+
+      LinearAxis absvoltYAxis = new LinearAxis { Position = AxisPosition.Left, MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0 };
       tempAbsPwr.Series.Add(absPlotbars);
       tempAbsPwr.Axes.Add(absbandLabels);
       tempAbsPwr.Axes.Add(absvoltYAxis);
@@ -1645,13 +1719,13 @@ namespace SleepApneaDiagnoser
         StrokeColor = OxyColors.Black,
         StrokeThickness = 1,
         FillColor = OxyColors.Red//changes color of bars
-      };      
+      };
       relPlotbars.Items.AddRange(relPlotbandItems);
-      
+
       CategoryAxis relbandLabels = new CategoryAxis { Position = AxisPosition.Bottom };
-      
+
       relbandLabels.Labels.AddRange(freqBandName);
-      
+
       LinearAxis relvoltYAxis = new LinearAxis { Position = AxisPosition.Left, MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0 };
       tempRelPwr.Series.Add(relPlotbars);
       tempRelPwr.Axes.Add(relbandLabels);
@@ -1661,6 +1735,181 @@ namespace SleepApneaDiagnoser
 
       //todo: create a heatmap (from oxyplot) for spectrogram
       //todo: create a graph (from oxyplot) for power spectral density
+      return;//for debugging only
+    }
+
+    //EEG Analysis From EDF File
+    private void BW_EEGAnalysisEDF(object sender, DoWorkEventArgs e)
+    {      
+      double? max_y, min_y;
+      float sample_period;
+      LineSeries series = GetSeriesFromSignalName(out sample_period,
+                                                  out max_y,
+                                                  out min_y,
+                                                  EEGEDFSelectedSignal,
+                                                  EpochtoDateTime(EEGEDFStartRecord ?? 0, LoadedEDFFile),
+                                                  EpochtoDateTime(EEGEDFStartRecord ?? 0, LoadedEDFFile) + EpochPeriodtoTimeSpan(EEGEDFDuration ?? 0)
+                                                  );
+
+      if(series.Points.Count == 0)//select length to be more than From (on GUI)
+      {
+        //need to type error message for User
+        return;
+      }
+      
+      const int freqbands = 7;
+      MWNumericArray[] freqRange = new MWNumericArray[freqbands];
+      freqRange[0] = new MWNumericArray(1, 2, new double[] { 0.1, 3 });//delta band
+      freqRange[1] = new MWNumericArray(1, 2, new double[] { 4, 7 });//theta band
+      freqRange[2] = new MWNumericArray(1, 2, new double[] { 8, 12 });//alpha band
+      freqRange[3] = new MWNumericArray(1, 2, new double[] { 13, 17 });//beta1 band
+      freqRange[4] = new MWNumericArray(1, 2, new double[] { 18, 30 });//beta2 band
+      freqRange[5] = new MWNumericArray(1, 2, new double[] { 31, 40 });//gamma1 band
+      freqRange[6] = new MWNumericArray(1, 2, new double[] { 41, 50 });//gamma2 band
+
+      double[] signal = new double[series.Points.Count];//select length to be more than From (on GUI)
+      for (int i = 0; i < series.Points.Count; i++)
+      {
+        signal[i] = series.Points[i].Y;
+      }
+
+      /********************Computing Absolute, Relative & TotalPower*************************/
+      MWNumericArray mlabArraySignal = new MWNumericArray(signal);      
+      EEGPower pwr = new EEGPower();
+      double totalPower = 0.0;
+      MWNumericArray[] absPower = new MWNumericArray[freqbands];
+      MWNumericArray sampleFreq = new MWNumericArray(1/sample_period);
+      ColumnItem[] absPlotbandItems = new ColumnItem[freqbands];
+      for (int i = 0; i < freqRange.Length; i++)
+      {
+        absPower[i] = (MWNumericArray)pwr.eeg_bandpower(mlabArraySignal, sampleFreq, freqRange[i]);
+        totalPower += (double)absPower[i];
+        absPlotbandItems[i] = new ColumnItem { Value = 10 * Math.Log10((double)absPower[i]) };//bars for abs pwr plot
+      }
+
+      ColumnItem[] relPlotbandItems = new ColumnItem[freqbands];
+      double[] relPower = new double[freqbands];
+      for (int i = 0; i < relPower.Length; i++)
+      {
+        relPower[i] = 100 * ((double)absPower[i]) / totalPower;
+        relPlotbandItems[i] = new ColumnItem { Value = relPower[i] };//bars for rel pwr plot
+      }
+
+      /*************Computing Power spectral Density (line 841 - PSG_viewer_v7.m)****************/
+      EEG_PSD computePSD = new EEG_PSD();
+      MWArray[] mLabResult = null;
+
+      mLabResult = computePSD.eeg_psd(2, mlabArraySignal, sampleFreq);
+      MWNumericArray tempPsdValues = (MWNumericArray)mLabResult[0];
+      MWNumericArray tempFrqValues = (MWNumericArray)mLabResult[1];
+
+      double[] psdValues = new double[tempPsdValues.NumberOfElements];
+      double[] frqValues = new double[tempFrqValues.NumberOfElements];
+      for (int i = 0; i < tempPsdValues.NumberOfElements - 1; i++)
+      {
+        psdValues[i] = (double)tempPsdValues[i + 1];
+        frqValues[i] = (double)tempFrqValues[i + 1];
+      }
+
+      /*****************************Plotting absolute power graph***************************/
+      //order of bands MUST match the order of bands in freqRange array (see above)
+      String[] freqBandName = new String[] { "delta", "theta", "alpha", "beta1", "beta2", "gamma1", "gamma2" };
+
+
+      PlotModel tempAbsPwr = new PlotModel()
+      {
+        Title = "Absolute Power",
+        LegendPlacement = LegendPlacement.Outside,
+        LegendPosition = LegendPosition.BottomCenter,
+        LegendOrientation = LegendOrientation.Horizontal,
+        LegendBorderThickness = 0
+      };
+      
+      ColumnSeries absPlotbars = new ColumnSeries
+      {
+        //Title = "Abs_Pwr",
+        StrokeColor = OxyColors.Black,
+        StrokeThickness = 1,
+        FillColor = OxyColors.Blue//changes color of bars
+      };      
+      absPlotbars.Items.AddRange(absPlotbandItems);            
+
+      CategoryAxis absbandLabels = new CategoryAxis { Position = AxisPosition.Bottom };
+            
+      absbandLabels.Labels.AddRange(freqBandName);      
+      
+      LinearAxis absYAxis = new LinearAxis { Position = AxisPosition.Left, Title="Power (db)", MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0};
+      tempAbsPwr.Series.Add(absPlotbars);
+      tempAbsPwr.Axes.Add(absbandLabels);
+      tempAbsPwr.Axes.Add(absYAxis);
+
+      PlotAbsPwr = tempAbsPwr;
+      
+
+      /*************************************Plotting relative power graph****************************/
+      PlotModel tempRelPwr = new PlotModel()
+      {
+        Title = "Relative Power",
+        LegendPlacement = LegendPlacement.Outside,
+        LegendPosition = LegendPosition.BottomCenter,
+        LegendOrientation = LegendOrientation.Horizontal,
+        LegendBorderThickness = 0
+      };
+      ColumnSeries relPlotbars = new ColumnSeries
+      {
+        //Title = "Rel_Pwr",
+        StrokeColor = OxyColors.Black,
+        StrokeThickness = 1,
+        FillColor = OxyColors.Red//changes color of bars
+      };      
+      relPlotbars.Items.AddRange(relPlotbandItems);
+      
+      CategoryAxis relbandLabels = new CategoryAxis { Position = AxisPosition.Bottom };
+      
+      relbandLabels.Labels.AddRange(freqBandName);
+      
+      LinearAxis relYAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Power (%)", MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0 };
+      tempRelPwr.Series.Add(relPlotbars);
+      tempRelPwr.Axes.Add(relbandLabels);
+      tempRelPwr.Axes.Add(relYAxis);
+
+      PlotRelPwr = tempRelPwr;
+
+      /********************Plotting a heatmap for spectrogram (line 820 - PSG_viewer_v7.m)*********************/
+      /*PlotModel tempSpectGram = new PlotModel()
+      {
+        Title = "Spectrogram",         
+      };
+      LinearColorAxis specLegend = new LinearColorAxis() { Position = AxisPosition.Right, Palette = OxyPalettes.Jet(500), HighColor = OxyColors.Red, LowColor = OxyColors.Green };
+      LinearAxis specYAxis = new LinearAxis() { Position = AxisPosition.Left, Title = "Frequency (Hz)" };
+      LinearAxis specXAxis = new LinearAxis() { Position = AxisPosition.Bottom, Title = "Time (s)" };     
+      
+      tempSpectGram.Axes.Add(specLegend);
+      tempSpectGram.Axes.Add(specXAxis);
+      tempSpectGram.Axes.Add(specYAxis);
+
+      //double minTime, maxTime, minFreq, maxFreq;
+      //HeatMapSeries specGram = new HeatMapSeries() { //X0 = minTime, X1 = maxTime, Y0 = minFreq, Y1 = maxFreq, Data = psdValues };
+      tempSpectGram.Series.Add(specGram);*/
+
+      //PlotSpecGram = tempSpectGram;
+
+      /***************************Plotting Power Spectral Density ****************************/
+      PlotModel tempPSD = new PlotModel()
+      {
+        Title = "Power Spectral Density"       
+      };
+      LineSeries psdSeries = new LineSeries() { Color = OxyColors.Green};
+      for(int i = 0; i < psdValues.Length; i++)
+      {
+        psdSeries.Points.Add(new DataPoint(frqValues[i], 10 * Math.Log10(psdValues[i])));
+      }
+      tempPSD.Series.Add(psdSeries);
+      tempPSD.Axes.Add(new LinearAxis() { Position = AxisPosition.Left, Title = "Power (dB)" });
+      tempPSD.Axes.Add(new LinearAxis() { Position = AxisPosition.Bottom, Title = "Frequency (Hz)" });
+
+      PlotPSD = tempPSD;
+
       return;//for debugging only
     }
     private void BW_FinishEEGAnalysisEDF(object sender, RunWorkerCompletedEventArgs e)
@@ -3102,6 +3351,20 @@ namespace SleepApneaDiagnoser
       {
         eegm.PlotSpecGram = value;
         OnPropertyChanged(nameof(PlotSpecGram));
+        p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
+      }
+    }
+
+    public PlotModel PlotPSD
+    {
+      get
+      {
+        return eegm.PlotPSD;
+      }
+      set
+      {
+        eegm.PlotPSD = value;
+        OnPropertyChanged(nameof(PlotPSD));
         p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
       }
     }
