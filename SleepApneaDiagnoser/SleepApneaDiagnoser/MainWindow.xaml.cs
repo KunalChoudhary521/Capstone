@@ -155,6 +155,10 @@ namespace SleepApneaDiagnoser
     {
       model.WriteSettings();
     }
+    private void button_Settings_Click(object sender, RoutedEventArgs e)
+    {
+      model.OpenSettings();
+    }
 
     // Home Tab Events
     private void TextBlock_OpenEDF_Click(object sender, RoutedEventArgs e)
@@ -254,9 +258,20 @@ namespace SleepApneaDiagnoser
       model.PreviousCategory();
     }
 
-    private void export_button_Click(object sender, RoutedEventArgs e)
+    private void button_ExportBinary_Click(object sender, RoutedEventArgs e)
     {
       model.ExportSignals();
+    }
+    private void button_ExportImage_Click(object sender, RoutedEventArgs e)
+    {
+      Microsoft.Win32.SaveFileDialog dialog = new Microsoft.Win32.SaveFileDialog();
+      dialog.Filter = "Image File (*.png)|*.png";
+      dialog.Title = "Select an EDF file";
+
+      if (dialog.ShowDialog() == true)
+      {
+        model.ExportImage(dialog.FileName);
+      }
     }
 
     // Analysis Tab Events 
@@ -267,31 +282,23 @@ namespace SleepApneaDiagnoser
     private void button_PerformEEGAnalysis_Click(object sender, RoutedEventArgs e)
     {
       model.PerformEEGAnalysisEDF();
+    }    
+    private void button_Load_Respiratory_Click(object sender, RoutedEventArgs e)
+    {
+      model.PerformRespiratoryAnalysisBinary();
     }
-
+    private void Button_EEG_From_Bin(object sender, RoutedEventArgs e)
+    {
+      model.PerformEEGAnalysisBinary();
+    }
+   
     // Tool Tab Events
     private void button_PerformCoherenceAnalysis_Click(object sender, RoutedEventArgs e)
     {
       model.PerformCoherenceAnalysisEDF();
     }
 
-    private void button_Load_Respiratory_Click(object sender, RoutedEventArgs e)
-    {
-      model.PerformRespiratoryAnalysisBinary();
-    }
-
-    private void Button_EEG_From_Bin(object sender, RoutedEventArgs e)
-    {
-      model.PerformEEGAnalysisBinary();
-    }
-
-    private void button_Settings_Click(object sender, RoutedEventArgs e)
-    {
-      model.OpenSettings();
-    }
   }
-
-
 
   public class ModelView : INotifyPropertyChanged
   {
@@ -1049,6 +1056,27 @@ namespace SleepApneaDiagnoser
         #endregion
       }
     }
+    
+    /// <summary>
+    /// Exports chart to image
+    /// </summary>
+    public void ExportImage(string fileName)
+    {
+      var export = new OxyPlot.Wpf.PngExporter();
+      export.Width = 1280;
+      export.Height = 720;
+      export.Background = OxyColors.White;
+
+      MemoryStream stream = new MemoryStream();
+      FileStream file = new FileStream(fileName, FileMode.Create);
+
+      export.Export(PreviewSignalPlot, stream);
+      stream.WriteTo(file);
+      file.Close();
+      stream.Close();
+    }
+
+    /************************************************** RESPIRATORY ANALYSIS TAB ****************************************************/
 
     /// <summary>
     /// Respiratory Analysis From Binary FIle
@@ -1339,8 +1367,6 @@ namespace SleepApneaDiagnoser
         RespiratoryBreathingPeriodMedian = (breathing_periods[breathing_periods.Count / 2 - 1]).ToString("0.## sec/breath");
       }
     }
-
-    /************************************************** RESPIRATORY ANALYSIS TAB ****************************************************/
 
     // Respiratory Analysis From EDF File
     /// <summary>

@@ -48,7 +48,7 @@
             </mtr:Flyout>
         </mtr:FlyoutsControl>
     </mtr:MetroWindow.Flyouts>
-    
+
     <Grid Margin="0,0,0,0">
         <mtr:MetroAnimatedSingleRowTabControl Margin="10,10,10,30">
 
@@ -80,7 +80,8 @@
                     <Button x:Name="button_Prev" Content="&lt;" HorizontalAlignment="Left" Margin="10,52,0,0" VerticalAlignment="Top" Width="32" Height="23" IsEnabled="{Binding IsEDFLoaded}" Click="button_Prev_Click"/>
                     <Button x:Name="button_Next" Content="&gt;" HorizontalAlignment="Left" Margin="228,52,0,0" VerticalAlignment="Top" Width="32" Height="23" IsEnabled="{Binding IsEDFLoaded}" Click="button_Next_Click"/>
                     <ListBox x:Name="listBox_SignalSelect"  HorizontalAlignment="Left" Margin="10,90,0,47.333" Width="250" SelectionMode="Multiple" SelectionChanged="listBox_SignalSelect_SelectionChanged" ItemsSource="{Binding PreviewSignals}" FontSize="14" IsEnabled="{Binding PreviewNavigationEnabled}"/>
-                    <Button x:Name="export_button" Margin="10,0,0,10.333" Content="Export to Binary" IsEnabled="{Binding IsEDFLoaded}" Click="export_button_Click" HorizontalAlignment="Left" Width="122" Height="32" VerticalAlignment="Bottom"/>
+                    <Button x:Name="export_button" Margin="10,0,0,10.333" Content="Export to Binary" IsEnabled="{Binding IsEDFLoaded}" Click="button_ExportBinary_Click" HorizontalAlignment="Left" Width="122" Height="32" VerticalAlignment="Bottom"/>
+                    <Button x:Name="button_ExportImage" Margin="140,0,0,10.333" Content="Export to Image" IsEnabled="{Binding IsEDFLoaded}" Click="button_ExportImage_Click" HorizontalAlignment="Left" Width="122" Height="32" VerticalAlignment="Bottom"/>
 
                     <!-- Navigation and Plot -->
                     <Label Content="Plot" FontSize="18" HorizontalAlignment="Left" Margin="265,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="42" Width="47"/>
@@ -135,7 +136,6 @@
                         <Label Content="Sample Rate" HorizontalAlignment="Left" Margin="10,457,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="29" Width="97" FontSize="14"/>
                         <TextBox x:Name="textBox_SampRecord" Height="23" Margin="112,460,26,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True" FontSize="14"/>
                     </Grid>
-
                 </Grid>
             </mtr:MetroTabItem>
 
