@@ -25,8 +25,31 @@
     <mtr:MetroWindow.WindowButtonCommands>
         <mtr:WindowButtonCommands Style="{DynamicResource MahApps.Metro.Styles.WindowButtonCommands.Win10}" Template="{DynamicResource MahApps.Metro.Templates.WindowButtonCommands.Win10}"/>
     </mtr:MetroWindow.WindowButtonCommands>
+    <mtr:MetroWindow.RightWindowCommands>
+        <mtr:WindowCommands>
+            <Button Content="Settings" IsEnabled="{Binding IsEDFLoaded}" Click="button_Settings_Click"/>
+        </mtr:WindowCommands>
+    </mtr:MetroWindow.RightWindowCommands>
 
-    <Grid Margin="0,10,0,0">
+    <mtr:MetroWindow.Flyouts>
+        <mtr:FlyoutsControl>
+            <mtr:Flyout Name="Flyout_Settings" Header="Settings" Theme="Accent" Position="Right" Width="346" IsOpen="{Binding FlyoutOpen}" ExternalCloseButton="Left" IsPinned="False">
+                <StackPanel>
+                    <Grid Background="White">
+                        <Label Content="Signal Management" HorizontalAlignment="Left" Width="290" Height="32" VerticalAlignment="Top" Margin="10,0,0,0" FontWeight="Bold"/>
+                        <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,37,0,593" HorizontalContentAlignment="Left" Content="    Manage Categories" Height="37" Click="button_Categories_Click"/>
+                        <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,74,0,556" HorizontalContentAlignment="Left" Content="    Hide/Unhide EDF Signals" Height="37" Click="button_HideSignals_Click"/>
+                        <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,111,0,519" HorizontalContentAlignment="Left" Content="    Add Derivative" Height="37" Click="button_AddDerivative_Click"/>
+                        <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,148,0,482" HorizontalContentAlignment="Left" Content="    Remove Derivative" Height="37" Click="button_RemoveDerivative_Click"/>
+                        <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,185,0,445" HorizontalContentAlignment="Left" Content="    Add Filtered Signal" Height="37"/>
+                        <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,222,0,408" HorizontalContentAlignment="Left" Content="    Remove Filtered Signa" Height="37"/>
+                    </Grid>
+                </StackPanel>
+            </mtr:Flyout>
+        </mtr:FlyoutsControl>
+    </mtr:MetroWindow.Flyouts>
+    
+    <Grid Margin="0,0,0,0">
         <mtr:MetroAnimatedSingleRowTabControl Margin="10,10,10,30">
 
             <mtr:MetroTabItem Header="Home" Height="40">
@@ -39,8 +62,8 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock FontSize="14" TextDecorations="Underline" HorizontalAlignment="Left"  x:Name="tb"><Hyperlink Click="TextBlock_Recent_Click"><InlineUIContainer>
-                                                <TextBlock Text="{Binding}"/>
-                                            </InlineUIContainer></Hyperlink></TextBlock>
+                                            <TextBlock Text="{Binding}"/>
+                                        </InlineUIContainer></Hyperlink></TextBlock>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
@@ -56,13 +79,8 @@
                     <Label x:Name="label_CurrentCategory" Content="{Binding PreviewCurrentCategoryName}" HorizontalContentAlignment="Center"  HorizontalAlignment="Left" Margin="47,52,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="33" Width="176" FontSize="14"/>
                     <Button x:Name="button_Prev" Content="&lt;" HorizontalAlignment="Left" Margin="10,52,0,0" VerticalAlignment="Top" Width="32" Height="23" IsEnabled="{Binding IsEDFLoaded}" Click="button_Prev_Click"/>
                     <Button x:Name="button_Next" Content="&gt;" HorizontalAlignment="Left" Margin="228,52,0,0" VerticalAlignment="Top" Width="32" Height="23" IsEnabled="{Binding IsEDFLoaded}" Click="button_Next_Click"/>
-                    <ListBox x:Name="listBox_SignalSelect"  HorizontalAlignment="Left" Margin="10,90,0,121" Width="250" SelectionMode="Multiple" SelectionChanged="listBox_SignalSelect_SelectionChanged" ItemsSource="{Binding PreviewSignals}" FontSize="14" IsEnabled="{Binding PreviewNavigationEnabled}"/>
-                    <Button x:Name="button_HideSignals" Content="Hide/Unhide Signals" HorizontalAlignment="Left" Margin="10,0,0,84" Width="122" Height="32" VerticalAlignment="Bottom" IsEnabled="{Binding IsEDFLoaded}" Click="button_HideSignals_Click" FontSize="10"/>
-                    <Button x:Name="button_AddDerivative" Content="Add Derivative" HorizontalAlignment="Left" Margin="10,0,0,46.667" Width="122" Height="32" VerticalAlignment="Bottom" IsEnabled="{Binding IsEDFLoaded}" Click="button_AddDerivative_Click" FontSize="10"/>
-                    <Button x:Name="button_RemoveDerivative" Content="Remove Derivative" HorizontalAlignment="Left" Margin="10,0,0,9.667" Width="122" Height="32" VerticalAlignment="Bottom" IsEnabled="{Binding IsEDFLoaded}" Click="button_RemoveDerivative_Click" FontSize="10"/>
-                    <Button x:Name="button_Categories" Content="Categories" HorizontalAlignment="Left" Margin="138,0,0,84" Width="122" Height="32" VerticalAlignment="Bottom" IsEnabled="{Binding IsEDFLoaded}" Click="button_Categories_Click" FontSize="10"/>
-                    <Button x:Name="button_Filter" Content="Add Filtered Signal" HorizontalAlignment="Left" Margin="138,0,0,47" Width="122" Height="32" VerticalAlignment="Bottom" IsEnabled="{Binding IsEDFLoaded}" FontSize="10"/>
-                    <Button x:Name="export_button" Margin="138,0,0,10" Content="Export to Binary" IsEnabled="{Binding IsEDFLoaded}" Click="export_button_Click" HorizontalAlignment="Left" Width="122" Height="32" VerticalAlignment="Bottom"/>
+                    <ListBox x:Name="listBox_SignalSelect"  HorizontalAlignment="Left" Margin="10,90,0,47.333" Width="250" SelectionMode="Multiple" SelectionChanged="listBox_SignalSelect_SelectionChanged" ItemsSource="{Binding PreviewSignals}" FontSize="14" IsEnabled="{Binding PreviewNavigationEnabled}"/>
+                    <Button x:Name="export_button" Margin="10,0,0,10.333" Content="Export to Binary" IsEnabled="{Binding IsEDFLoaded}" Click="export_button_Click" HorizontalAlignment="Left" Width="122" Height="32" VerticalAlignment="Bottom"/>
 
                     <!-- Navigation and Plot -->
                     <Label Content="Plot" FontSize="18" HorizontalAlignment="Left" Margin="265,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="42" Width="47"/>
@@ -163,7 +181,7 @@
                                 <TextBox Height="23" Margin="120,42,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryBreathingPeriodMean}" VerticalAlignment="Top"/>
                                 <TextBox Height="23" Margin="120,73,7,0" TextWrapping="Wrap" Text="{Binding RespiratoryBreathingPeriodMedian}" VerticalAlignment="Top"/>
                             </Grid>
-                            <Label Content="Settings" FontSize="18" Height="35" VerticalAlignment="Top" HorizontalAlignment="Right" Width="200" Margin="0,253,81,0"/>
+                            <Label Content="Options" FontSize="18" Height="35" VerticalAlignment="Top" HorizontalAlignment="Right" Width="200" Margin="0,253,81,0"/>
                             <Grid HorizontalAlignment="Right" Width="271" Margin="0,293,10,10">
                                 <Label Content="Peak Detection Sensitivity (ms)" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
                                 <mtr:NumericUpDown Height="23" Margin="20,39,20,0" VerticalAlignment="Top" Value="{Binding RespiratoryMinimumPeakWidth}"/>
@@ -245,7 +263,7 @@
                             <oxy:PlotView Margin="10,356,825,10" Model ="{Binding PlotSpecGram}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
                             <oxy:PlotView Margin="535,356,300,10" Model ="{Binding PlotPSD}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
 
-              <Label Content="Analysis" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Right" Width="200" Margin="0,98,145,0"/>
+                            <Label Content="Analysis" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Right" Width="200" Margin="0,98,145,0"/>
                             <Grid HorizontalAlignment="Right" Width="335" Margin="0,135,10,10"/>
                         </Grid>
                     </mtr:MetroTabItem>
@@ -313,9 +331,5 @@
                 </mtr:MetroAnimatedSingleRowTabControl>
             </mtr:MetroTabItem>
         </mtr:MetroAnimatedSingleRowTabControl>
-
-        <StatusBar Height="25" VerticalAlignment="Bottom">
-            <TextBlock x:Name="TextBlock_Status" Text="{Binding LoadedEDFFileName}"/>
-        </StatusBar>
     </Grid>
 </mtr:MetroWindow>

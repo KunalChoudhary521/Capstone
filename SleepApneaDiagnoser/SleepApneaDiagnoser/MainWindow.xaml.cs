@@ -284,6 +284,11 @@ namespace SleepApneaDiagnoser
     {
       model.PerformEEGAnalysisBinary();
     }
+
+    private void button_Settings_Click(object sender, RoutedEventArgs e)
+    {
+      model.OpenSettings();
+    }
   }
 
 
@@ -761,7 +766,7 @@ namespace SleepApneaDiagnoser
     private void BW_LoadEDFFileUpDateProgress(object sender, DoWorkEventArgs e)
     {
       long process_start = Process.GetCurrentProcess().PagedMemorySize64;
-      long file_size = new FileInfo(e.Argument.ToString()).Length * 2;
+      long file_size = (long) (new FileInfo(e.Argument.ToString()).Length * 2.2);
       long current_progress = 0;
 
       while (!bw_progressbar.CancellationPending)
@@ -2118,6 +2123,25 @@ namespace SleepApneaDiagnoser
     #region Settings
 
     /*********************************************************************************************************************************/
+
+    // Flyout
+    private bool p_FlyoutOpen = false;
+    public bool FlyoutOpen
+    {
+      get
+      {
+        return p_FlyoutOpen;
+      }
+      set
+      {
+        p_FlyoutOpen = value;
+        OnPropertyChanged(nameof(FlyoutOpen));
+      }
+    }
+    public void OpenSettings()
+    {
+      FlyoutOpen = !FlyoutOpen;
+    }
 
     // Recent File List and Functions. 
     public ReadOnlyCollection<string> RecentFiles
