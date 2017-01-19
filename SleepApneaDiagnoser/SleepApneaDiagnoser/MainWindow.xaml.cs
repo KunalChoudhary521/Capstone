@@ -155,11 +155,7 @@ namespace SleepApneaDiagnoser
     {
       model.WriteSettings();
     }
-    private void button_Settings_Click(object sender, RoutedEventArgs e)
-    {
-      model.OpenSettings();
-    }
-
+    
     // Home Tab Events
     private void TextBlock_OpenEDF_Click(object sender, RoutedEventArgs e)
     {
@@ -204,6 +200,32 @@ namespace SleepApneaDiagnoser
       }
     }
 
+    // Setting Flyout Events 
+    private void button_Settings_Click(object sender, RoutedEventArgs e)
+    {
+      model.OpenCloseSettings();
+    }
+    private void button_HideSignals_Click(object sender, RoutedEventArgs e)
+    {
+      model.OpenCloseSettings();
+      model.HideSignals();
+    }
+    private void button_AddDerivative_Click(object sender, RoutedEventArgs e)
+    {
+      model.OpenCloseSettings();
+      model.AddDerivative();
+    }
+    private void button_RemoveDerivative_Click(object sender, RoutedEventArgs e)
+    {
+      model.OpenCloseSettings();
+      model.RemoveDerivative();
+    }
+    private void button_Categories_Click(object sender, RoutedEventArgs e)
+    {
+      model.OpenCloseSettings();
+      model.ManageCategories();
+    }
+
     // Preview Tab Events   
     private void listBox_SignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -232,23 +254,7 @@ namespace SleepApneaDiagnoser
       timePicker_From_Abs.Visibility = Visibility.Hidden;
       timePicker_From_Eph.Visibility = Visibility.Visible;
     }
-
-    private void button_HideSignals_Click(object sender, RoutedEventArgs e)
-    {
-      model.HideSignals();
-    }
-    private void button_AddDerivative_Click(object sender, RoutedEventArgs e)
-    {
-      model.AddDerivative();
-    }
-    private void button_RemoveDerivative_Click(object sender, RoutedEventArgs e)
-    {
-      model.RemoveDerivative();
-    }
-    private void button_Categories_Click(object sender, RoutedEventArgs e)
-    {
-      model.ManageCategories();
-    }
+    
     private void button_Next_Click(object sender, RoutedEventArgs e)
     {
       model.NextCategory();
@@ -2164,7 +2170,7 @@ namespace SleepApneaDiagnoser
         OnPropertyChanged(nameof(FlyoutOpen));
       }
     }
-    public void OpenSettings()
+    public void OpenCloseSettings()
     {
       FlyoutOpen = !FlyoutOpen;
     }
@@ -2711,6 +2717,9 @@ namespace SleepApneaDiagnoser
         CoherencePlot = null;
         CoherenceEDFDuration = null;
         CoherenceEDFStartRecord = null;
+
+        p_SignalsMinValues = new List<string[]>();
+        p_SignalsMaxValues = new List<string[]>();
       }
       else
       {
@@ -2733,6 +2742,9 @@ namespace SleepApneaDiagnoser
         CoherencePlot = null;
         CoherenceEDFDuration = 1;
         CoherenceEDFStartRecord = 0;
+
+        p_SignalsMinValues = new List<string[]>();
+        p_SignalsMaxValues = new List<string[]>();
       }
       OnPropertyChanged(nameof(PreviewNavigationEnabled));
 

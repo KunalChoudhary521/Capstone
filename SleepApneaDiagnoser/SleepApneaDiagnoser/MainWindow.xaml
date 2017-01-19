@@ -34,15 +34,15 @@
     <mtr:MetroWindow.Flyouts>
         <mtr:FlyoutsControl>
             <mtr:Flyout Name="Flyout_Settings" Header="Settings" Theme="Accent" Position="Right" Width="346" IsOpen="{Binding FlyoutOpen}" ExternalCloseButton="Left" IsPinned="False">
-                <StackPanel>
-                    <Grid Background="White">
+                <StackPanel Background="White" Margin="0,0,0,0">
+                    <Grid Background="White" Margin="0,0,0,0">
                         <Label Content="Signal Management" HorizontalAlignment="Left" Width="290" Height="32" VerticalAlignment="Top" Margin="10,0,0,0" FontWeight="Bold"/>
                         <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,37,0,593" HorizontalContentAlignment="Left" Content="    Manage Categories" Height="37" Click="button_Categories_Click"/>
                         <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,74,0,556" HorizontalContentAlignment="Left" Content="    Hide/Unhide EDF Signals" Height="37" Click="button_HideSignals_Click"/>
                         <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,111,0,519" HorizontalContentAlignment="Left" Content="    Add Derivative" Height="37" Click="button_AddDerivative_Click"/>
                         <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,148,0,482" HorizontalContentAlignment="Left" Content="    Remove Derivative" Height="37" Click="button_RemoveDerivative_Click"/>
                         <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,185,0,445" HorizontalContentAlignment="Left" Content="    Add Filtered Signal" Height="37"/>
-                        <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,222,0,408" HorizontalContentAlignment="Left" Content="    Remove Filtered Signa" Height="37"/>
+                        <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,222,0,408" HorizontalContentAlignment="Left" Content="    Remove Filtered Signal" Height="37"/>
                     </Grid>
                 </StackPanel>
             </mtr:Flyout>
