@@ -216,208 +216,220 @@ namespace SleepApneaDiagnoser
     }
 
     // Settings Persistence
-    public static void LoadCategoriesFile(string[] EDFAllSignals, string[][] DerivedSignals, SettingsModel sm)
+    public static SignalCategory[] LoadCategoriesFile(string[] AllSignals)
     {
+      // Check if Settings directory exists
       if (!Directory.Exists("Settings"))
         Directory.CreateDirectory("Settings");
 
-      sm.SignalCategories.Clear();
-      sm.SignalCategoryContents.Clear();
+      // Return Value
+      List<SignalCategory> temp = new List<SignalCategory>();
 
+      // If the settings file exists
       if (File.Exists("Settings\\signal_categories.txt"))
       {
+        // Open settings file
         StreamReader sr = new StreamReader("Settings\\signal_categories.txt");
         string[] text = sr.ReadToEnd().Replace("\r\n", "\n").Split('\n');
 
+        // Foreach line in the settings file
         for (int x = 0; x < text.Length; x++)
         {
           string line = text[x];
-
+           
+          // The category name is the first value in the CSV line
           string category = line.Split(',')[0].Trim();
           List<string> category_signals = new List<string>();
 
-          for (int y = 0; y < line.Split(',').Length; y++)
+          // For the other CSV values
+          for (int y = 1; y < line.Split(',').Length; y++)
           {
-            if (EDFAllSignals.ToList().Contains(line.Split(',')[y].Trim()) || DerivedSignals.ToList().Find(temp => temp[0].Trim() == line.Split(',')[y].Trim()) != null)
+            // If the value exists in the EDF file signals or derivatives
+            if (AllSignals == null || AllSignals.ToList().Contains(line.Split(',')[y].Trim()))
             {
+              // add signal
               category_signals.Add(line.Split(',')[y]);
             }
           }
 
+          // If there is a non-zero number of signals in the category
           if (category_signals.Count > 0)
           {
-            sm.SignalCategories.Add((sm.SignalCategories.Count + 1) + ". " + category);
-            sm.SignalCategoryContents.Add(category_signals);
+            // Add to output
+            temp.Add(new SignalCategory((temp.Count + 1) + ". " + category));
+            temp[temp.Count - 1].Signals = category_signals;
           }
         }
 
+        // Close text file
         sr.Close();
       }
+
+      // Return values
+      return temp.ToArray();
     }
-    public static void WriteToCategoriesFile(string[] AllSignals, SettingsModel sm)
+    public static void WriteToCategoriesFile(SignalCategory[] SignalCategories, string[] AllSignals)
     {
-      if (!Directory.Exists("Settings"))
-        Directory.CreateDirectory("Settings");
+      List<SignalCategory> current_SignalCategories = LoadCategoriesFile(null).ToList();
+      List<string> AllSignalsList = AllSignals.ToList().Select(temp => temp.Trim()).ToList();
 
-      List<string> temp_SignalCategories = new List<string>();
-      List<List<string>> temp_SignalCategoriesContents = new List<List<string>>();
-
-      if (File.Exists("Settings\\signal_categories.txt"))
+      // Check for removals
+      for (int x = 0; x < current_SignalCategories.Count; x++)
       {
-        StreamReader sr = new StreamReader("Settings\\signal_categories.txt");
-        string[] text = sr.ReadToEnd().Replace("\r\n", "\n").Split('\n');
-
-        for (int x = 0; x < text.Length; x++)
+        for (int y = 0; y < current_SignalCategories[x].Signals.Count; y++)
         {
-          string line = text[x];
-
-          string category = line.Split(',')[0].Trim();
-          List<string> category_signals = new List<string>();
-
-          for (int y = 1; y < line.Split(',').Length; y++)
+          if (AllSignalsList.Contains(current_SignalCategories[x].Signals[y]))
           {
-            category_signals.Add(line.Split(',')[y]);
+            current_SignalCategories[x].Signals.Remove(current_SignalCategories[x].Signals[y]);
           }
-
-          if (!sm.SignalCategories.Contains(category))
-          {
-            for (int y = 0; y < AllSignals.Length; y++)
-            {
-              if (category_signals.Contains(AllSignals[y]))
-                category_signals.Remove(AllSignals[y]);
-            }
-          }
-
-          temp_SignalCategories.Add(category);
-          temp_SignalCategoriesContents.Add(category_signals);
         }
-
-        sr.Close();
       }
 
-      for (int x = 0; x < sm.SignalCategories.Count; x++)
+      // Merge SignalCategories and current_SignalCategories
+      for (int x = 0; x < SignalCategories.Length; x++)
       {
-        if (temp_SignalCategories.Contains(sm.SignalCategories[x].Substring(sm.SignalCategories[x].IndexOf('.') + 2).Trim()))
+        bool match = false;
+        for (int y = 0; y < current_SignalCategories.Count; y++)
         {
-          int u = temp_SignalCategories.IndexOf(sm.SignalCategories[x].Substring(sm.SignalCategories[x].IndexOf('.') + 2).Trim());
-          temp_SignalCategoriesContents[u].AddRange(sm.SignalCategoryContents[x].ToArray());
-          temp_SignalCategoriesContents[u] = temp_SignalCategoriesContents[u].Distinct().ToList();
+          if (current_SignalCategories[y].CategoryNameNoNumber == SignalCategories[x].CategoryNameNoNumber)
+          {
+            current_SignalCategories[y].Signals.AddRange(SignalCategories[x].Signals.ToArray());
+            current_SignalCategories[y].Signals = current_SignalCategories[y].Signals.Distinct().ToList();
+            match = true;
+            break;
+          }
         }
-        else
+        
+        if (!match)
         {
-          temp_SignalCategories.Add(sm.SignalCategories[x].Substring(sm.SignalCategories[x].IndexOf('.') + 2).Trim());
-          temp_SignalCategoriesContents.Add(sm.SignalCategoryContents[x]);
+          current_SignalCategories.Add(SignalCategories[x]);
         }
       }
 
       StreamWriter sw = new StreamWriter("Settings\\signal_categories.txt");
-      for (int x = 0; x < temp_SignalCategories.Count; x++)
+      for (int x = 0; x < current_SignalCategories.Count; x++)
       {
-        string line = temp_SignalCategories[x].Trim();
-        if (line.Trim() != "")
+        if (current_SignalCategories[x].Signals.Count > 0)
         {
-          for (int y = 0; y < temp_SignalCategoriesContents[x].Count; y++)
-            line += "," + temp_SignalCategoriesContents[x][y].Trim();
+          string line = current_SignalCategories[x].CategoryNameNoNumber.Trim();
+          if (line.Trim() != "")
+          {
+            for (int y = 0; y < current_SignalCategories[x].Signals.Count; y++)
+              line += "," + current_SignalCategories[x].Signals[y].Trim();
 
-          sw.WriteLine(line);
+            sw.WriteLine(line);
+          }
         }
       }
       sw.Close();
     }
-    public static void LoadCommonDerivativesFile(EDFFile LoadedEDFFile, SettingsModel sm)
+    public static DerivativeSignal[] LoadDerivativesFile(EDFFile LoadedEDFFile)
     {
       if (!Directory.Exists("Settings"))
         Directory.CreateDirectory("Settings");
 
-      sm.DerivedSignals.Clear();
+      List<DerivativeSignal> output = new List<DerivativeSignal>();
+
       if (File.Exists("Settings\\common_derivatives.txt"))
       {
-        List<string> text = new StreamReader("Settings\\common_derivatives.txt").ReadToEnd().Replace("\r\n", "\n").Split('\n').ToList();
+        StreamReader sr = new StreamReader("Settings\\common_derivatives.txt");
+        List<string> text = sr.ReadToEnd().Replace("\r\n", "\n").Split('\n').ToList();
+
         for (int x = 0; x < text.Count; x++)
         {
           string[] new_entry = text[x].Split(',');
 
           if (new_entry.Length == 3)
           {
-            if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[1].Trim()) != null) // Signals Exist
+            if (LoadedEDFFile == null || LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[1].Trim()) != null) // Signals Exist
             {
-              if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[2].Trim()) != null) // Signals Exist
+              if (LoadedEDFFile == null || LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[2].Trim()) != null) // Signals Exist
               {
-                if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[0].Trim()) == null) // Unique Name
+                if (LoadedEDFFile == null || LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[0].Trim()) == null) // Unique Name
                 {
-                  if (sm.DerivedSignals.Where(temp => temp[0].Trim() == new_entry[0].Trim()).ToList().Count == 0) // Unique Name
+                  if (LoadedEDFFile == null || output.Where(temp => temp.DerivativeName.Trim() == new_entry[0].Trim()).ToList().Count == 0) // Unique Name
                   {
-                    sm.DerivedSignals.Add(new_entry);
+                    output.Add(new DerivativeSignal(new_entry[0], new_entry[1], new_entry[2]));
                   }
                 }
               }
             }
           }
         }
-      }
-    }
-    public static void AddToCommonDerivativesFile(string name, string signal1, string signal2)
-    {
-      if (!Directory.Exists("Settings"))
-        Directory.CreateDirectory("Settings");
 
-      StreamWriter sw = new StreamWriter("Settings\\common_derivatives.txt", true);
-      sw.WriteLine(name + "," + signal1 + "," + signal2);
-      sw.Close();
-    }
-    public static void RemoveFromCommonDerivativesFile(List<string[]> signals)
-    {
-      if (!Directory.Exists("Settings"))
-        Directory.CreateDirectory("Settings");
-
-      if (File.Exists("Settings\\common_derivatives.txt"))
-      {
-        StreamReader sr = new StreamReader("Settings\\common_derivatives.txt");
-        List<string> text = sr.ReadToEnd().Split('\n').ToList();
         sr.Close();
-        for (int x = 0; x < text.Count; x++)
+      }
+
+      return output.ToArray();
+    }
+    public static void WriteToDerivativesFile(DerivativeSignal[] DerivativeSignals, string[] AllSignals)
+    {
+      List<DerivativeSignal> current_DerivativeSignals = LoadDerivativesFile(null).ToList();
+      List<string> AllSignalsList = AllSignals.ToList().Select(temp => temp.Trim()).ToList();
+
+      // Check for removals
+      List<DerivativeSignal> to_remove = new List<DerivativeSignal>();
+      for (int x = 0; x < current_DerivativeSignals.Count; x++)
+      {
+        if (AllSignalsList.Contains(current_DerivativeSignals[x].Signal1Name))
         {
-          for (int y = 0; y < signals.Count; y++)
+          if (AllSignalsList.Contains(current_DerivativeSignals[x].Signal2Name))
           {
-            if (text[x].Split(',').Length != 3 || text[x].Split(',')[0].Trim() == signals[y][0].Trim() && text[x].Split(',')[1].Trim() == signals[y][1].Trim() && text[x].Split(',')[2].Trim() == signals[y][2].Trim())
-            {
-              text.Remove(text[x]);
-              x--;
-            }
+            to_remove.Add(current_DerivativeSignals[x]);
           }
         }
-
-        StreamWriter sw = new StreamWriter("Settings\\common_derivatives.txt");
-        for (int x = 0; x < text.Count; x++)
-        {
-          sw.WriteLine(text[x].Trim());
-        }
-        sw.Close();
       }
+      for (int x = 0; x < to_remove.Count; x++)
+      {
+        current_DerivativeSignals.Remove(to_remove[x]);
+      }
+
+      // Merge current and loaded
+      for (int x = 0; x < DerivativeSignals.Length; x++)
+      {
+        if (current_DerivativeSignals.Where(temp =>
+        temp.DerivativeName == DerivativeSignals[x].DerivativeName &&
+        temp.Signal1Name == DerivativeSignals[x].Signal1Name &&
+        temp.Signal2Name == DerivativeSignals[x].Signal2Name).ToList().Count == 0)
+        {
+          current_DerivativeSignals.Add(DerivativeSignals[x]);
+        }
+      }
+
+      // Write to file
+      StreamWriter sw = new StreamWriter("Settings\\common_derivatives.txt");
+      for (int x = 0; x < current_DerivativeSignals.Count; x++)
+      {
+        sw.WriteLine(current_DerivativeSignals[x].DerivativeName + "," + current_DerivativeSignals[x].Signal1Name + "," + current_DerivativeSignals[x].Signal2Name);
+      }
+      sw.Close();
     }
-    public static void LoadHiddenSignalsFile(SettingsModel sm)
+    public static string[] LoadHiddenSignalsFile()
     {
       if (!Directory.Exists("Settings"))
         Directory.CreateDirectory("Settings");
 
-      sm.HiddenSignals.Clear();
+      List<string> output = new List<string>();
+
       if (File.Exists("Settings\\hiddensignals.txt"))
       {
         StreamReader sr = new StreamReader("Settings\\hiddensignals.txt");
-        sm.HiddenSignals = sr.ReadToEnd().Replace("\r\n", "\n").Split('\n').ToList();
-        sm.HiddenSignals = sm.HiddenSignals.Select(temp => temp.Trim()).Where(temp => temp != "").ToList();
+        output = sr.ReadToEnd().Replace("\r\n", "\n").Split('\n').ToList();
+        output = output.Select(temp => temp.Trim()).Where(temp => temp != "").ToList();
         sr.Close();
       }
+
+      return output.ToArray();
     }
-    public static void WriteToHiddenSignalsFile(SettingsModel sm)
+    public static void WriteToHiddenSignalsFile(string[] hidden_signals)
     {
       if (!Directory.Exists("Settings"))
         Directory.CreateDirectory("Settings");
 
       StreamWriter sw = new StreamWriter("Settings\\hiddensignals.txt");
-      for (int x = 0; x < sm.HiddenSignals.Count; x++)
+      for (int x = 0; x < hidden_signals.Length; x++)
       {
-        sw.WriteLine(sm.HiddenSignals[x]);
+        sw.WriteLine(hidden_signals[x]);
       }
       sw.Close();
     }

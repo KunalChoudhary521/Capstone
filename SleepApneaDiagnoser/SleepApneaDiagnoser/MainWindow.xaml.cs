@@ -350,9 +350,9 @@ namespace SleepApneaDiagnoser
       else // Derivative Signal
       {
         // Get Signals
-        string[] deriv_info = sm.DerivedSignals.Find(temp => temp[0] == Signal);
-        EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[1].Trim());
-        EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[2].Trim());
+        DerivativeSignal deriv_info = sm.DerivedSignals.Find(temp => temp.DerivativeName == Signal);
+        EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal1Name.Trim());
+        EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal2Name.Trim());
 
         // Get Arrays and Perform Resampling if needed
         List<float> values1;
@@ -1819,9 +1819,8 @@ namespace SleepApneaDiagnoser
       Dialog_Manage_Categories dlg = new Dialog_Manage_Categories(p_window,
                                                                   this,
                                                                   sm.SignalCategories.ToArray(),
-                                                                  sm.SignalCategoryContents.Select(temp => temp.ToArray()).ToArray(),
-                                                                  LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray(),
-                                                                  sm.DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+                                                                  AllSignals.ToArray()
+                                                                  );
       p_window.ShowMetroDialogAsync(dlg);
     }
     /// <summary>
@@ -1829,11 +1828,10 @@ namespace SleepApneaDiagnoser
     /// </summary>
     /// <param name="categories"> A list of categories </param>
     /// <param name="categories_signals"> A list of signals belonging to those categories </param>
-    public void ManageCategoriesOutput(string[] categories, List<List<string>> categories_signals)
+    public void ManageCategoriesOutput(SignalCategory[] categories)
     {
       PreviewCurrentCategory = -1;
       sm.SignalCategories = categories.ToList();
-      sm.SignalCategoryContents = categories_signals;
     }
 
     /// <summary>
@@ -1843,8 +1841,9 @@ namespace SleepApneaDiagnoser
     {
       Dialog_Add_Derivative dlg = new Dialog_Add_Derivative(p_window,
                                                             this,
-                                                            LoadedEDFFile.Header.Signals.Select(temp => temp.Label.Trim()).ToArray(),
-                                                            sm.DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+                                                            EDFAllSignals.ToArray(),
+                                                            AllSignals.ToArray()
+                                                            );
       p_window.ShowMetroDialogAsync(dlg);
     }
     /// <summary>
@@ -1855,8 +1854,7 @@ namespace SleepApneaDiagnoser
     /// <param name="signal2"> The subtrahend signal </param>
     public void AddDerivativeOutput(string name, string signal1, string signal2)
     {
-      sm.DerivedSignals.Add(new string[] { name, signal1, signal2 });
-      Utils.AddToCommonDerivativesFile(name, signal1, signal2);
+      sm.DerivedSignals.Add(new DerivativeSignal(name, signal1, signal2));
 
       OnPropertyChanged(nameof(PreviewSignals));
       OnPropertyChanged(nameof(AllNonHiddenSignals));
@@ -1868,7 +1866,7 @@ namespace SleepApneaDiagnoser
     {
       Dialog_Remove_Derivative dlg = new Dialog_Remove_Derivative(p_window,
                                                                   this,
-                                                                  sm.DerivedSignals.ToArray());
+                                                                  sm.DerivedSignals.Select(temp => temp.DerivativeName).ToArray());
       p_window.ShowMetroDialogAsync(dlg);
     }
     /// <summary>
@@ -1879,9 +1877,8 @@ namespace SleepApneaDiagnoser
     {
       for (int x = 0; x < RemovedSignals.Length; x++)
       {
-        List<string[]> RemovedDerivatives = sm.DerivedSignals.FindAll(temp => temp[0].Trim() == RemovedSignals[x].Trim()).ToList();
-        sm.DerivedSignals.RemoveAll(temp => temp[0].Trim() == RemovedSignals[x].Trim());
-        Utils.RemoveFromCommonDerivativesFile(RemovedDerivatives);
+        List<DerivativeSignal> RemovedDerivatives = sm.DerivedSignals.FindAll(temp => temp.DerivativeName.Trim() == RemovedSignals[x].Trim()).ToList();
+        sm.DerivedSignals.RemoveAll(temp => RemovedDerivatives.Contains(temp));
 
         if (pm.PreviewSelectedSignals.Contains(RemovedSignals[x].Trim()))
         {
@@ -1943,22 +1940,21 @@ namespace SleepApneaDiagnoser
 
       OnPropertyChanged(nameof(PreviewSignals));
       OnPropertyChanged(nameof(AllNonHiddenSignals));
-
-      Utils.WriteToHiddenSignalsFile(sm);
     }
 
     public void WriteSettings()
     {
-      Utils.WriteToHiddenSignalsFile(sm);
-      Utils.WriteToCategoriesFile(AllSignals.ToArray(), sm);
+      Utils.WriteToDerivativesFile(sm.DerivedSignals.ToArray(), AllSignals.ToArray());
+      Utils.WriteToHiddenSignalsFile(sm.HiddenSignals.ToArray());
+      Utils.WriteToCategoriesFile(sm.SignalCategories.ToArray(), AllSignals.ToArray());
     }
     public void LoadSettings()
     {
       sm.SignalsMaxValues.Clear();
       sm.SignalsMinValues.Clear();
-      Utils.LoadHiddenSignalsFile(sm);
-      Utils.LoadCommonDerivativesFile(LoadedEDFFile, sm);
-      Utils.LoadCategoriesFile(EDFAllSignals.ToArray(), sm.DerivedSignals.ToArray(), sm);
+      sm.HiddenSignals = Utils.LoadHiddenSignalsFile().ToList();
+      sm.DerivedSignals = Utils.LoadDerivativesFile(LoadedEDFFile).ToList();
+      sm.SignalCategories = Utils.LoadCategoriesFile(AllSignals.ToArray()).ToList();
       OnPropertyChanged(nameof(PreviewSignals));
       OnPropertyChanged(nameof(AllNonHiddenSignals));
     }
@@ -2267,7 +2263,7 @@ namespace SleepApneaDiagnoser
         {
           List<string> output = new List<string>();
           output.AddRange(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray());
-          output.AddRange(sm.DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+          output.AddRange(sm.DerivedSignals.Select(temp => temp.DerivativeName.Trim()).ToArray());
           return Array.AsReadOnly(output.ToArray());
         }
         else
@@ -2294,7 +2290,7 @@ namespace SleepApneaDiagnoser
         {
           List<string> output = new List<string>();
           output.AddRange(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).Where(temp => !sm.HiddenSignals.Contains(temp)).ToArray());
-          output.AddRange(sm.DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+          output.AddRange(sm.DerivedSignals.Select(temp => temp.DerivativeName.Trim()).ToArray());
           return Array.AsReadOnly(output.ToArray());
         }
         else
@@ -2325,7 +2321,7 @@ namespace SleepApneaDiagnoser
         if (PreviewCurrentCategory == -1)
           return "All";
         else
-          return sm.SignalCategories[PreviewCurrentCategory];
+          return sm.SignalCategories[PreviewCurrentCategory].CategoryName;
       }
     }
     public ReadOnlyCollection<string> PreviewSignals
@@ -2335,12 +2331,12 @@ namespace SleepApneaDiagnoser
         if (IsEDFLoaded)
         {
           if (PreviewCurrentCategory != -1)
-            return Array.AsReadOnly(sm.SignalCategoryContents[PreviewCurrentCategory].Where(temp => !sm.HiddenSignals.Contains(temp)).ToArray());
+            return Array.AsReadOnly(sm.SignalCategories[PreviewCurrentCategory].Signals.Where(temp => !sm.HiddenSignals.Contains(temp)).ToArray());
           else
           {
             List<string> output = new List<string>();
             output.AddRange(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).Where(temp => !sm.HiddenSignals.Contains(temp)).ToArray());
-            output.AddRange(sm.DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+            output.AddRange(sm.DerivedSignals.Select(temp => temp.DerivativeName.Trim()).ToArray());
             return Array.AsReadOnly(output.ToArray());
           }
         }

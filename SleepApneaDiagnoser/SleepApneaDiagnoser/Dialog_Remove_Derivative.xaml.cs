@@ -37,12 +37,12 @@ namespace SleepApneaDiagnoser
     private MetroWindow window;
     private ModelView model;
 
-    public Dialog_Remove_Derivative(MetroWindow i_window, ModelView i_model, string[][] DerivedSignals)
+    public Dialog_Remove_Derivative(MetroWindow i_window, ModelView i_model, string[] DerivedSignals)
     {
       InitializeComponent();
 
       for (int x = 0; x < DerivedSignals.Length; x++)
-        listBox_DerivedSignals.Items.Add(DerivedSignals[x][0]);
+        listBox_DerivedSignals.Items.Add(DerivedSignals[x]);
 
       window = i_window;
       model = i_model;

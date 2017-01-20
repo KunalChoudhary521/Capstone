@@ -56,40 +56,25 @@ namespace SleepApneaDiagnoser
 
       return null;
     }
+    
+    public List<SignalCategory> categories;
 
-    public string[] categories
-    {
-      get
-      {
-        string[] output = new string[listBox_Categories.Items.Count];
-        for (int x = 0; x < output.Length; x++)
-        {
-          TextBox tb = FindDescendant<TextBox>(listBox_Categories.ItemContainerGenerator.ContainerFromIndex(x) as ListBoxItem);
-          output[x] = (x + 1).ToString() + ". " + tb.Text;
-        }
-        return output;
-      }
-    }
-    public List<List<string>> categories_signals;
-
-    private List<string> all_signals;
+    private string[] all_signals;
     private MetroWindow window;
     private ModelView model;
 
-    public Dialog_Manage_Categories(MainWindow i_window, ModelView i_model, string[] i_categories, string[][] i_categories_signals, string[] i_signals, string[] i_derivatives)
+    public Dialog_Manage_Categories(MainWindow i_window, ModelView i_model, SignalCategory[] i_categories, string[] i_allsignals)
     {
       InitializeComponent();
       VirtualizingStackPanel.SetIsVirtualizing(listBox_Categories, false);
 
-      categories_signals = i_categories_signals.ToList().Select(temp => temp.ToList()).ToList();
+      categories = i_categories.ToList();
+      all_signals = i_allsignals;
 
-      all_signals = i_signals.ToList();
-      all_signals.AddRange(i_derivatives);
-
-      for (int x = 0; x < i_categories.Length; x++)
+      for (int x = 0; x < categories.Count; x++)
       {
         TextBox tb = new TextBox();
-        tb.Text = i_categories[x].Substring(i_categories[x].IndexOf('.') + 1).Trim();
+        tb.Text = categories[x].CategoryName.Substring(categories[x].CategoryName.IndexOf('.') + 1).Trim();
         listBox_Categories.Items.Add(tb);
       }
 
@@ -103,13 +88,13 @@ namespace SleepApneaDiagnoser
       tb.Text = "New Category";
 
       listBox_Categories.Items.Add(tb);
-      categories_signals.Add(new List<string>());
+      categories.Add(new SignalCategory(tb.Text));
     }
     private void button_RemoveCategory_Click(object sender, RoutedEventArgs e)
     {
       if (listBox_Categories.SelectedItem != null)
       {
-        categories_signals.RemoveAt(listBox_Categories.SelectedIndex);
+        categories.RemoveAt(listBox_Categories.SelectedIndex);
         listBox_Categories.Items.Remove(listBox_Categories.SelectedItem);
       }
     }
@@ -122,10 +107,10 @@ namespace SleepApneaDiagnoser
       {
         listBox_Signals.SelectionChanged -= listBox_Signals_SelectionChanged;
         listBox_Signals.Items.Clear();
-        for (int x = 0; x < all_signals.Count; x++)
+        for (int x = 0; x < all_signals.Length; x++)
         {
           listBox_Signals.Items.Add(all_signals[x]);
-          if (categories_signals[u].Contains(all_signals[x]))
+          if (categories[u].Signals.Contains(all_signals[x]))
             listBox_Signals.SelectedItems.Add(all_signals[x]);
         }
         listBox_Signals.SelectionChanged += listBox_Signals_SelectionChanged;
@@ -141,15 +126,18 @@ namespace SleepApneaDiagnoser
 
       if (u != -1)
       {
-        categories_signals[u].Clear();
+        categories[u].Signals.Clear();
         for (int x = 0; x < listBox_Signals.SelectedItems.Count; x++)
-          categories_signals[u].Add(listBox_Signals.SelectedItems[x].ToString());
+          categories[u].Signals.Add(listBox_Signals.SelectedItems[x].ToString());
       }
     }
 
     private void button_Done_Click(object sender, RoutedEventArgs e)
     {
-      model.ManageCategoriesOutput(categories, categories_signals);
+      for (int x = 0; x < categories.Count; x++)
+        categories[x].CategoryName = ((TextBox)listBox_Categories.Items[x]).Text;
+
+      model.ManageCategoriesOutput(categories.ToArray());
       DialogManager.HideMetroDialogAsync(window, this);
     }
   }

@@ -172,12 +172,49 @@ namespace SleepApneaDiagnoser
     public bool CoherenceProgressRingEnabled = false;
   }
 
+  public class SignalCategory
+  {
+    public string CategoryName = "";
+    public string CategoryNameNoNumber
+    {
+      get
+      {
+        if (CategoryName.Contains('.'))
+        {
+          return CategoryName.Substring(CategoryName.IndexOf('.') + 2).Trim();
+        }
+        else
+        {
+          return CategoryName;
+        }
+      }
+    }
+    public List<string> Signals = new List<string>();
+    
+    public SignalCategory(string name)
+    {
+      CategoryName = name;
+    }
+  }
+  public class DerivativeSignal
+  {
+    public string DerivativeName;
+    public string Signal1Name;
+    public string Signal2Name;
+
+    public DerivativeSignal(string name, string signal1, string signal2)
+    {
+      DerivativeName = name;
+      Signal1Name = signal1;
+      Signal2Name = signal2;      
+    }
+  }
+
   public class SettingsModel
   {
     public bool FlyoutOpen = false;
-    public List<string> SignalCategories = new List<string>();
-    public List<List<string>> SignalCategoryContents = new List<List<string>>();
-    public List<string[]> DerivedSignals = new List<string[]>();
+    public List<SignalCategory> SignalCategories = new List<SignalCategory>();
+    public List<DerivativeSignal> DerivedSignals = new List<DerivativeSignal>();
     public List<string> HiddenSignals = new List<string>();
     public List<string[]> SignalsMinValues = new List<string[]>();
     public List<string[]> SignalsMaxValues = new List<string[]>();
