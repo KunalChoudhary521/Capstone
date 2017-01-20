@@ -218,12 +218,15 @@ namespace SleepApneaDiagnoser
     // Settings Persistence
     public static void LoadCategoriesFile(string[] EDFAllSignals, string[][] DerivedSignals, SettingsModel sm)
     {
+      if (!Directory.Exists("Settings"))
+        Directory.CreateDirectory("Settings");
+
       sm.SignalCategories.Clear();
       sm.SignalCategoryContents.Clear();
 
-      if (File.Exists("signal_categories.txt"))
+      if (File.Exists("Settings\\signal_categories.txt"))
       {
-        StreamReader sr = new StreamReader("signal_categories.txt");
+        StreamReader sr = new StreamReader("Settings\\signal_categories.txt");
         string[] text = sr.ReadToEnd().Replace("\r\n", "\n").Split('\n');
 
         for (int x = 0; x < text.Length; x++)
@@ -253,12 +256,15 @@ namespace SleepApneaDiagnoser
     }
     public static void WriteToCategoriesFile(string[] AllSignals, SettingsModel sm)
     {
+      if (!Directory.Exists("Settings"))
+        Directory.CreateDirectory("Settings");
+
       List<string> temp_SignalCategories = new List<string>();
       List<List<string>> temp_SignalCategoriesContents = new List<List<string>>();
 
-      if (File.Exists("signal_categories.txt"))
+      if (File.Exists("Settings\\signal_categories.txt"))
       {
-        StreamReader sr = new StreamReader("signal_categories.txt");
+        StreamReader sr = new StreamReader("Settings\\signal_categories.txt");
         string[] text = sr.ReadToEnd().Replace("\r\n", "\n").Split('\n');
 
         for (int x = 0; x < text.Length; x++)
@@ -304,7 +310,7 @@ namespace SleepApneaDiagnoser
         }
       }
 
-      StreamWriter sw = new StreamWriter("signal_categories.txt");
+      StreamWriter sw = new StreamWriter("Settings\\signal_categories.txt");
       for (int x = 0; x < temp_SignalCategories.Count; x++)
       {
         string line = temp_SignalCategories[x].Trim();
@@ -320,10 +326,13 @@ namespace SleepApneaDiagnoser
     }
     public static void LoadCommonDerivativesFile(EDFFile LoadedEDFFile, SettingsModel sm)
     {
+      if (!Directory.Exists("Settings"))
+        Directory.CreateDirectory("Settings");
+
       sm.DerivedSignals.Clear();
-      if (File.Exists("common_derivatives.txt"))
+      if (File.Exists("Settings\\common_derivatives.txt"))
       {
-        List<string> text = new StreamReader("common_derivatives.txt").ReadToEnd().Replace("\r\n", "\n").Split('\n').ToList();
+        List<string> text = new StreamReader("Settings\\common_derivatives.txt").ReadToEnd().Replace("\r\n", "\n").Split('\n').ToList();
         for (int x = 0; x < text.Count; x++)
         {
           string[] new_entry = text[x].Split(',');
@@ -349,15 +358,21 @@ namespace SleepApneaDiagnoser
     }
     public static void AddToCommonDerivativesFile(string name, string signal1, string signal2)
     {
-      StreamWriter sw = new StreamWriter("common_derivatives.txt", true);
+      if (!Directory.Exists("Settings"))
+        Directory.CreateDirectory("Settings");
+
+      StreamWriter sw = new StreamWriter("Settings\\common_derivatives.txt", true);
       sw.WriteLine(name + "," + signal1 + "," + signal2);
       sw.Close();
     }
     public static void RemoveFromCommonDerivativesFile(List<string[]> signals)
     {
-      if (File.Exists("common_derivatives.txt"))
+      if (!Directory.Exists("Settings"))
+        Directory.CreateDirectory("Settings");
+
+      if (File.Exists("Settings\\common_derivatives.txt"))
       {
-        StreamReader sr = new StreamReader("common_derivatives.txt");
+        StreamReader sr = new StreamReader("Settings\\common_derivatives.txt");
         List<string> text = sr.ReadToEnd().Split('\n').ToList();
         sr.Close();
         for (int x = 0; x < text.Count; x++)
@@ -372,7 +387,7 @@ namespace SleepApneaDiagnoser
           }
         }
 
-        StreamWriter sw = new StreamWriter("common_derivatives.txt");
+        StreamWriter sw = new StreamWriter("Settings\\common_derivatives.txt");
         for (int x = 0; x < text.Count; x++)
         {
           sw.WriteLine(text[x].Trim());
@@ -382,10 +397,13 @@ namespace SleepApneaDiagnoser
     }
     public static void LoadHiddenSignalsFile(SettingsModel sm)
     {
+      if (!Directory.Exists("Settings"))
+        Directory.CreateDirectory("Settings");
+
       sm.HiddenSignals.Clear();
-      if (File.Exists("hiddensignals.txt"))
+      if (File.Exists("Settings\\hiddensignals.txt"))
       {
-        StreamReader sr = new StreamReader("hiddensignals.txt");
+        StreamReader sr = new StreamReader("Settings\\hiddensignals.txt");
         sm.HiddenSignals = sr.ReadToEnd().Replace("\r\n", "\n").Split('\n').ToList();
         sm.HiddenSignals = sm.HiddenSignals.Select(temp => temp.Trim()).Where(temp => temp != "").ToList();
         sr.Close();
@@ -393,7 +411,10 @@ namespace SleepApneaDiagnoser
     }
     public static void WriteToHiddenSignalsFile(SettingsModel sm)
     {
-      StreamWriter sw = new StreamWriter("hiddensignals.txt");
+      if (!Directory.Exists("Settings"))
+        Directory.CreateDirectory("Settings");
+
+      StreamWriter sw = new StreamWriter("Settings\\hiddensignals.txt");
       for (int x = 0; x < sm.HiddenSignals.Count; x++)
       {
         sw.WriteLine(sm.HiddenSignals[x]);

@@ -155,10 +155,6 @@ namespace SleepApneaDiagnoser
     {
       model.WriteSettings();
     }
-    private void button_Settings_Click(object sender, RoutedEventArgs e)
-    {
-      model.OpenCloseSettings();
-    }
 
     // Home Tab Events
     private void TextBlock_OpenEDF_Click(object sender, RoutedEventArgs e)
@@ -407,9 +403,12 @@ namespace SleepApneaDiagnoser
     /// </summary>
     private ProgressDialogController controller;
     /// <summary>
-    /// Background task that updates the progress bar
+    /// The background worker that runs the task that updates the progress bar value
     /// </summary>
     private BackgroundWorker bw_progressbar = new BackgroundWorker();
+    /// <summary>
+    /// Background task that updates the progress bar
+    /// </summary>
     private void BW_LoadEDFFileUpDateProgress(object sender, DoWorkEventArgs e)
     {
       long process_start = Process.GetCurrentProcess().PagedMemorySize64;
@@ -485,6 +484,9 @@ namespace SleepApneaDiagnoser
 
     /********************************************************* PREVIEW TAB **********************************************************/
 
+    /// <summary>
+    /// In the preview tab, displays signals belonging to the next category
+    /// </summary>
     public void NextCategory()
     {
       if (PreviewCurrentCategory == sm.SignalCategories.Count - 1)
@@ -492,6 +494,9 @@ namespace SleepApneaDiagnoser
       else
         PreviewCurrentCategory++;
     }
+    /// <summary>
+    /// In the preview tab, displays signals belonging to the previous category
+    /// </summary>
     public void PreviousCategory()
     {
       if (PreviewCurrentCategory == -1)
@@ -1328,7 +1333,6 @@ namespace SleepApneaDiagnoser
         p_window.ShowMessageAsync("Error", "File could not be opened.");
       }
     }
-
     private void BW_EEGAnalysisBin(string Signal, List<float> values, out double? min_y, out double? max_y, DateTime epochs_from, DateTime epochs_to, float sample_period)
     {
       // Variable To Return
@@ -1799,13 +1803,17 @@ namespace SleepApneaDiagnoser
 
     /***************************************************** SETTINGS FLYOUT **********************************************************/
 
-    // Open/Close Settings Menu
+    /// <summary>
+    /// Opens and Closes the Settings menu
+    /// </summary>
     public void OpenCloseSettings()
     {
       FlyoutOpen = !FlyoutOpen;
     }
 
-    // Signal Category Management
+    /// <summary>
+    /// Opens the Signal Category Management Wizard
+    /// </summary>
     public void ManageCategories()
     {
       Dialog_Manage_Categories dlg = new Dialog_Manage_Categories(p_window,
@@ -1816,6 +1824,11 @@ namespace SleepApneaDiagnoser
                                                                   sm.DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
       p_window.ShowMetroDialogAsync(dlg);
     }
+    /// <summary>
+    /// The Signal Category Management Wizard calls this function to return user input
+    /// </summary>
+    /// <param name="categories"> A list of categories </param>
+    /// <param name="categories_signals"> A list of signals belonging to those categories </param>
     public void ManageCategoriesOutput(string[] categories, List<List<string>> categories_signals)
     {
       PreviewCurrentCategory = -1;
@@ -1823,7 +1836,9 @@ namespace SleepApneaDiagnoser
       sm.SignalCategoryContents = categories_signals;
     }
 
-    // Derivative Management
+    /// <summary>
+    /// Opens the Add Derivative Signal Wizard
+    /// </summary>
     public void AddDerivative()
     {
       Dialog_Add_Derivative dlg = new Dialog_Add_Derivative(p_window,
@@ -1832,6 +1847,12 @@ namespace SleepApneaDiagnoser
                                                             sm.DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
       p_window.ShowMetroDialogAsync(dlg);
     }
+    /// <summary>
+    /// The Add Derivative Signal Wizard call this function to return user input
+    /// </summary>
+    /// <param name="name"> The name of the new derivative signal </param>
+    /// <param name="signal1"> The minuend signal </param>
+    /// <param name="signal2"> The subtrahend signal </param>
     public void AddDerivativeOutput(string name, string signal1, string signal2)
     {
       sm.DerivedSignals.Add(new string[] { name, signal1, signal2 });
@@ -1840,6 +1861,9 @@ namespace SleepApneaDiagnoser
       OnPropertyChanged(nameof(PreviewSignals));
       OnPropertyChanged(nameof(AllNonHiddenSignals));
     }
+    /// <summary>
+    /// Opens the Remove Derivative Signal Wizard
+    /// </summary>
     public void RemoveDerivative()
     {
       Dialog_Remove_Derivative dlg = new Dialog_Remove_Derivative(p_window,
@@ -1847,6 +1871,10 @@ namespace SleepApneaDiagnoser
                                                                   sm.DerivedSignals.ToArray());
       p_window.ShowMetroDialogAsync(dlg);
     }
+    /// <summary>
+    /// The Remove Derivative Signal Wizard call this function to return user input
+    /// </summary>
+    /// <param name="RemovedSignals"> An entry for every derivative signal to remove </param>
     public void RemoveDerivativeOutput(string[] RemovedSignals)
     {
       for (int x = 0; x < RemovedSignals.Length; x++)
@@ -1869,7 +1897,9 @@ namespace SleepApneaDiagnoser
       OnPropertyChanged(nameof(AllNonHiddenSignals));
     }
 
-    // Hidden Signal Management
+    /// <summary>
+    /// Calls the Hide/Unhide Signals Wizard
+    /// </summary>
     public void HideSignals()
     {
       bool[] input = new bool[EDFAllSignals.Count];
@@ -1887,6 +1917,10 @@ namespace SleepApneaDiagnoser
                                                         input);
       p_window.ShowMetroDialogAsync(dlg);
     }
+    /// <summary>
+    /// The Hide/Unhide Signals Wizard calls this function to return user inpout
+    /// </summary>
+    /// <param name="hide_signals_new"> An array with an entry for all EDF Signals. True means hide signal, false means show signal </param>
     public void HideSignalsOutput(bool[] hide_signals_new)
     {
       for (int x = 0; x < hide_signals_new.Length; x++)
@@ -1920,6 +1954,8 @@ namespace SleepApneaDiagnoser
     }
     public void LoadSettings()
     {
+      sm.SignalsMaxValues.Clear();
+      sm.SignalsMinValues.Clear();
       Utils.LoadHiddenSignalsFile(sm);
       Utils.LoadCommonDerivativesFile(LoadedEDFFile, sm);
       Utils.LoadCategoriesFile(EDFAllSignals.ToArray(), sm.DerivedSignals.ToArray(), sm);
@@ -2004,9 +2040,6 @@ namespace SleepApneaDiagnoser
         CoherencePlot = null;
         CoherenceEDFDuration = null;
         CoherenceEDFStartRecord = null;
-
-        p_SignalsMinValues = new List<string[]>();
-        p_SignalsMaxValues = new List<string[]>();
       }
       else
       {
@@ -2029,9 +2062,6 @@ namespace SleepApneaDiagnoser
         CoherencePlot = null;
         CoherenceEDFDuration = 1;
         CoherenceEDFStartRecord = 0;
-
-        p_SignalsMinValues = new List<string[]>();
-        p_SignalsMaxValues = new List<string[]>();
       }
       OnPropertyChanged(nameof(PreviewNavigationEnabled));
 
@@ -2894,11 +2924,14 @@ namespace SleepApneaDiagnoser
     {
       get
       {
+        if (!Directory.Exists("Settings"))
+          Directory.CreateDirectory("Settings");
+
         string[] value = null;
 
-        if (File.Exists("recent.txt"))
+        if (File.Exists("Settings\\recent.txt"))
         {
-          StreamReader sr = new StreamReader("recent.txt");
+          StreamReader sr = new StreamReader("Settings\\recent.txt");
           string[] text = sr.ReadToEnd().Split('\n');
           List<string> values = new List<string>();
           for (int x = 0; x < text.Length; x++)
@@ -2918,11 +2951,14 @@ namespace SleepApneaDiagnoser
     }
     public void RecentFiles_Add(string path)
     {
+      if (!Directory.Exists("Settings"))
+        Directory.CreateDirectory("Settings");
+
       List<string> array = RecentFiles.ToArray().ToList();
       array.Insert(0, path);
       array = array.Distinct().ToList();
 
-      StreamWriter sw = new StreamWriter("recent.txt");
+      StreamWriter sw = new StreamWriter("Settings\\recent.txt");
       for (int x = 0; x < array.Count; x++)
       {
         sw.WriteLine(array[x]);
@@ -2933,11 +2969,14 @@ namespace SleepApneaDiagnoser
     }
     public void RecentFiles_Remove(string path)
     {
+      if (!Directory.Exists("Settings"))
+        Directory.CreateDirectory("Settings");
+
       List<string> array = RecentFiles.ToArray().ToList();
       array.Remove(path);
       array = array.Distinct().ToList();
 
-      StreamWriter sw = new StreamWriter("recent.txt");
+      StreamWriter sw = new StreamWriter("Settings\\recent.txt");
       for (int x = 0; x < array.Count; x++)
       {
         sw.WriteLine(array[x]);
