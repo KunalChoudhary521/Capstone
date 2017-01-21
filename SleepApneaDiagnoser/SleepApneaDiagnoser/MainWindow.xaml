@@ -50,7 +50,7 @@
     </mtr:MetroWindow.Flyouts>
 
     <Grid Margin="0,0,0,0">
-        <TabControl Margin="10,10,10,30" FocusVisualStyle="{x:Null}">
+        <TabControl Margin="10" FocusVisualStyle="{x:Null}">
 
             <mtr:MetroTabItem Header="Home" Height="40">
                 <Grid>
