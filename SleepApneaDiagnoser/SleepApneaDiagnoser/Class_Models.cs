@@ -209,6 +209,34 @@ namespace SleepApneaDiagnoser
       Signal2Name = signal2;      
     }
   }
+  public class SignalYAxisExtremes
+  {
+    public string SignalName = "";
+    public double yMax = Double.NaN;
+    public double yMin = Double.NaN;
+
+    public SignalYAxisExtremes(string name)
+    {
+      SignalName = name;
+    }
+  }
+  public class FilteredSignal
+  {
+    public static int LEFT_SIDED = -1;
+    public static int RIGHT_SIDED = 1;
+
+    public string SignalName = "";
+
+    public bool LowPass_Enabled = false;
+    public float LowPassCutoff = 0;
+
+    public bool HighPass_Enabled = false;
+    public float HighPassCutoff = 0;
+
+    public bool WeightedAverage_Enabled = false;
+    public int WeightedAverage_Direction = 0;
+    public int WeightedAverage_Length = 0;
+  }
 
   public class SettingsModel
   {
@@ -216,7 +244,7 @@ namespace SleepApneaDiagnoser
     public List<SignalCategory> SignalCategories = new List<SignalCategory>();
     public List<DerivativeSignal> DerivedSignals = new List<DerivativeSignal>();
     public List<string> HiddenSignals = new List<string>();
-    public List<string[]> SignalsMinValues = new List<string[]>();
-    public List<string[]> SignalsMaxValues = new List<string[]>();
+    public List<SignalYAxisExtremes> SignalsYAxisExtremes = new List<SignalYAxisExtremes>();
+    public List<FilteredSignal> FilteredSignals = new List<FilteredSignal>();
   }
 }

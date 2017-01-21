@@ -41,8 +41,8 @@
                         <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,74,0,556" HorizontalContentAlignment="Left" Content="    Hide/Unhide EDF Signals" Height="37" Click="button_HideSignals_Click"/>
                         <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,111,0,519" HorizontalContentAlignment="Left" Content="    Add Derivative" Height="37" Click="button_AddDerivative_Click"/>
                         <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,148,0,482" HorizontalContentAlignment="Left" Content="    Remove Derivative" Height="37" Click="button_RemoveDerivative_Click"/>
-                        <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,185,0,445" HorizontalContentAlignment="Left" Content="    Add Filtered Signal" Height="37"/>
-                        <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,222,0,408" HorizontalContentAlignment="Left" Content="    Remove Filtered Signal" Height="37"/>
+                        <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,185,0,445" HorizontalContentAlignment="Left" Content="    Add Filtered Signal" Height="37" Click="button_AddFilter_Click"/>
+                        <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,222,0,408" HorizontalContentAlignment="Left" Content="    Remove Filtered Signal" Height="37" Click="button_RemoveFilter_Click"/>
                     </Grid>
                 </StackPanel>
             </mtr:Flyout>

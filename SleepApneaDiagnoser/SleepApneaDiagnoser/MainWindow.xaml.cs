@@ -225,6 +225,14 @@ namespace SleepApneaDiagnoser
       model.OpenCloseSettings();
       model.ManageCategories();
     }
+    private void button_AddFilter_Click(object sender, RoutedEventArgs e)
+    {
+      model.AddFilter();
+    }
+    private void button_RemoveFilter_Click(object sender, RoutedEventArgs e)
+    {
+      model.RemoveFilter();
+    }
 
     // Preview Tab Events   
     private void listBox_SignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -1886,8 +1894,7 @@ namespace SleepApneaDiagnoser
         }
 
         // Remove Potentially Saved Min/Max Values
-        sm.SignalsMaxValues.RemoveAll(temp => temp[0].Trim() == RemovedSignals[x].Trim());
-        sm.SignalsMinValues.RemoveAll(temp => temp[0].Trim() == RemovedSignals[x].Trim());
+        sm.SignalsYAxisExtremes.RemoveAll(temp => temp.SignalName.Trim() == RemovedSignals[x].Trim());
       }
 
       OnPropertyChanged(nameof(PreviewSignals));
@@ -1942,6 +1949,35 @@ namespace SleepApneaDiagnoser
       OnPropertyChanged(nameof(AllNonHiddenSignals));
     }
 
+    /// <summary>
+    /// Call the Add Filtered Signal Wizard
+    /// </summary>
+    public void AddFilter()
+    {
+
+    }
+    /// <summary>
+    /// The Add Filtered Signal Wizard calls this function to return user input
+    /// </summary>
+    public void AddFilterOutput()
+    {
+
+    }
+    /// <summary>
+    /// Calls the Remove Filtered Signal Wizard.
+    /// </summary>
+    public void RemoveFilter()
+    {
+
+    }
+    /// <summary>
+    /// The Remove Filtered Signal Wizard calls this function to return user input.
+    /// </summary>
+    public void RemoveFilterOutput()
+    {
+
+    }
+
     public void WriteSettings()
     {
       Utils.WriteToDerivativesFile(sm.DerivedSignals.ToArray(), AllSignals.ToArray());
@@ -1950,8 +1986,7 @@ namespace SleepApneaDiagnoser
     }
     public void LoadSettings()
     {
-      sm.SignalsMaxValues.Clear();
-      sm.SignalsMinValues.Clear();
+      sm.SignalsYAxisExtremes.Clear();
       sm.HiddenSignals = Utils.LoadHiddenSignalsFile().ToList();
       sm.DerivedSignals = Utils.LoadDerivativesFile(LoadedEDFFile).ToList();
       sm.SignalCategories = Utils.LoadCategoriesFile(AllSignals.ToArray()).ToList();
@@ -2985,10 +3020,20 @@ namespace SleepApneaDiagnoser
     // Signal Y Axis Extremes
     private double? GetMaxSignalValue(string Signal, List<float> values)
     {
-      string[] find = sm.SignalsMaxValues.Find(temp => temp[0].Trim() == Signal.Trim());
+      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
 
       if (find != null)
-        return Double.Parse(find[1]);
+      {
+        if (find.yMax != Double.NaN)
+          return find.yMax;
+        else
+        {
+          double? value = null;
+          value = Utils.GetPercentileValue(values.ToArray(), 99);
+          SetMaxSignalValue(Signal, value ?? 0);
+          return value;
+        }
+      }
       else
       {
         double? value = null;
@@ -2999,10 +3044,20 @@ namespace SleepApneaDiagnoser
     }
     private double? GetMinSignalValue(string Signal, List<float> values)
     {
-      string[] find = sm.SignalsMinValues.Find(temp => temp[0].Trim() == Signal.Trim());
+      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
 
       if (find != null)
-        return Double.Parse(find[1]);
+      {
+        if (find.yMin != Double.NaN)
+          return find.yMin;
+        else
+        {
+          double? value = null;
+          value = Utils.GetPercentileValue(values.ToArray(), 1);
+          SetMinSignalValue(Signal, value ?? 0);
+          return value;
+        }
+      }
       else
       {
         double? value = null;
@@ -3013,10 +3068,20 @@ namespace SleepApneaDiagnoser
     }
     private double? GetMaxSignalValue(string Signal, List<float> values1, List<float> values2)
     {
-      string[] find = sm.SignalsMaxValues.Find(temp => temp[0].Trim() == Signal.Trim());
+      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
 
       if (find != null)
-        return Double.Parse(find[1]);
+      {
+        if (find.yMax != Double.NaN)
+          return find.yMax;
+        else
+        {
+          double? value = null;
+          value = Utils.GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), 99);
+          SetMaxSignalValue(Signal, value ?? 0);
+          return value;
+        }
+      }
       else
       {
         double? value = null;
@@ -3027,10 +3092,20 @@ namespace SleepApneaDiagnoser
     }
     private double? GetMinSignalValue(string Signal, List<float> values1, List<float> values2)
     {
-      string[] find = sm.SignalsMinValues.Find(temp => temp[0].Trim() == Signal.Trim());
+      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
 
       if (find != null)
-        return Double.Parse(find[1]);
+      {
+        if (find.yMin != Double.NaN)
+          return find.yMin;
+        else
+        {
+          double? value = null;
+          value = Utils.GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), 1);
+          SetMinSignalValue(Signal, value ?? 0);
+          return value;
+        }
+      }
       else
       {
         double? value = null;
@@ -3041,25 +3116,29 @@ namespace SleepApneaDiagnoser
     }
     private void SetMaxSignalValue(string Signal, double Value)
     {
-      string[] find = sm.SignalsMaxValues.Find(temp => temp[0].Trim() == Signal.Trim());
+      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
 
       if (find != null)
       {
-        sm.SignalsMaxValues.Remove(find);
+        find.yMax = Value;
       }
-
-      sm.SignalsMaxValues.Add(new string[] { Signal.Trim(), Value.ToString() });
+      else
+      {
+        sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(Signal) { yMax = Value });
+      }
     }
     private void SetMinSignalValue(string Signal, double Value)
     {
-      string[] find = sm.SignalsMinValues.Find(temp => temp[0].Trim() == Signal.Trim());
+      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
 
       if (find != null)
       {
-        sm.SignalsMinValues.Remove(find);
+        find.yMin = Value;
       }
-
-      sm.SignalsMinValues.Add(new string[] { Signal.Trim(), Value.ToString() });
+      else
+      {
+        sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(Signal) { yMin = Value });
+      }
     }
 
     /*********************************************************************************************************************************/

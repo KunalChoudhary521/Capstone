@@ -434,5 +434,5 @@ namespace SleepApneaDiagnoser
       sw.Close();
     }
 
-    }
+   }
 }
