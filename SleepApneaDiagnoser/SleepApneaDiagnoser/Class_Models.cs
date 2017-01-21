@@ -23,6 +23,11 @@ namespace SleepApneaDiagnoser
     public List<string> PreviewSelectedSignals = new List<string>();
 
     /// <summary>
+    /// Signal to show property info for
+    /// </summary>
+    public string PreviewPropertiesSelectedSignal;
+
+    /// <summary>
     /// If true, the user selection for the start time of the plot should be date and time
     /// the user selection for the period of the plot should be in seconds
     /// If false, the user selection for the start time of the plot should be 30s epochs

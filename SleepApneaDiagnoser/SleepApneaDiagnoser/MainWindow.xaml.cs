@@ -243,15 +243,6 @@ namespace SleepApneaDiagnoser
     }
     private void comboBox_SignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-      if (comboBox_SignalSelect.SelectedValue != null)
-      {
-        EDFSignal edfsignal = model.LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == comboBox_SignalSelect.SelectedValue.ToString().Trim());
-        textBox_SampRecord.Text = ((int)((double)edfsignal.NumberOfSamplesPerDataRecord / (double)model.LoadedEDFFile.Header.DurationOfDataRecordInSeconds)).ToString();
-      }
-      else
-      {
-        textBox_SampRecord.Text = "";
-      }
     }
 
     private void toggleButton_UseAbsoluteTime_Checked(object sender, RoutedEventArgs e)
@@ -539,7 +530,7 @@ namespace SleepApneaDiagnoser
       else
         PreviewCurrentCategory--;
     }
-
+    
     /// <summary>
     /// Background process for drawing preview chart
     /// </summary>
@@ -2179,6 +2170,14 @@ namespace SleepApneaDiagnoser
     {
       CoherenceProgressRingEnabled = false;
     }
+    private void PreviewPropertiesSelectedSignal_Changed()
+    {
+      OnPropertyChanged(nameof(PreviewPropertiesSelectedSignal));
+      OnPropertyChanged(nameof(PreviewPropertiesSampleRate));
+      OnPropertyChanged(nameof(PreviewPropertiesComponentSignal));
+      OnPropertyChanged(nameof(PreviewPropertiesLowPassFilter));
+      OnPropertyChanged(nameof(PreviewPropertiesSmoothFilter));
+    }
 
     /*********************************************************** GENERAL ************************************************************/
 
@@ -2359,6 +2358,130 @@ namespace SleepApneaDiagnoser
       }
     }
 
+    // Signal Properties
+    public string PreviewPropertiesSelectedSignal
+    {
+      get
+      {
+        return pm.PreviewPropertiesSelectedSignal;
+      }
+      set
+      {
+        pm.PreviewPropertiesSelectedSignal = value;
+        PreviewPropertiesSelectedSignal_Changed();
+      }
+    }
+    public string PreviewPropertiesSampleRate
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+        {
+          string Signal = PreviewPropertiesSelectedSignal;
+
+          // Check signal type
+          FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
+          if (filteredSignal != null) Signal = filteredSignal.OriginalName;
+          EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal.Trim());
+          DerivativeSignal deriv_info = sm.DerivedSignals.Find(temp => temp.DerivativeName == Signal);
+
+          if (edfsignal != null) // Is EDF Signal
+          {
+            return ((int)((double)edfsignal.NumberOfSamplesPerDataRecord / (double)LoadedEDFFile.Header.DurationOfDataRecordInSeconds)).ToString();
+          }
+          else if (deriv_info != null) // Is Derivative Signal
+          {
+            EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal1Name.Trim());
+            EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal2Name.Trim());
+            return Math.Max(
+              ((int)((double)edfsignal1.NumberOfSamplesPerDataRecord / (double)LoadedEDFFile.Header.DurationOfDataRecordInSeconds)),
+              ((int)((double)edfsignal2.NumberOfSamplesPerDataRecord / (double)LoadedEDFFile.Header.DurationOfDataRecordInSeconds))
+              ).ToString();
+          }
+          else
+          {
+            return "";
+          }
+        }
+        else
+        {
+          return "";
+        }
+      }
+    }
+    public string PreviewPropertiesComponentSignal
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+        {
+          string Signal = PreviewPropertiesSelectedSignal;
+
+          // Check signal type
+          FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
+          EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == PreviewPropertiesSelectedSignal.Trim());
+          DerivativeSignal deriv_info = sm.DerivedSignals.Find(temp => temp.DerivativeName == Signal);
+
+          if (edfsignal != null) // Is an EDF Signal 
+            return "NA";
+          else if (filteredSignal != null) // Is a Filtered Signal 
+            return filteredSignal.OriginalName;
+          else if (deriv_info != null) // Is a Derivative Signal 
+          {
+            return "(" + deriv_info.Signal1Name + ") - (" + deriv_info.Signal1Name + ")";
+          }
+          else
+            return "";
+        }
+        else
+        {
+          return "";
+        }
+      }
+    }
+    public string PreviewPropertiesLowPassFilter
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+        {
+          // Check if this signal is a filtered signal
+          string Signal = PreviewPropertiesSelectedSignal;
+          FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
+
+          if (filteredSignal != null && filteredSignal.LowPass_Enabled)
+            return filteredSignal.LowPassCutoff.ToString("0.## Hz");
+          else
+            return "NA";
+        }
+        else
+        {
+          return "";
+        }
+      }
+    }
+    public string PreviewPropertiesSmoothFilter
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+        {
+          // Check if this signal is a filtered signal
+          string Signal = PreviewPropertiesSelectedSignal;
+          FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
+
+          if (filteredSignal != null && filteredSignal.WeightedAverage_Enabled)
+            return filteredSignal.WeightedAverage_Length.ToString("0.## ms");
+          else
+            return "NA";
+        }
+        else
+        {
+          return "";
+        }
+      }
+    }
+
     // Preview Signal Selection
     public int PreviewCurrentCategory
     {
@@ -2412,7 +2535,7 @@ namespace SleepApneaDiagnoser
 
       DrawChart();
     }
-
+    
     // Preview Plot Range
     public bool PreviewUseAbsoluteTime
     {
