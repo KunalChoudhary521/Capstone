@@ -10,6 +10,9 @@ using MathWorks.MATLAB.NET.Arrays;
 using MathWorks.MATLAB.NET.Utility;
 using MATLAB_496;
 using System.IO;
+using MathNet.Filtering.FIR;
+using MathNet.Filtering.IIR;
+using MathNet.Numerics;
 
 namespace SleepApneaDiagnoser
 {
@@ -404,6 +407,66 @@ namespace SleepApneaDiagnoser
       }
       sw.Close();
     }
+    public static FilteredSignal[] LoadFilteredSignalsFile(string[] AllSignals)
+    {
+      if (!Directory.Exists("Settings"))
+        Directory.CreateDirectory("Settings");
+
+      List<FilteredSignal> filteredSignals = new List<FilteredSignal>();
+
+      if (File.Exists("Settings\\filtered.txt"))
+      {
+        StreamReader sr = new StreamReader("Settings\\filtered.txt");
+        string[] lines = sr.ReadToEnd().Replace("\r\n", "\n").Split('\n');
+
+        for (int x = 0; x < lines.Length; x++)
+        {
+          string[] curr = lines[x].Split(',');
+
+          if (curr.Length == 6)
+          {
+            FilteredSignal fr = new FilteredSignal();
+            fr.SignalName = curr[0];
+            fr.OriginalName = curr[1];
+            fr.LowPass_Enabled = bool.Parse(curr[2]);
+            fr.LowPassCutoff = float.Parse(curr[3]);
+            fr.WeightedAverage_Enabled = bool.Parse(curr[4]);
+            fr.WeightedAverage_Length = float.Parse(curr[5]);
+
+            if (AllSignals == null || AllSignals.Contains(fr.OriginalName))
+            {
+              filteredSignals.Add(fr);
+            }
+          }
+        }
+
+        sr.Close();
+      }
+
+      return filteredSignals.ToArray();
+    }
+    public static void WriteToFilteredSignalsFile(FilteredSignal[] FilteredSignals, string[] AllSignals)
+    {
+      if (!Directory.Exists("Settings"))
+        Directory.CreateDirectory("Settings");
+
+      List<FilteredSignal> curr_filterSignals = LoadFilteredSignalsFile(null).ToList();
+      curr_filterSignals.RemoveAll(temp => AllSignals.ToList().Contains(temp.OriginalName));
+      curr_filterSignals.AddRange(FilteredSignals);
+
+      StreamWriter sw = new StreamWriter("Settings\\filtered.txt");
+      for (int x = 0; x < curr_filterSignals.Count; x++)
+      {
+        sw.WriteLine(
+          curr_filterSignals[x].SignalName + "," +
+          curr_filterSignals[x].OriginalName + "," +
+          curr_filterSignals[x].LowPass_Enabled.ToString() + "," +
+          curr_filterSignals[x].LowPassCutoff.ToString() + "," +
+          curr_filterSignals[x].WeightedAverage_Enabled.ToString() + "," +
+          curr_filterSignals[x].WeightedAverage_Length.ToString());
+      }
+      sw.Close();
+    }
     public static string[] LoadHiddenSignalsFile()
     {
       if (!Directory.Exists("Settings"))
@@ -433,6 +496,45 @@ namespace SleepApneaDiagnoser
       }
       sw.Close();
     }
+    
+    // Filters
+    public static LineSeries ApplyWeightedAverageFilter(LineSeries series, float LENGTH)
+    {
+      List<double> coeff = new List<double>();
+      float sum = 0;
+      for (int x = 0; x < LENGTH; x++)
+      {
+        coeff.Add((LENGTH - x));
+        sum += (LENGTH - x);
+      }
+      for (int x = 0; x < LENGTH; x++)
+      {
+        coeff[x] = coeff[x] / sum;
+      }
 
+      OnlineFirFilter filter = new OnlineFirFilter(coeff);
+      double[] result = filter.ProcessSamples(series.Points.Select(temp => temp.Y).ToArray());
+
+      LineSeries series_new = new LineSeries();
+      for (int x = 0; x < result.Length; x++)
+      {
+        series_new.Points.Add(new DataPoint(series.Points[x].X, result[x]));
+      }
+
+      return series_new;
+    }
+    public static LineSeries ApplyLowPassFilter(LineSeries series, float cutoff, float sample_period)
+    {
+      OnlineFirFilter filter = (OnlineFirFilter) OnlineIirFilter.CreateLowpass(MathNet.Filtering.ImpulseResponse.Finite, (double)(1 / sample_period), cutoff);
+      double[] result = filter.ProcessSamples(series.Points.Select(temp => temp.Y).ToArray());
+
+      LineSeries new_series = new LineSeries();
+      for (int x = 0; x < result.Length; x++)
+      {
+        new_series.Points.Add(new DataPoint(series.Points[x].X, result[x]));
+      }
+
+      return new_series;
+    }
    }
 }

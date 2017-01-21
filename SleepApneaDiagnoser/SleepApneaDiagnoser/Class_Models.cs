@@ -222,20 +222,14 @@ namespace SleepApneaDiagnoser
   }
   public class FilteredSignal
   {
-    public static int LEFT_SIDED = -1;
-    public static int RIGHT_SIDED = 1;
-
     public string SignalName = "";
+    public string OriginalName = "";
 
     public bool LowPass_Enabled = false;
     public float LowPassCutoff = 0;
-
-    public bool HighPass_Enabled = false;
-    public float HighPassCutoff = 0;
-
+    
     public bool WeightedAverage_Enabled = false;
-    public int WeightedAverage_Direction = 0;
-    public int WeightedAverage_Length = 0;
+    public float WeightedAverage_Length = 0;
   }
 
   public class SettingsModel

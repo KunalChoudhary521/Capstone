@@ -227,10 +227,12 @@ namespace SleepApneaDiagnoser
     }
     private void button_AddFilter_Click(object sender, RoutedEventArgs e)
     {
+      model.OpenCloseSettings();
       model.AddFilter();
     }
     private void button_RemoveFilter_Click(object sender, RoutedEventArgs e)
     {
+      model.OpenCloseSettings();
       model.RemoveFilter();
     }
 
@@ -334,7 +336,17 @@ namespace SleepApneaDiagnoser
       // Variable To Return
       LineSeries series = new LineSeries();
 
-      if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal.Trim()) != null) // Normal EDF Signal
+      // Check if this signal needs filtering 
+      bool filter = false;
+      FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
+      if (filteredSignal != null)
+      {
+        filter = true;
+        Signal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal).OriginalName;
+      }
+
+      // Get Signal
+      if (EDFAllSignals.Contains(Signal))
       {
         // Get Signal
         EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal);
@@ -393,6 +405,21 @@ namespace SleepApneaDiagnoser
         for (int y = 0; y < Math.Min(values1.Count, values2.Count); y++)
         {
           series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(StartTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values1[y] - values2[y]));
+        }
+      }
+
+      if (filter == true)
+      {
+        if (filteredSignal.LowPass_Enabled)
+        {
+          series = Utils.ApplyLowPassFilter(series, filteredSignal.LowPassCutoff, sample_period);
+        }
+        if (filteredSignal.WeightedAverage_Enabled)
+        {
+          float LENGTH;
+          LENGTH = Math.Max(filteredSignal.WeightedAverage_Length / (sample_period * 1000), 1);
+            
+          series = Utils.ApplyWeightedAverageFilter(series, LENGTH);
         }
       }
 
@@ -1887,12 +1914,7 @@ namespace SleepApneaDiagnoser
       {
         List<DerivativeSignal> RemovedDerivatives = sm.DerivedSignals.FindAll(temp => temp.DerivativeName.Trim() == RemovedSignals[x].Trim()).ToList();
         sm.DerivedSignals.RemoveAll(temp => RemovedDerivatives.Contains(temp));
-
-        if (pm.PreviewSelectedSignals.Contains(RemovedSignals[x].Trim()))
-        {
-          pm.PreviewSelectedSignals.Remove(RemovedSignals[x].Trim());
-        }
-
+        
         // Remove Potentially Saved Min/Max Values
         sm.SignalsYAxisExtremes.RemoveAll(temp => temp.SignalName.Trim() == RemovedSignals[x].Trim());
       }
@@ -1954,33 +1976,58 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public void AddFilter()
     {
+      Dialog_Add_Filter dlg = new Dialog_Add_Filter(p_window,
+                                                            this,
+                                                            EDFAllSignals.ToArray(),
+                                                            sm.DerivedSignals.Select(temp => temp.DerivativeName).ToArray(),
+                                                            AllSignals.ToArray()
+                                                            );
+      p_window.ShowMetroDialogAsync(dlg);
 
     }
     /// <summary>
     /// The Add Filtered Signal Wizard calls this function to return user input
     /// </summary>
-    public void AddFilterOutput()
+    public void AddFilterOutput(FilteredSignal filteredSignal)
     {
+      sm.FilteredSignals.Add(filteredSignal);
 
+      OnPropertyChanged(nameof(PreviewSignals));
+      OnPropertyChanged(nameof(AllNonHiddenSignals));
     }
     /// <summary>
     /// Calls the Remove Filtered Signal Wizard.
     /// </summary>
     public void RemoveFilter()
     {
-
+      Dialog_Remove_Filter dlg = new Dialog_Remove_Filter(p_window,
+                                                          this,
+                                                          sm.FilteredSignals.Select(temp => temp.SignalName).ToArray());
+      p_window.ShowMetroDialogAsync(dlg);
     }
     /// <summary>
     /// The Remove Filtered Signal Wizard calls this function to return user input.
     /// </summary>
-    public void RemoveFilterOutput()
+    public void RemoveFilterOutput(string[] RemovedSignals)
     {
+      for (int x = 0; x < RemovedSignals.Length; x++)
+      {
+        List<FilteredSignal> RemovedFilters = sm.FilteredSignals.FindAll(temp => temp.SignalName.Trim() == RemovedSignals[x].Trim()).ToList();
+        sm.FilteredSignals.RemoveAll(temp => RemovedFilters.Contains(temp));
+        
+        // Remove Potentially Saved Min/Max Values
+        sm.SignalsYAxisExtremes.RemoveAll(temp => temp.SignalName.Trim() == RemovedSignals[x].Trim());
+      }
+
+      OnPropertyChanged(nameof(PreviewSignals));
+      OnPropertyChanged(nameof(AllNonHiddenSignals));
 
     }
 
     public void WriteSettings()
     {
       Utils.WriteToDerivativesFile(sm.DerivedSignals.ToArray(), AllSignals.ToArray());
+      Utils.WriteToFilteredSignalsFile(sm.FilteredSignals.ToArray(), AllSignals.ToArray());
       Utils.WriteToHiddenSignalsFile(sm.HiddenSignals.ToArray());
       Utils.WriteToCategoriesFile(sm.SignalCategories.ToArray(), AllSignals.ToArray());
     }
@@ -1989,6 +2036,7 @@ namespace SleepApneaDiagnoser
       sm.SignalsYAxisExtremes.Clear();
       sm.HiddenSignals = Utils.LoadHiddenSignalsFile().ToList();
       sm.DerivedSignals = Utils.LoadDerivativesFile(LoadedEDFFile).ToList();
+      sm.FilteredSignals = Utils.LoadFilteredSignalsFile(AllSignals.ToArray()).ToList();
       sm.SignalCategories = Utils.LoadCategoriesFile(AllSignals.ToArray()).ToList();
       OnPropertyChanged(nameof(PreviewSignals));
       OnPropertyChanged(nameof(AllNonHiddenSignals));
@@ -2299,6 +2347,7 @@ namespace SleepApneaDiagnoser
           List<string> output = new List<string>();
           output.AddRange(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray());
           output.AddRange(sm.DerivedSignals.Select(temp => temp.DerivativeName.Trim()).ToArray());
+          output.AddRange(sm.FilteredSignals.Select(temp => temp.SignalName));
           return Array.AsReadOnly(output.ToArray());
         }
         else
@@ -2324,8 +2373,7 @@ namespace SleepApneaDiagnoser
         if (IsEDFLoaded)
         {
           List<string> output = new List<string>();
-          output.AddRange(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).Where(temp => !sm.HiddenSignals.Contains(temp)).ToArray());
-          output.AddRange(sm.DerivedSignals.Select(temp => temp.DerivativeName.Trim()).ToArray());
+          output.AddRange(AllSignals.Where(temp => !(EDFAllSignals.Contains(temp) && sm.HiddenSignals.Contains(temp))).ToArray());
           return Array.AsReadOnly(output.ToArray());
         }
         else
@@ -2370,8 +2418,7 @@ namespace SleepApneaDiagnoser
           else
           {
             List<string> output = new List<string>();
-            output.AddRange(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).Where(temp => !sm.HiddenSignals.Contains(temp)).ToArray());
-            output.AddRange(sm.DerivedSignals.Select(temp => temp.DerivativeName.Trim()).ToArray());
+            output.AddRange(AllNonHiddenSignals.Where(temp => !sm.HiddenSignals.Contains(temp)).ToArray());
             return Array.AsReadOnly(output.ToArray());
           }
         }
