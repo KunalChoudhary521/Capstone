@@ -867,23 +867,11 @@ namespace SleepApneaDiagnoser
         bias += average / (double)series.Points.Count;
       }
 
-      // Weighted Running Average (Smoothing) and Normalization
+      // Normalization
       LineSeries series_norm = new LineSeries();
-      int LENGTH = (int)(0.05 / sample_period) * 2;
-      LENGTH = Math.Max(1, LENGTH);
       for (int x = 0; x < series.Points.Count; x++)
       {
-        double sum = 0;
-        double weight_sum = 0;
-        for (int y = -LENGTH / 2; y <= LENGTH / 2; y++)
-        {
-          double weight = (LENGTH / 2 + 1) - Math.Abs(y);
-          weight_sum += weight;
-          sum += weight * series.Points[Math.Min(series.Points.Count - 1, Math.Max(0, x - y))].Y;
-        }
-        double average = sum / weight_sum;
-
-        series_norm.Points.Add(new DataPoint(series.Points[x].X, average - bias));
+        series_norm.Points.Add(new DataPoint(series.Points[x].X, series.Points[x].Y - bias));
       }
 
       // Find Peaks and Zero Crossings
@@ -1098,23 +1086,11 @@ namespace SleepApneaDiagnoser
         bias += average / (double)series.Points.Count;
       }
 
-      // Weighted Running Average (Smoothing) and Normalization
+      // Normalization
       LineSeries series_norm = new LineSeries();
-      int LENGTH = (int)(0.05 / sample_period) * 2;
-      LENGTH = Math.Max(1, LENGTH);
       for (int x = 0; x < series.Points.Count; x++)
       {
-        double sum = 0;
-        double weight_sum = 0;
-        for (int y = -LENGTH / 2; y <= LENGTH / 2; y++)
-        {
-          double weight = (LENGTH / 2 + 1) - Math.Abs(y);
-          weight_sum += weight;
-          sum += weight * series.Points[Math.Min(series.Points.Count - 1, Math.Max(0, x - y))].Y;
-        }
-        double average = sum / weight_sum;
-
-        series_norm.Points.Add(new DataPoint(series.Points[x].X, average - bias));
+        series_norm.Points.Add(new DataPoint(series.Points[x].X, series.Points[x].Y - bias));
       }
 
       // Find Peaks and Zero Crossings
@@ -3065,18 +3041,20 @@ namespace SleepApneaDiagnoser
     }
 
     // Signal Y Axis Extremes
+    private int percent_high = 99;
+    private int percent_low = 1;
     private double? GetMaxSignalValue(string Signal, List<float> values)
     {
       SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
 
       if (find != null)
       {
-        if (find.yMax != Double.NaN)
+        if (!Double.IsNaN(find.yMax))
           return find.yMax;
         else
         {
           double? value = null;
-          value = Utils.GetPercentileValue(values.ToArray(), 99);
+          value = Utils.GetPercentileValue(values.ToArray(), percent_high);
           SetMaxSignalValue(Signal, value ?? 0);
           return value;
         }
@@ -3084,7 +3062,7 @@ namespace SleepApneaDiagnoser
       else
       {
         double? value = null;
-        value = Utils.GetPercentileValue(values.ToArray(), 99);
+        value = Utils.GetPercentileValue(values.ToArray(), percent_high);
         SetMaxSignalValue(Signal, value ?? 0);
         return value;
       }
@@ -3095,12 +3073,12 @@ namespace SleepApneaDiagnoser
 
       if (find != null)
       {
-        if (find.yMin != Double.NaN)
+        if (!Double.IsNaN(find.yMin))
           return find.yMin;
         else
         {
           double? value = null;
-          value = Utils.GetPercentileValue(values.ToArray(), 1);
+          value = Utils.GetPercentileValue(values.ToArray(), percent_low);
           SetMinSignalValue(Signal, value ?? 0);
           return value;
         }
@@ -3108,7 +3086,7 @@ namespace SleepApneaDiagnoser
       else
       {
         double? value = null;
-        value = Utils.GetPercentileValue(values.ToArray(), 1);
+        value = Utils.GetPercentileValue(values.ToArray(), percent_low);
         SetMinSignalValue(Signal, value ?? 0);
         return value;
       }
@@ -3119,12 +3097,12 @@ namespace SleepApneaDiagnoser
 
       if (find != null)
       {
-        if (find.yMax != Double.NaN)
+        if (!Double.IsNaN(find.yMax))
           return find.yMax;
         else
         {
           double? value = null;
-          value = Utils.GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), 99);
+          value = Utils.GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), percent_high);
           SetMaxSignalValue(Signal, value ?? 0);
           return value;
         }
@@ -3132,7 +3110,7 @@ namespace SleepApneaDiagnoser
       else
       {
         double? value = null;
-        value = Utils.GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), 99);
+        value = Utils.GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), percent_high);
         SetMaxSignalValue(Signal, value ?? 0);
         return value;
       }
@@ -3143,12 +3121,12 @@ namespace SleepApneaDiagnoser
 
       if (find != null)
       {
-        if (find.yMin != Double.NaN)
+        if (!Double.IsNaN(find.yMin))
           return find.yMin;
         else
         {
           double? value = null;
-          value = Utils.GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), 1);
+          value = Utils.GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), percent_low);
           SetMinSignalValue(Signal, value ?? 0);
           return value;
         }
@@ -3156,7 +3134,7 @@ namespace SleepApneaDiagnoser
       else
       {
         double? value = null;
-        value = Utils.GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), 1);
+        value = Utils.GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), percent_low);
         SetMinSignalValue(Signal, value ?? 0);
         return value;
       }
