@@ -10,7 +10,7 @@
         xmlns:mtr="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         xmlns:ControlzEx="clr-namespace:ControlzEx;assembly=MahApps.Metro" x:Name="Active" x:Class="SleepApneaDiagnoser.MainWindow"
         mc:Ignorable="d"
-        Title="Sleep Apnea Analysis Tool" MinHeight="384" MinWidth="683" Height="768" Width="1366" Closing="Window_Closing" StateChanged="Window_StateChanged" SizeChanged="Window_SizeChanged" WindowState="Maximized" TitleCaps="False" BorderBrush="{DynamicResource AccentColorBrush}" BorderThickness="1">
+        Title="Sleep Apnea Analysis Tool" MinHeight="640" MinWidth="640" Height="768" Width="1366" Closing="Window_Closing" StateChanged="Window_StateChanged" SizeChanged="Window_SizeChanged" WindowState="Maximized" TitleCaps="False" BorderBrush="{DynamicResource AccentColorBrush}" BorderThickness="1">
 
     <mtr:MetroWindow.Resources>
         <Style TargetType="TextBlock">
