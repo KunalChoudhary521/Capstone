@@ -33,6 +33,8 @@ using MahApps.Metro;
 using System.Windows.Forms;
 using EEGBandpower;
 using PSD_Welch;
+using EEG_Spec;
+
 using System.Numerics;
 using MathNet.Filtering;
 using MathNet.Numerics;
@@ -1487,8 +1489,6 @@ namespace SleepApneaDiagnoser
 
       PlotRelPwr = tempRelPwr;
 
-      //todo: create a heatmap (from oxyplot) for spectrogram
-      //todo: create a graph (from oxyplot) for power spectral density
       return;//for debugging only
     }
 
@@ -1551,20 +1551,41 @@ namespace SleepApneaDiagnoser
 
       /*************Computing Power spectral Density (line 841 - PSG_viewer_v7.m)****************/
       EEG_PSD computePSD = new EEG_PSD();
-      MWArray[] mLabResult = null;
+      MWArray[] mLabPSD = null;
 
-      mLabResult = computePSD.eeg_psd(2, mlabArraySignal, sampleFreq);
-      MWNumericArray tempPsdValues = (MWNumericArray)mLabResult[0];
-      MWNumericArray tempFrqValues = (MWNumericArray)mLabResult[1];
+      mLabPSD = computePSD.eeg_psd(2, mlabArraySignal, sampleFreq);
+      MWNumericArray tempPsd = (MWNumericArray)mLabPSD[0];
+      MWNumericArray tempFrq = (MWNumericArray)mLabPSD[1];
 
-      double[] psdValues = new double[tempPsdValues.NumberOfElements];
-      double[] frqValues = new double[tempFrqValues.NumberOfElements];
-      for (int i = 0; i < tempPsdValues.NumberOfElements - 1; i++)
+      double[] psdValues = new double[tempPsd.NumberOfElements];
+      double[] frqValues = new double[tempFrq.NumberOfElements];
+      for (int i = 1; i < tempPsd.NumberOfElements; i++)
       {
-        psdValues[i] = (double)tempPsdValues[i + 1];
-        frqValues[i] = (double)tempFrqValues[i + 1];
+        psdValues[i] = 10 * Math.Log10((double)tempPsd[i]);//psd in (dB) after taking a log10
+        frqValues[i] = (double)tempFrq[i];
       }
 
+      /****************************Computation for Spectrogram**************************/
+      Spectrogram computeForspec = new Spectrogram();
+      MWArray[] mLabSpec = null;
+      mLabSpec = computeForspec.eeg_specgram(2, mlabArraySignal, sampleFreq);
+      MWNumericArray tempspec = (MWNumericArray)mLabSpec[0];
+      MWNumericArray tempTime = (MWNumericArray)mLabSpec[1];
+
+      //MATLAB stores matrix in column-major order
+      double[,] specMatrix = new double[mLabSpec[0].Dimensions[0], mLabSpec[0].Dimensions[1]];//rows by columns
+      double[] specTime = new double[tempTime.NumberOfElements];
+      /*for (int row = 1; row < mLabSpec[0].Dimensions[0]; row++) 
+      {
+        for (int col = 0; col < mLabSpec[0].Dimensions[1]; col++)
+        {
+          specMatrix[row-1, col] = (double)tempspec[(mLabSpec[0].Dimensions[0] * row) + col];//(total_cols * curr_col) + curr_row
+        }
+      }      
+      for(int i = 1; i < specTime.Length; i++)
+      {
+        specTime[i] = (double)tempTime[i];
+      }*/
       /*****************************Plotting absolute power graph***************************/
       //order of bands MUST match the order of bands in freqRange array (see above)
       String[] freqBandName = new String[] { "delta", "theta", "alpha", "beta1", "beta2", "gamma1", "gamma2" };
@@ -1592,7 +1613,7 @@ namespace SleepApneaDiagnoser
             
       absbandLabels.Labels.AddRange(freqBandName);      
       
-      LinearAxis absYAxis = new LinearAxis { Position = AxisPosition.Left, Title="Power (db)", MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0};
+      LinearAxis absYAxis = new LinearAxis { Position = AxisPosition.Left, Title="Power (db)", MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0, TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8 };
       tempAbsPwr.Series.Add(absPlotbars);
       tempAbsPwr.Axes.Add(absbandLabels);
       tempAbsPwr.Axes.Add(absYAxis);
@@ -1622,29 +1643,29 @@ namespace SleepApneaDiagnoser
       
       relbandLabels.Labels.AddRange(freqBandName);
       
-      LinearAxis relYAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Power (%)", MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0 };
+      LinearAxis relYAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Power (%)", MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0, TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8 };
       tempRelPwr.Series.Add(relPlotbars);
       tempRelPwr.Axes.Add(relbandLabels);
       tempRelPwr.Axes.Add(relYAxis);
 
       PlotRelPwr = tempRelPwr;
 
-      /********************Plotting a heatmap for spectrogram (line 820 - PSG_viewer_v7.m)*********************/
-      /*PlotModel tempSpectGram = new PlotModel()
+      /********************Plotting a heatmap for spectrogram (line 820, 2133 - PSG_viewer_v7.m)*********************/
+      PlotModel tempSpectGram = new PlotModel()
       {
-        Title = "Spectrogram",         
+        Title = "Spectrogram",
       };
-      LinearColorAxis specLegend = new LinearColorAxis() { Position = AxisPosition.Right, Palette = OxyPalettes.Jet(500), HighColor = OxyColors.Red, LowColor = OxyColors.Green };
-      LinearAxis specYAxis = new LinearAxis() { Position = AxisPosition.Left, Title = "Frequency (Hz)" };
-      LinearAxis specXAxis = new LinearAxis() { Position = AxisPosition.Bottom, Title = "Time (s)" };     
+      LinearColorAxis specLegend = new LinearColorAxis() { Position = AxisPosition.Right, Palette = OxyPalettes.Jet(100), HighColor = OxyColors.Red, LowColor = OxyColors.Blue };
+      LinearAxis specYAxis = new LinearAxis() { Position = AxisPosition.Left, Title = "Frequency (Hz)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8 };
+      LinearAxis specXAxis = new LinearAxis() { Position = AxisPosition.Bottom, Title = "Time (s)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold };     
       
       tempSpectGram.Axes.Add(specLegend);
       tempSpectGram.Axes.Add(specXAxis);
       tempSpectGram.Axes.Add(specYAxis);
 
-      //double minTime, maxTime, minFreq, maxFreq;
-      //HeatMapSeries specGram = new HeatMapSeries() { //X0 = minTime, X1 = maxTime, Y0 = minFreq, Y1 = maxFreq, Data = psdValues };
-      tempSpectGram.Series.Add(specGram);*/
+      double minTime = specMatrix.Min2D(), maxTime = specMatrix.Max2D(), minFreq = specMatrix.Min2D(), maxFreq = specMatrix.Max2D();//specTime.Max()
+      HeatMapSeries specGram = new HeatMapSeries() { X0 = minTime, X1 = maxTime, Y0 = minFreq, Y1 = maxFreq, Data = specMatrix };     
+      tempSpectGram.Series.Add(specGram);
 
       //PlotSpecGram = tempSpectGram;
 
@@ -1656,13 +1677,41 @@ namespace SleepApneaDiagnoser
       LineSeries psdSeries = new LineSeries() { Color = OxyColors.Green};
       for(int i = 0; i < psdValues.Length; i++)
       {
-        psdSeries.Points.Add(new DataPoint(frqValues[i], 10 * Math.Log10(psdValues[i])));
+        psdSeries.Points.Add(new DataPoint(frqValues[i], psdValues[i]));
       }
       tempPSD.Series.Add(psdSeries);
-      tempPSD.Axes.Add(new LinearAxis() { Position = AxisPosition.Left, Title = "Power (dB)" });
-      tempPSD.Axes.Add(new LinearAxis() { Position = AxisPosition.Bottom, Title = "Frequency (Hz)" });
+      tempPSD.Axes.Add(new LinearAxis() { Position = AxisPosition.Left, Title = "Power (dB)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold });
+      tempPSD.Axes.Add(new LinearAxis() { Position = AxisPosition.Bottom, Title = "Frequency (Hz)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8 });
 
       PlotPSD = tempPSD;
+
+      /***************************Exporting Power Spectral Density to .csv****************************/
+      StreamWriter eegStream = new StreamWriter("EEGData.csv");
+      String dataLine = null;
+
+      dataLine = String.Format("Epoch#, Power(db), Frequency(Hz)");
+      eegStream.WriteLine(dataLine);
+            
+      for (int i = 1; i < psdValues.Length;i++)
+      {
+        dataLine = String.Format("{0},{1:0.00},{2:0.00}", " ",psdValues[i], frqValues[i]);
+        eegStream.WriteLine(dataLine.ToString());
+      }
+      eegStream.Close();
+      
+
+      /**************************Exporting EEG Signal to .csv*************************/
+      StreamWriter eegSignalStream = new StreamWriter("EEGSignal.csv");
+      dataLine = null;
+      dataLine = String.Format("X(time), Y(SigVal)");
+      eegSignalStream.WriteLine(dataLine);
+      for(int i = 0; i < series.Points.Count; i++)
+      {
+        dataLine = String.Format("{0},{1:0.00}", series.Points[i].X, series.Points[i].Y);
+        eegSignalStream.WriteLine(dataLine.ToString());
+      }
+      eegSignalStream.Close();
+
 
       return;//for debugging only
     }
