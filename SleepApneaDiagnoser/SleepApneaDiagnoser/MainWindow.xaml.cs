@@ -188,8 +188,8 @@ namespace SleepApneaDiagnoser
       }
     }
 
-  // Home Tab Events
-  private void TextBlock_OpenEDF_Click(object sender, RoutedEventArgs e)
+    // Home Tab Events
+    private void TextBlock_OpenEDF_Click(object sender, RoutedEventArgs e)
     {
       model.LoadedEDFFile = null;
 
@@ -2158,6 +2158,10 @@ namespace SleepApneaDiagnoser
         RespiratoryEDFDuration = null;
         RespiratoryEDFStartRecord = null;
 
+        EEGEDFSelectedSignal = null;
+        EEGEDFDuration = null;
+        EEGEDFStartRecord = null;
+
         CoherenceEDFSelectedSignal1 = null;
         CoherenceEDFSelectedSignal2 = null;
         CoherenceSignalPlot1 = null;
@@ -2171,7 +2175,7 @@ namespace SleepApneaDiagnoser
         PreviewUseAbsoluteTime = false;
         PreviewViewStartTime = LoadedEDFFile.Header.StartDateTime;
         PreviewViewStartRecord = 0;
-        PreviewViewDuration = 5;
+        PreviewViewDuration = 1;
 
         RespiratoryBreathingPeriodMean = "";
         RespiratoryBreathingPeriodMedian = "";
@@ -2179,6 +2183,10 @@ namespace SleepApneaDiagnoser
         RespiratorySignalPlot = null;
         RespiratoryEDFDuration = 1;
         RespiratoryEDFStartRecord = 0;
+
+        EEGEDFSelectedSignal = null;
+        EEGEDFDuration = 1;
+        EEGEDFStartRecord = 0;
 
         CoherenceEDFSelectedSignal1 = null;
         CoherenceEDFSelectedSignal2 = null;
