@@ -156,9 +156,38 @@ namespace SleepApneaDiagnoser
     {
       model.WriteSettings();
     }
+    private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+      if (this.WindowState != WindowState.Maximized)
+      {
+        if (this.Width < 1000)
+        {
+          column_EDFHeader.Width = new GridLength(0);
+          column_EDFHeader.MaxWidth = 0;
+          column_EDFHeader.MinWidth = 0;
+        }
+        else
+        {
+          column_EDFHeader.Width = new GridLength(300);
+          column_EDFHeader.MaxWidth = 300;
+          column_EDFHeader.MinWidth = 300;
+        }
+      }
+    }
+    private void Window_StateChanged(object sender, EventArgs e)
+    {
+      switch (this.WindowState)
+      {
+        case WindowState.Maximized:
+          column_EDFHeader.Width = new GridLength(300);
+          column_EDFHeader.MaxWidth = 300;
+          column_EDFHeader.MinWidth = 300;
+          break;
+      }
+    }
 
-    // Home Tab Events
-    private void TextBlock_OpenEDF_Click(object sender, RoutedEventArgs e)
+  // Home Tab Events
+  private void TextBlock_OpenEDF_Click(object sender, RoutedEventArgs e)
     {
       model.LoadedEDFFile = null;
 
