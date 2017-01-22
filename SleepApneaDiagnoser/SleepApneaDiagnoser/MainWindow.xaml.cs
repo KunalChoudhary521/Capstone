@@ -38,6 +38,7 @@ using EEG_Spec;
 using System.Numerics;
 using MathNet.Filtering;
 using MathNet.Numerics;
+using System.Diagnostics;
 
 namespace SleepApneaDiagnoser
 {
@@ -141,6 +142,7 @@ namespace SleepApneaDiagnoser
 
       model = new ModelView(this);
       this.DataContext = model;
+      this.Respiratory_Settings.DataContext = model;
       LoadRecent();
 
       try
@@ -201,6 +203,42 @@ namespace SleepApneaDiagnoser
       }
     }
 
+    // Setting Flyout Events 
+    private void button_Settings_Click(object sender, RoutedEventArgs e)
+    {
+      model.OpenCloseSettings();
+    }
+    private void button_HideSignals_Click(object sender, RoutedEventArgs e)
+    {
+      model.OpenCloseSettings();
+      model.HideSignals();
+    }
+    private void button_AddDerivative_Click(object sender, RoutedEventArgs e)
+    {
+      model.OpenCloseSettings();
+      model.AddDerivative();
+    }
+    private void button_RemoveDerivative_Click(object sender, RoutedEventArgs e)
+    {
+      model.OpenCloseSettings();
+      model.RemoveDerivative();
+    }
+    private void button_Categories_Click(object sender, RoutedEventArgs e)
+    {
+      model.OpenCloseSettings();
+      model.ManageCategories();
+    }
+    private void button_AddFilter_Click(object sender, RoutedEventArgs e)
+    {
+      model.OpenCloseSettings();
+      model.AddFilter();
+    }
+    private void button_RemoveFilter_Click(object sender, RoutedEventArgs e)
+    {
+      model.OpenCloseSettings();
+      model.RemoveFilter();
+    }
+
     // Preview Tab Events   
     private void listBox_SignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -208,15 +246,6 @@ namespace SleepApneaDiagnoser
     }
     private void comboBox_SignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-      if (comboBox_SignalSelect.SelectedValue != null)
-      {
-        EDFSignal edfsignal = model.LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == comboBox_SignalSelect.SelectedValue.ToString().Trim());
-        textBox_SampRecord.Text = ((int)((double)edfsignal.NumberOfSamplesPerDataRecord / (double)model.LoadedEDFFile.Header.DurationOfDataRecordInSeconds)).ToString();
-      }
-      else
-      {
-        textBox_SampRecord.Text = "";
-      }
     }
 
     private void toggleButton_UseAbsoluteTime_Checked(object sender, RoutedEventArgs e)
@@ -229,23 +258,7 @@ namespace SleepApneaDiagnoser
       timePicker_From_Abs.Visibility = Visibility.Hidden;
       timePicker_From_Eph.Visibility = Visibility.Visible;
     }
-
-    private void button_HideSignals_Click(object sender, RoutedEventArgs e)
-    {
-      model.HideSignals();
-    }
-    private void button_AddDerivative_Click(object sender, RoutedEventArgs e)
-    {
-      model.AddDerivative();
-    }
-    private void button_RemoveDerivative_Click(object sender, RoutedEventArgs e)
-    {
-      model.RemoveDerivative();
-    }
-    private void button_Categories_Click(object sender, RoutedEventArgs e)
-    {
-      model.ManageCategories();
-    }
+    
     private void button_Next_Click(object sender, RoutedEventArgs e)
     {
       model.NextCategory();
@@ -255,9 +268,20 @@ namespace SleepApneaDiagnoser
       model.PreviousCategory();
     }
 
-    private void export_button_Click(object sender, RoutedEventArgs e)
+    private void button_ExportBinary_Click(object sender, RoutedEventArgs e)
     {
       model.ExportSignals();
+    }
+    private void button_ExportImage_Click(object sender, RoutedEventArgs e)
+    {
+      Microsoft.Win32.SaveFileDialog dialog = new Microsoft.Win32.SaveFileDialog();
+      dialog.Filter = "Image File (*.png)|*.png";
+      dialog.Title = "Select an EDF file";
+
+      if (dialog.ShowDialog() == true)
+      {
+        model.ExportImage(dialog.FileName);
+      }
     }
 
     // Analysis Tab Events 
@@ -268,401 +292,28 @@ namespace SleepApneaDiagnoser
     private void button_PerformEEGAnalysis_Click(object sender, RoutedEventArgs e)
     {
       model.PerformEEGAnalysisEDF();
+    }    
+    private void button_Load_Respiratory_Click(object sender, RoutedEventArgs e)
+    {
+      model.PerformRespiratoryAnalysisBinary();
     }
-
+    private void Button_EEG_From_Bin(object sender, RoutedEventArgs e)
+    {
+      model.PerformEEGAnalysisBinary();
+    }
+   
     // Tool Tab Events
     private void button_PerformCoherenceAnalysis_Click(object sender, RoutedEventArgs e)
     {
       model.PerformCoherenceAnalysisEDF();
     }
 
-    private void button_Load_Respiratory_Click(object sender, RoutedEventArgs e)
-    {
-      model.PerformRespiratoryAnalysisBinary();
-    }
-
-    private void Button_EEG_From_Bin(object sender, RoutedEventArgs e)
-    {
-      model.PerformEEGAnalysisBinary();
-    }
   }
-
-
 
   public class ModelView : INotifyPropertyChanged
   {
-    #region Models
-
-    /// <summary>
-    /// Model for variables used exclusively in the 'Preview' tab
-    /// </summary>
-    public class PreviewModel
-    {
-      /// <summary>
-      /// The index of the current category to be displayed in the signal selection list
-      /// -1 denotes displaying the 'All' category
-      /// </summary>
-      public int PreviewCurrentCategory = -1;
-      /// <summary>
-      /// The list of user selected signals in the signal selection list
-      /// </summary>
-      public List<string> PreviewSelectedSignals = new List<string>();
-
-      /// <summary>
-      /// If true, the user selection for the start time of the plot should be date and time
-      /// the user selection for the period of the plot should be in seconds
-      /// If false, the user selection for the start time of the plot should be 30s epochs
-      /// the user selection for the period of the plot should be in epochs
-      /// </summary>
-      public bool PreviewUseAbsoluteTime = false;
-      /// <summary>
-      /// The user selected start time of the plot in Date and Time format
-      /// </summary>
-      public DateTime PreviewViewStartTime = new DateTime();
-      /// <summary>
-      /// The user selected start time of the plot in epochs
-      /// </summary>
-      public int PreviewViewStartRecord = 0;
-      /// <summary>
-      /// The user selected period of the plot in seconds
-      /// </summary>
-      public int PreviewViewDuration = 0;
-      /// <summary>
-      /// The currently displayed preview plot
-      /// </summary>
-      public PlotModel PreviewSignalPlot = null;
-      /// <summary>
-      /// If false, the plot is currently being drawn and the tab should be disabled
-      /// If true, the plot is done being drawn
-      /// </summary>
-      public bool PreviewNavigationEnabled = false;
-    }
-
-    /// <summary>
-    /// Model for variables used exclusively in the 'Respiratory' sub tab of the 'Analysis' tab
-    /// </summary>
-    public class RespiratoryModel
-    {
-      /// <summary>
-      /// The user selected signal to perform respiratory analysis on
-      /// </summary>
-      public string RespiratoryEDFSelectedSignal;
-      /// <summary>
-      /// The user selected start time for the respiratory analysis in 30s epochs
-      /// </summary>
-      public int RespiratoryEDFStartRecord;
-      /// <summary>
-      /// The user selected period for the respiratory analysis in 30s epochs
-      /// </summary>
-      public int RespiratoryEDFDuration;
-      /// <summary>
-      /// The respiratory analysis plot to be displayed
-      /// </summary>
-      public PlotModel RespiratorySignalPlot = null;
-      /// <summary>
-      /// The calculated mean average of the periods of the respiratory signal
-      /// </summary>
-      public string RespiratoryBreathingPeriodMean;
-      /// <summary>
-      /// The calculated median average of the periods of the respiratory signal
-      /// </summary>
-      public string RespiratoryBreathingPeriodMedian;
-      /// <summary>
-      /// A user selected option for setting the sensitivity of the peak detection of the analysis
-      /// Effect where the insets, onsets, and peaks are detected
-      /// Any "spike" that is less wide than the user setting in ms will be ignored
-      /// </summary>
-      public int RespiratoryMinimumPeakWidth = 500;
-      /// <summary>
-      /// A user selected option for choosing whether the analysis will allow for repeated peaks of
-      /// the same polarity
-      /// </summary>
-      public bool RespiratoryRemoveMultiplePeaks = true;
-    }
-
-    /// <summary>
-    /// Model for variables used exclusively in the 'EEG' sub tab of the 'Analysis' tab
-    /// </summary>
-    public class EEGModel
-    {
-      /// <summary>
-      /// The user selected signal to perform eeg analysis on
-      /// </summary>
-      public string EEGEDFSelectedSignal;
-      /// <summary>
-      /// The user selected start time for the eeg analysis in 30s epochs
-      /// </summary>
-      public int EEGEDFStartRecord;
-      /// <summary>
-      /// The user selected period for the eeg analysis in 30s epochs
-      /// </summary>
-      public int EEGEDFDuration;
-      /// <summary>
-      /// The eeg analysis plot to be displayed
-      /// </summary>
-      public PlotModel PlotAbsPwr = null;
-      /// <summary>
-      /// Displays the eeg absolute power plot
-      /// </summary>
-      public PlotModel PlotRelPwr = null;
-      /// <summary>
-      /// Displays the eeg relative power plot
-      /// </summary>
-      public PlotModel PlotSpecGram = null;
-      /// <summary>
-      /// Displays the eeg spectrogram power plot
-      /// </summary>
-      public PlotModel PlotPSD = null;
-      /// <summary>
-      /// Displays the eeg spectrogram power plot
-      /// </summary>
-    }
-
-    /// <summary>
-    /// Model for variables used exclusively in the 'Coherence' sub tab of the 'Tool' tab
-    /// </summary>
-    public class CoherenceModel
-    {
-      /// <summary>
-      /// The first selected signal
-      /// </summary>
-      public string CoherenceEDFSelectedSignal1;
-      /// <summary>
-      /// The second selected signal
-      /// </summary>
-      public string CoherenceEDFSelectedSignal2;
-      /// <summary>
-      /// The start time in 30s epochs of the signals to perform coherence analysis on
-      /// </summary>
-      public int CoherenceEDFStartRecord;
-      /// <summary>
-      /// The duration in 30s epochs of the signals to perform coherence analysis on
-      /// </summary>
-      public int CoherenceEDFDuration;
-      /// <summary>
-      /// A time domain plot of the first signal to perform coherence analysis on
-      /// </summary>
-      public PlotModel CoherenceSignalPlot1 = null;
-      /// <summary>
-      /// A time domain plot of the second signal to perform coherence analysis on
-      /// </summary>
-      public PlotModel CoherenceSignalPlot2 = null;
-      /// <summary>
-      /// The plot of the coherence signal
-      /// </summary>
-      public PlotModel CoherencePlot = null;
-      /// <summary>
-      /// If true, the progress ring should be shown
-      /// If false, the progress ring should not be shown
-      /// </summary>
-      public bool CoherenceProgressRingEnabled = false;
-    }
-    #endregion
-
-    #region Helper Functions 
-
-    /******************************************************* STATIC FUNCTIONS *******************************************************/
-
-    /// <summary>
-    /// The definition of epochs in seconds
-    /// </summary>
-    private static int EPOCH_SEC = 30;
-    /// <summary>
-    /// Converts an epoch point in time to a DateTime structure
-    /// </summary>
-    /// <param name="epoch"> The epoch point in time to convert </param>
-    /// <param name="file"> 
-    /// The EDFFile class used to determine the start 
-    /// DateTime corresponding to epoch 0 
-    /// </param>
-    /// <returns> A DateTime structure corresponding the input epoch point in time </returns>
-    private static DateTime EpochtoDateTime(int epoch, EDFFile file)
-    {
-      // DateTime = StartTime + epoch * EPOCH_SEC
-      return file.Header.StartDateTime + new TimeSpan(0, 0, epoch * EPOCH_SEC);
-    }
-    /// <summary>
-    /// Converts an epoch duration into a TimeSpan structure
-    /// </summary>
-    /// <param name="period"> The epoch duration to convert </param>
-    /// <returns> The TimeSpan structure corresponding to the epoch duration </returns>
-    private static TimeSpan EpochPeriodtoTimeSpan(int period)
-    {
-      // TimeSpan = period * EPOCH_SEC
-      return new TimeSpan(0, 0, 0, period * EPOCH_SEC);
-    }
-    /// <summary>
-    /// Converts a DateTime structure into an epoch point in time
-    /// </summary>
-    /// <param name="time"> The DateTime structure to convert </param>
-    /// <param name="file"> 
-    /// The EDFFile class used to determine the start
-    /// DateTime corresponding to epoch 0 
-    /// </param>
-    /// <returns> The epoch point in time corresponding to the input DateTime </returns>
-    private static int DateTimetoEpoch(DateTime time, EDFFile file)
-    {
-      // epoch = (DateTime - StartTime) / EPOCH_SEC
-      return (int)((time - file.Header.StartDateTime).TotalSeconds / (double)EPOCH_SEC);
-    }
-    /// <summary>
-    /// Converts a TimeSpan structure into an epoch duration
-    /// </summary>
-    /// <param name="period"> The TimeSpan structure to convert </param>
-    /// <returns> The epoch duration corresponding to the input TimeSpan </returns>
-    private static int TimeSpantoEpochPeriod(TimeSpan period)
-    {
-      // epoch = TimeSpan / EPOCH_SEC
-      return (int)(period.TotalSeconds / (double)EPOCH_SEC);
-    }
-
-    /// <summary>
-    /// Gets a value at a specified percentile from an array
-    /// </summary>
-    /// <param name="values_array"> The input array </param>
-    /// <param name="percentile"> The percentile of the desired value </param>
-    /// <returns> The desired value at the specified percentile </returns>
-    private static double? GetPercentileValue(float[] values_array, int percentile)
-    {
-      // Sort values in ascending order
-      List<float> values = values_array.ToList();
-      values.Sort();
-
-      // index = percent * length 
-      int index = (int)((double)percentile / (double)100 * (double)values.Count);
-
-      // return desired value
-      return values[index];
-    }
-    /// <summary>
-    /// Gets a value at a specified percentile from the difference between two arrays
-    /// </summary>
-    /// <param name="values_array_1"> The input minuend array </param>
-    /// <param name="values_array_2"> The input subtrahend array </param>
-    /// <param name="percentile"> The percentile of the desired value </param>
-    /// <returns> The desired value at the specified percentile </returns>
-    private static double? GetPercentileValueDeriv(float[] values_array_1, float[] values_array_2, int percentile)
-    {
-      // Subtract two input arrays from each other
-      List<float> values1 = values_array_1.ToList();
-      List<float> values2 = values_array_2.ToList();
-      List<float> values = new List<float>();
-      for (int x = 0; x < Math.Min(values_array_1.Length, values_array_2.Length); x++)
-        values.Add(values_array_1[x] - values_array_2[x]);
-
-      // Call GetPercentileValue on difference
-      return GetPercentileValue(values.ToArray(), percentile);
-    }
-
-    /// <summary>
-    /// Gets the signal samples from one period of time to another
-    /// </summary>
-    /// <param name="file"> The EDFFile class </param>
-    /// <param name="signal_to_retrieve"> The signal to get samples from </param>
-    /// <param name="StartTime"> The start time to get samples from </param>
-    /// <param name="EndTime"> The end time to get samples from </param>
-    /// <returns> A list of the retrieved samples </returns>
-    private static List<float> retrieveSignalSampleValuesMod(EDFFile file, EDFSignal signal_to_retrieve, DateTime StartTime, DateTime EndTime)
-    {
-      int start_sample, start_record;
-      int end_sample, end_record;
-      #region Find Start and End Points
-      // Duration of record in seconds
-      double record_duration = file.Header.DurationOfDataRecordInSeconds;
-      // Samples per record
-      double samples_per_record = signal_to_retrieve.NumberOfSamplesPerDataRecord;
-      // The sample period of the signal (Duration of Record)/(Samples per Record)
-      double sample_period = record_duration / samples_per_record;
-      {
-        // Time of start point in seconds
-        double total_seconds = (StartTime - file.Header.StartDateTime).TotalSeconds;
-        // Time of start point in samples 
-        double total_samples = total_seconds / sample_period;
-
-        start_sample = ((int)(total_samples)) % ((int)samples_per_record); // Start Sample in Record
-        start_record = (int)((total_samples - start_sample) / samples_per_record); // Start Record
-      }
-      {
-        // Time of end point in seconds
-        double total_seconds = (EndTime - file.Header.StartDateTime).TotalSeconds;
-        // Time of end point in samples
-        double total_samples = total_seconds / sample_period - 1;
-
-        end_sample = ((int)total_samples) % ((int)samples_per_record); // End Sample in Record
-        end_record = (((int)total_samples) - end_sample) / ((int)samples_per_record); // End Record
-      }
-      #endregion
-      List<float> signalSampleValues = new List<float>();
-      if (file.Header.Signals.Contains(signal_to_retrieve))
-      {
-        for (int x = start_record; x <= end_record; x++)
-        {
-          EDFDataRecord dr = file.DataRecords[x];
-          foreach (EDFSignal signal in file.Header.Signals)
-          {
-            if (signal.IndexNumberWithLabel.Equals(signal_to_retrieve.IndexNumberWithLabel))
-            {
-              int start = x == start_record ? start_sample : 0;
-              int end = x == end_record ? end_sample : dr[signal.IndexNumberWithLabel].Count - 1;
-              for (int y = start; y <= end; y++)
-              {
-                signalSampleValues.Add(dr[signal.IndexNumberWithLabel][y]);
-              }
-            }
-          }
-        }
-      }
-      return signalSampleValues;
-    }
-    /// <summary>
-    /// Performs upsampling and downsampling on an array of values
-    /// </summary>
-    /// <param name="values"> The input array to resample </param>
-    /// <param name="ratio"> The ratio between upsampling and downsampling to perform </param>
-    /// <returns> The resampled array </returns>
-    private static List<float> MATLAB_Resample(float[] values, float ratio)
-    {
-      // Prepare Input for MATLAB function
-      Processing proc = new Processing();
-      MWArray[] input = new MWArray[2];
-      input[0] = new MWNumericArray(values);
-      input[1] = ratio;
-      // Call MATLAB function
-      return (
-                  (double[])(
-                      (MWNumericArray)proc.m_resample(1, input[0], input[1])[0]
-                  ).ToVector(MWArrayComponent.Real)
-                ).ToList().Select(temp => (float)temp).ToList();
-    }
-    /// <summary>
-    /// Performs coherence analysis on 2 lists of values
-    /// </summary>
-    /// <param name="values1"> First list of values </param>
-    /// <param name="values2"> Second list of values </param>
-    /// <returns> Index 1 is Y axis, Index 2 is X axis </returns>
-    private static LineSeries MATLAB_Coherence(float[] values1, float[] values2)
-    {
-      // Prepare Input for MATLAB function
-      Processing proc = new Processing();
-      MWArray[] input = new MWArray[3];
-      input[0] = new MWNumericArray(values1.ToArray());
-      input[1] = new MWNumericArray(values2.ToArray());
-      input[2] = Math.Round(Math.Sqrt(Math.Max(values1.Length, values2.Length)));
-
-      // Call MATLAB function
-      MWArray[] output = proc.m_cohere(2, input[0], input[1], input[2]);
-      double[] y_values = (double[])((MWNumericArray)output[0]).ToVector(MWArrayComponent.Real);
-      double[] x_values = (double[])((MWNumericArray)output[1]).ToVector(MWArrayComponent.Real);
-
-      LineSeries series = new LineSeries();
-      for (int x = 0; x < y_values.Length; x++)
-        series.Points.Add(new DataPoint(x_values[x], y_values[x]));
-
-      return series;
-    }
-
-    /***************************************************** NON-STATIC FUNCTIONS *****************************************************/
-
+    #region Helper Functions
+    
     /// <summary>
     /// From a signal, returns a series of X,Y values for use with a PlotModel
     /// Also returns y axis information and the sample_period of the signal
@@ -679,7 +330,17 @@ namespace SleepApneaDiagnoser
       // Variable To Return
       LineSeries series = new LineSeries();
 
-      if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal.Trim()) != null) // Normal EDF Signal
+      // Check if this signal needs filtering 
+      bool filter = false;
+      FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
+      if (filteredSignal != null)
+      {
+        filter = true;
+        Signal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal).OriginalName;
+      }
+
+      // Get Signal
+      if (EDFAllSignals.Contains(Signal))
       {
         // Get Signal
         EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal);
@@ -688,7 +349,7 @@ namespace SleepApneaDiagnoser
         sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
 
         // Get Array
-        List<float> values = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal, StartTime, EndTime);
+        List<float> values = Utils.retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal, StartTime, EndTime);
 
         // Determine Y Axis Bounds
         min_y = GetMinSignalValue(Signal, values);
@@ -703,31 +364,31 @@ namespace SleepApneaDiagnoser
       else // Derivative Signal
       {
         // Get Signals
-        string[] deriv_info = p_DerivedSignals.Find(temp => temp[0] == Signal);
-        EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[1].Trim());
-        EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info[2].Trim());
+        DerivativeSignal deriv_info = sm.DerivedSignals.Find(temp => temp.DerivativeName == Signal);
+        EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal1Name.Trim());
+        EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal2Name.Trim());
 
         // Get Arrays and Perform Resampling if needed
         List<float> values1;
         List<float> values2;
         if (edfsignal1.NumberOfSamplesPerDataRecord == edfsignal2.NumberOfSamplesPerDataRecord) // No resampling
         {
-          values1 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
-          values2 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
+          values1 = Utils.retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
+          values2 = Utils.retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
           sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
         }
         else if (edfsignal1.NumberOfSamplesPerDataRecord > edfsignal2.NumberOfSamplesPerDataRecord) // Upsample signal 2
         {
-          values1 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
-          values2 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
-          values2 = MATLAB_Resample(values2.ToArray(), edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord);
+          values1 = Utils.retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
+          values2 = Utils.retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
+          values2 = Utils.MATLAB_Resample(values2.ToArray(), edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord);
           sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
         }
         else // Upsample signal 1
         {
-          values1 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
-          values2 = retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
-          values1 = MATLAB_Resample(values1.ToArray(), edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord);
+          values1 = Utils.retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
+          values2 = Utils.retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
+          values1 = Utils.MATLAB_Resample(values1.ToArray(), edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord);
           sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal2.NumberOfSamplesPerDataRecord;
         }
 
@@ -741,10 +402,25 @@ namespace SleepApneaDiagnoser
         }
       }
 
+      if (filter == true)
+      {
+        if (filteredSignal.LowPass_Enabled)
+        {
+          series = Utils.ApplyLowPassFilter(series, filteredSignal.LowPassCutoff, sample_period);
+        }
+        if (filteredSignal.WeightedAverage_Enabled)
+        {
+          float LENGTH;
+          LENGTH = Math.Max(filteredSignal.WeightedAverage_Length / (sample_period * 1000), 1);
+            
+          series = Utils.ApplyWeightedAverageFilter(series, LENGTH);
+        }
+      }
+
       return series;
     }
 
-    #endregion
+    #endregion;
 
     #region Actions
 
@@ -756,6 +432,27 @@ namespace SleepApneaDiagnoser
     /// </summary>
     private ProgressDialogController controller;
     /// <summary>
+    /// The background worker that runs the task that updates the progress bar value
+    /// </summary>
+    private BackgroundWorker bw_progressbar = new BackgroundWorker();
+    /// <summary>
+    /// Background task that updates the progress bar
+    /// </summary>
+    private void BW_LoadEDFFileUpDateProgress(object sender, DoWorkEventArgs e)
+    {
+      long process_start = Process.GetCurrentProcess().PagedMemorySize64;
+      long file_size = (long) (new FileInfo(e.Argument.ToString()).Length * 2.2);
+      long current_progress = 0;
+
+      while (!bw_progressbar.CancellationPending)
+      {
+        current_progress = Math.Max(current_progress, Process.GetCurrentProcess().PagedMemorySize64 - process_start);
+        double progress = Math.Min(99, (current_progress * 100 / (double) file_size));
+
+        controller.SetProgress(progress);
+      }
+    }
+    /// <summary>
     /// Background process for loading edf file
     /// </summary>
     /// <param name="sender"></param>
@@ -764,6 +461,13 @@ namespace SleepApneaDiagnoser
     {
       // Progress Bar should not be cancelable
       controller.SetCancelable(false);
+      controller.Maximum = 100;
+
+      // 'Update Progress Bar' Task 
+      bw_progressbar = new BackgroundWorker();
+      bw_progressbar.WorkerSupportsCancellation = true;
+      bw_progressbar.DoWork += BW_LoadEDFFileUpDateProgress;
+      bw_progressbar.RunWorkerAsync(e.Argument.ToString());
 
       // Read EDF File
       EDFFile temp = new EDFFile();
@@ -772,6 +476,11 @@ namespace SleepApneaDiagnoser
 
       // Load Settings Files
       LoadSettings();
+
+      // End 'Update Progress Bar' Task 
+      bw_progressbar.CancelAsync();
+      while (bw_progressbar.IsBusy)
+      { }
     }
     /// <summary>
     /// Function called after background process for loading edf file finishes
@@ -804,6 +513,27 @@ namespace SleepApneaDiagnoser
 
     /********************************************************* PREVIEW TAB **********************************************************/
 
+    /// <summary>
+    /// In the preview tab, displays signals belonging to the next category
+    /// </summary>
+    public void NextCategory()
+    {
+      if (PreviewCurrentCategory == sm.SignalCategories.Count - 1)
+        PreviewCurrentCategory = -1;
+      else
+        PreviewCurrentCategory++;
+    }
+    /// <summary>
+    /// In the preview tab, displays signals belonging to the previous category
+    /// </summary>
+    public void PreviousCategory()
+    {
+      if (PreviewCurrentCategory == -1)
+        PreviewCurrentCategory = sm.SignalCategories.Count - 1;
+      else
+        PreviewCurrentCategory--;
+    }
+    
     /// <summary>
     /// Background process for drawing preview chart
     /// </summary>
@@ -977,8 +707,8 @@ namespace SleepApneaDiagnoser
 
         sb_hdr.AppendLine(edfsignal.Label) // name
             .AppendLine(signals_data.Subject_ID.ToString()) // subject id
-            .AppendLine(EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile).ToString()) // epoch start
-            .AppendLine(EpochtoDateTime(signals_data.Epochs_To, LoadedEDFFile).ToString()) // epoch end
+            .AppendLine(Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile).ToString()) // epoch start
+            .AppendLine(Utils.EpochtoDateTime(signals_data.Epochs_To, LoadedEDFFile).ToString()) // epoch end
             .AppendLine(sample_period.ToString()); // sample_period 
 
         var bytes_to_write = Encoding.ASCII.GetBytes(sb_hdr.ToString());
@@ -999,9 +729,10 @@ namespace SleepApneaDiagnoser
         bin_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".bin", FileMode.OpenOrCreate); //reload
         BinaryWriter bin_writer = new BinaryWriter(bin_file);
 
-        int start_index = ((signals_data.Epochs_From * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds)* edfsignal.NumberOfSamplesPerDataRecord; // from epoch number * 30 seconds per epoch * sample rate = start time
-        int end_index = ((signals_data.Epochs_To * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds)* edfsignal.NumberOfSamplesPerDataRecord; // to epoch number * 30 seconds per epoch * sample rate = end time
+        int start_index = (int)((signals_data.Epochs_From * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds)* edfsignal.NumberOfSamplesPerDataRecord; // from epoch number * 30 seconds per epoch * sample rate = start time
+        int end_index = (int)((signals_data.Epochs_To * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds)* edfsignal.NumberOfSamplesPerDataRecord; // to epoch number * 30 seconds per epoch * sample rate = end time
 
+        if (start_index < 0) { start_index = 0; }
         if (end_index > signalValues.Count()) { end_index = signalValues.Count(); }        
 
         for (int i = start_index; i < end_index; i++)
@@ -1014,6 +745,27 @@ namespace SleepApneaDiagnoser
         #endregion
       }
     }
+    
+    /// <summary>
+    /// Exports chart to image
+    /// </summary>
+    public void ExportImage(string fileName)
+    {
+      var export = new OxyPlot.Wpf.PngExporter();
+      export.Width = 1280;
+      export.Height = 720;
+      export.Background = OxyColors.White;
+
+      MemoryStream stream = new MemoryStream();
+      FileStream file = new FileStream(fileName, FileMode.Create);
+
+      export.Export(PreviewSignalPlot, stream);
+      stream.WriteTo(file);
+      file.Close();
+      stream.Close();
+    }
+
+    /************************************************** RESPIRATORY ANALYSIS TAB ****************************************************/
 
     /// <summary>
     /// Respiratory Analysis From Binary FIle
@@ -1109,23 +861,11 @@ namespace SleepApneaDiagnoser
         bias += average / (double)series.Points.Count;
       }
 
-      // Weighted Running Average (Smoothing) and Normalization
+      // Normalization
       LineSeries series_norm = new LineSeries();
-      int LENGTH = (int)(0.05 / sample_period) * 2;
-      LENGTH = Math.Max(1, LENGTH);
       for (int x = 0; x < series.Points.Count; x++)
       {
-        double sum = 0;
-        double weight_sum = 0;
-        for (int y = -LENGTH / 2; y <= LENGTH / 2; y++)
-        {
-          double weight = (LENGTH / 2 + 1) - Math.Abs(y);
-          weight_sum += weight;
-          sum += weight * series.Points[Math.Min(series.Points.Count - 1, Math.Max(0, x - y))].Y;
-        }
-        double average = sum / weight_sum;
-
-        series_norm.Points.Add(new DataPoint(series.Points[x].X, average - bias));
+        series_norm.Points.Add(new DataPoint(series.Points[x].X, series.Points[x].Y - bias));
       }
 
       // Find Peaks and Zero Crossings
@@ -1305,8 +1045,6 @@ namespace SleepApneaDiagnoser
       }
     }
 
-    /************************************************** RESPIRATORY ANALYSIS TAB ****************************************************/
-
     // Respiratory Analysis From EDF File
     /// <summary>
     /// Background process for performing respiratory analysis
@@ -1326,8 +1064,8 @@ namespace SleepApneaDiagnoser
                                                   out max_y,
                                                   out min_y,
                                                   RespiratoryEDFSelectedSignal,
-                                                  EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile),
-                                                  EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile) + EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 0)
+                                                  Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile),
+                                                  Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 0)
                                                   );
 
       // Plot Insets of Respiration Expiration
@@ -1342,23 +1080,11 @@ namespace SleepApneaDiagnoser
         bias += average / (double)series.Points.Count;
       }
 
-      // Weighted Running Average (Smoothing) and Normalization
+      // Normalization
       LineSeries series_norm = new LineSeries();
-      int LENGTH = (int)(0.05 / sample_period) * 2;
-      LENGTH = Math.Max(1, LENGTH);
       for (int x = 0; x < series.Points.Count; x++)
       {
-        double sum = 0;
-        double weight_sum = 0;
-        for (int y = -LENGTH / 2; y <= LENGTH / 2; y++)
-        {
-          double weight = (LENGTH / 2 + 1) - Math.Abs(y);
-          weight_sum += weight;
-          sum += weight * series.Points[Math.Min(series.Points.Count - 1, Math.Max(0, x - y))].Y;
-        }
-        double average = sum / weight_sum;
-
-        series_norm.Points.Add(new DataPoint(series.Points[x].X, average - bias));
+        series_norm.Points.Add(new DataPoint(series.Points[x].X, series.Points[x].Y - bias));
       }
 
       // Find Peaks and Zero Crossings
@@ -1492,8 +1218,8 @@ namespace SleepApneaDiagnoser
 
       DateTimeAxis xAxis = new DateTimeAxis();
       xAxis.Key = "DateTime";
-      xAxis.Minimum = DateTimeAxis.ToDouble(EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile));
-      xAxis.Maximum = DateTimeAxis.ToDouble(EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile) + EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 0));
+      xAxis.Minimum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile));
+      xAxis.Maximum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 0));
       temp_SignalPlot.Axes.Add(xAxis);
 
       LinearAxis yAxis = new LinearAxis();
@@ -1612,7 +1338,6 @@ namespace SleepApneaDiagnoser
         p_window.ShowMessageAsync("Error", "File could not be opened.");
       }
     }
-
     private void BW_EEGAnalysisBin(string Signal, List<float> values, out double? min_y, out double? max_y, DateTime epochs_from, DateTime epochs_to, float sample_period)
     {
       // Variable To Return
@@ -1747,8 +1472,8 @@ namespace SleepApneaDiagnoser
                                                   out max_y,
                                                   out min_y,
                                                   EEGEDFSelectedSignal,
-                                                  EpochtoDateTime(EEGEDFStartRecord ?? 0, LoadedEDFFile),
-                                                  EpochtoDateTime(EEGEDFStartRecord ?? 0, LoadedEDFFile) + EpochPeriodtoTimeSpan(EEGEDFDuration ?? 0)
+                                                  Utils.EpochtoDateTime(EEGEDFStartRecord ?? 0, LoadedEDFFile),
+                                                  Utils.EpochtoDateTime(EEGEDFStartRecord ?? 0, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(EEGEDFDuration ?? 0)
                                                   );
 
       if(series.Points.Count == 0)//select length to be more than From (on GUI)
@@ -1991,8 +1716,8 @@ namespace SleepApneaDiagnoser
                                                   out max_y_1,
                                                   out min_y_1,
                                                   CoherenceEDFSelectedSignal1,
-                                                  EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile),
-                                                  EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile) + EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 0)
+                                                  Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile),
+                                                  Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 0)
                                                   );
 
       // Plot Series 1
@@ -2001,8 +1726,8 @@ namespace SleepApneaDiagnoser
 
         DateTimeAxis xAxis = new DateTimeAxis();
         xAxis.Key = "DateTime";
-        xAxis.Minimum = DateTimeAxis.ToDouble(EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile));
-        xAxis.Maximum = DateTimeAxis.ToDouble(EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile) + EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 0));
+        xAxis.Minimum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile));
+        xAxis.Maximum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 0));
         temp_SignalPlot.Axes.Add(xAxis);
 
         LinearAxis yAxis = new LinearAxis();
@@ -2032,8 +1757,8 @@ namespace SleepApneaDiagnoser
                                                   out max_y_2,
                                                   out min_y_2,
                                                   CoherenceEDFSelectedSignal2,
-                                                  EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile),
-                                                  EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile) + EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 0)
+                                                  Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile),
+                                                  Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 0)
                                                   );
 
       // Plot Series 2
@@ -2042,8 +1767,8 @@ namespace SleepApneaDiagnoser
 
         DateTimeAxis xAxis = new DateTimeAxis();
         xAxis.Key = "DateTime";
-        xAxis.Minimum = DateTimeAxis.ToDouble(EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile));
-        xAxis.Maximum = DateTimeAxis.ToDouble(EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile) + EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 0));
+        xAxis.Minimum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile));
+        xAxis.Maximum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 0));
         temp_SignalPlot.Axes.Add(xAxis);
 
         LinearAxis yAxis = new LinearAxis();
@@ -2083,17 +1808,17 @@ namespace SleepApneaDiagnoser
           {
             values1 = series_1.Points.Select(temp => (float)temp.Y).ToList();
             values2 = series_2.Points.Select(temp => (float)temp.Y).ToList();
-            values2 = MATLAB_Resample(values2.ToArray(), sample_period_2 / sample_period_1);
+            values2 = Utils.MATLAB_Resample(values2.ToArray(), sample_period_2 / sample_period_1);
           }
           else // Upsample signal 1
           {
             values1 = series_1.Points.Select(temp => (float)temp.Y).ToList();
             values2 = series_2.Points.Select(temp => (float)temp.Y).ToList();
-            values1 = MATLAB_Resample(values1.ToArray(), sample_period_1 / sample_period_2);
+            values1 = Utils.MATLAB_Resample(values1.ToArray(), sample_period_1 / sample_period_2);
           }
         }
 
-        coh = MATLAB_Coherence(values1.ToArray(), values2.ToArray());
+        coh = Utils.MATLAB_Coherence(values1.ToArray(), values2.ToArray());
         coh.YAxisKey = "Coherence";
       }
 
@@ -2128,346 +1853,102 @@ namespace SleepApneaDiagnoser
       bw.RunWorkerAsync();
     }
 
-    /*********************************************************************************************************************************/
+    /***************************************************** SETTINGS FLYOUT **********************************************************/
 
-    #endregion
-
-    #region Settings
-
-    /*********************************************************************************************************************************/
-
-    // Recent File List and Functions. 
-    public ReadOnlyCollection<string> RecentFiles
+    /// <summary>
+    /// Opens and Closes the Settings menu
+    /// </summary>
+    public void OpenCloseSettings()
     {
-      get
-      {
-        string[] value = null;
-
-        if (File.Exists("recent.txt"))
-        {
-          StreamReader sr = new StreamReader("recent.txt");
-          string[] text = sr.ReadToEnd().Split('\n');
-          List<string> values = new List<string>();
-          for (int x = 0; x < text.Length; x++)
-            if (File.Exists(text[x].Trim()))
-              values.Add(text[x].Trim());
-          sr.Close();
-
-          value = values.ToArray();
-        }
-        else
-        {
-          value = new string[0];
-        }
-
-        return Array.AsReadOnly(value);
-      }
-    }
-    public void RecentFiles_Add(string path)
-    {
-      List<string> array = RecentFiles.ToArray().ToList();
-      array.Insert(0, path);
-      array = array.Distinct().ToList();
-
-      StreamWriter sw = new StreamWriter("recent.txt");
-      for (int x = 0; x < array.Count; x++)
-      {
-        sw.WriteLine(array[x]);
-      }
-      sw.Close();
-
-      p_window.LoadRecent();
-    }
-    public void RecentFiles_Remove(string path)
-    {
-      List<string> array = RecentFiles.ToArray().ToList();
-      array.Remove(path);
-      array = array.Distinct().ToList();
-
-      StreamWriter sw = new StreamWriter("recent.txt");
-      for (int x = 0; x < array.Count; x++)
-      {
-        sw.WriteLine(array[x]);
-      }
-      sw.Close();
-
-      p_window.LoadRecent();
+      FlyoutOpen = !FlyoutOpen;
     }
 
-    // Preview Category Management
-    private List<string> p_SignalCategories = new List<string>();
-    private List<List<string>> p_SignalCategoryContents = new List<List<string>>();
-    private void LoadCategoriesFile()
-    {
-      p_SignalCategories.Clear();
-      p_SignalCategoryContents.Clear();
-
-      if (File.Exists("signal_categories.txt"))
-      {
-        StreamReader sr = new StreamReader("signal_categories.txt");
-        string[] text = sr.ReadToEnd().Replace("\r\n", "\n").Split('\n');
-
-        for (int x = 0; x < text.Length; x++)
-        {
-          string line = text[x];
-
-          string category = line.Split(',')[0].Trim();
-          List<string> category_signals = new List<string>();
-
-          for (int y = 0; y < line.Split(',').Length; y++)
-          {
-            if (EDFAllSignals.Contains(line.Split(',')[y].Trim()) || p_DerivedSignals.Find(temp => temp[0].Trim() == line.Split(',')[y].Trim()) != null)
-            {
-              category_signals.Add(line.Split(',')[y]);
-            }
-          }
-
-          if (category_signals.Count > 0)
-          {
-            p_SignalCategories.Add((p_SignalCategories.Count + 1) + ". " + category);
-            p_SignalCategoryContents.Add(category_signals);
-          }
-        }
-
-        sr.Close();
-      }
-    }
-    private void WriteToCategoriesFile()
-    {
-      List<string> temp_SignalCategories = new List<string>();
-      List<List<string>> temp_SignalCategoriesContents = new List<List<string>>();
-
-      if (File.Exists("signal_categories.txt"))
-      {
-        StreamReader sr = new StreamReader("signal_categories.txt");
-        string[] text = sr.ReadToEnd().Replace("\r\n", "\n").Split('\n');
-
-        for (int x = 0; x < text.Length; x++)
-        {
-          string line = text[x];
-
-          string category = line.Split(',')[0].Trim();
-          List<string> category_signals = new List<string>();
-
-          for (int y = 1; y < line.Split(',').Length; y++)
-          {
-            category_signals.Add(line.Split(',')[y]);
-          }
-
-          if (!p_SignalCategories.Contains(category))
-          {
-            for (int y = 0; y < AllSignals.Count; y++)
-            {
-              if (category_signals.Contains(AllSignals[y]))
-                category_signals.Remove(AllSignals[y]);
-            }
-          }
-
-          temp_SignalCategories.Add(category);
-          temp_SignalCategoriesContents.Add(category_signals);
-        }
-
-        sr.Close();
-      }
-
-      for (int x = 0; x < p_SignalCategories.Count; x++)
-      {
-        if (temp_SignalCategories.Contains(p_SignalCategories[x].Substring(p_SignalCategories[x].IndexOf('.') + 2).Trim()))
-        {
-          int u = temp_SignalCategories.IndexOf(p_SignalCategories[x].Substring(p_SignalCategories[x].IndexOf('.') + 2).Trim());
-          temp_SignalCategoriesContents[u].AddRange(p_SignalCategoryContents[x].ToArray());
-          temp_SignalCategoriesContents[u] = temp_SignalCategoriesContents[u].Distinct().ToList();
-        }
-        else
-        {
-          temp_SignalCategories.Add(p_SignalCategories[x].Substring(p_SignalCategories[x].IndexOf('.') + 2).Trim());
-          temp_SignalCategoriesContents.Add(p_SignalCategoryContents[x]);
-        }
-      }
-
-      StreamWriter sw = new StreamWriter("signal_categories.txt");
-      for (int x = 0; x < temp_SignalCategories.Count; x++)
-      {
-        string line = temp_SignalCategories[x].Trim();
-        if (line.Trim() != "")
-        {
-          for (int y = 0; y < temp_SignalCategoriesContents[x].Count; y++)
-            line += "," + temp_SignalCategoriesContents[x][y].Trim();
-
-          sw.WriteLine(line);
-        }
-      }
-      sw.Close();
-    }
+    /// <summary>
+    /// Opens the Signal Category Management Wizard
+    /// </summary>
     public void ManageCategories()
     {
       Dialog_Manage_Categories dlg = new Dialog_Manage_Categories(p_window,
                                                                   this,
-                                                                  p_SignalCategories.ToArray(),
-                                                                  p_SignalCategoryContents.Select(temp => temp.ToArray()).ToArray(),
-                                                                  LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray(),
-                                                                  p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+                                                                  sm.SignalCategories.ToArray(),
+                                                                  AllSignals.ToArray()
+                                                                  );
       p_window.ShowMetroDialogAsync(dlg);
     }
-    public void ManageCategoriesOutput(string[] categories, List<List<string>> categories_signals)
+    /// <summary>
+    /// The Signal Category Management Wizard calls this function to return user input
+    /// </summary>
+    /// <param name="categories"> A list of categories </param>
+    /// <param name="categories_signals"> A list of signals belonging to those categories </param>
+    public void ManageCategoriesOutput(SignalCategory[] categories)
     {
       PreviewCurrentCategory = -1;
-      p_SignalCategories = categories.ToList();
-      p_SignalCategoryContents = categories_signals;
+      sm.SignalCategories = categories.ToList();
     }
 
-    public void NextCategory()
-    {
-      if (PreviewCurrentCategory == p_SignalCategories.Count - 1)
-        PreviewCurrentCategory = -1;
-      else
-        PreviewCurrentCategory++;
-    }
-    public void PreviousCategory()
-    {
-      if (PreviewCurrentCategory == -1)
-        PreviewCurrentCategory = p_SignalCategories.Count - 1;
-      else
-        PreviewCurrentCategory--;
-    }
-
-    // Preview Derivative Management
-    private List<string[]> p_DerivedSignals = new List<string[]>();
-    private void LoadCommonDerivativesFile()
-    {
-      p_DerivedSignals.Clear();
-      if (File.Exists("common_derivatives.txt"))
-      {
-        List<string> text = new StreamReader("common_derivatives.txt").ReadToEnd().Replace("\r\n", "\n").Split('\n').ToList();
-        for (int x = 0; x < text.Count; x++)
-        {
-          string[] new_entry = text[x].Split(',');
-
-          if (new_entry.Length == 3)
-          {
-            if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[1].Trim()) != null) // Signals Exist
-            {
-              if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[2].Trim()) != null) // Signals Exist
-              {
-                if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == new_entry[0].Trim()) == null) // Unique Name
-                {
-                  if (p_DerivedSignals.Where(temp => temp[0].Trim() == new_entry[0].Trim()).ToList().Count == 0) // Unique Name
-                  {
-                    p_DerivedSignals.Add(new_entry);
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    private void AddToCommonDerivativesFile(string name, string signal1, string signal2)
-    {
-      StreamWriter sw = new StreamWriter("common_derivatives.txt", true);
-      sw.WriteLine(name + "," + signal1 + "," + signal2);
-      sw.Close();
-    }
-    private void RemoveFromCommonDerivativesFile(List<string[]> signals)
-    {
-      if (File.Exists("common_derivatives.txt"))
-      {
-        StreamReader sr = new StreamReader("common_derivatives.txt");
-        List<string> text = sr.ReadToEnd().Split('\n').ToList();
-        sr.Close();
-        for (int x = 0; x < text.Count; x++)
-        {
-          for (int y = 0; y < signals.Count; y++)
-          {
-            if (text[x].Split(',').Length != 3 || text[x].Split(',')[0].Trim() == signals[y][0].Trim() && text[x].Split(',')[1].Trim() == signals[y][1].Trim() && text[x].Split(',')[2].Trim() == signals[y][2].Trim())
-            {
-              text.Remove(text[x]);
-              x--;
-            }
-          }
-        }
-
-        StreamWriter sw = new StreamWriter("common_derivatives.txt");
-        for (int x = 0; x < text.Count; x++)
-        {
-          sw.WriteLine(text[x].Trim());
-        }
-        sw.Close();
-      }
-    }
+    /// <summary>
+    /// Opens the Add Derivative Signal Wizard
+    /// </summary>
     public void AddDerivative()
     {
       Dialog_Add_Derivative dlg = new Dialog_Add_Derivative(p_window,
                                                             this,
-                                                            LoadedEDFFile.Header.Signals.Select(temp => temp.Label.Trim()).ToArray(),
-                                                            p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+                                                            EDFAllSignals.ToArray(),
+                                                            AllSignals.ToArray()
+                                                            );
       p_window.ShowMetroDialogAsync(dlg);
     }
+    /// <summary>
+    /// The Add Derivative Signal Wizard call this function to return user input
+    /// </summary>
+    /// <param name="name"> The name of the new derivative signal </param>
+    /// <param name="signal1"> The minuend signal </param>
+    /// <param name="signal2"> The subtrahend signal </param>
     public void AddDerivativeOutput(string name, string signal1, string signal2)
     {
-      p_DerivedSignals.Add(new string[] { name, signal1, signal2 });
-      AddToCommonDerivativesFile(name, signal1, signal2);
+      sm.DerivedSignals.Add(new DerivativeSignal(name, signal1, signal2));
 
       OnPropertyChanged(nameof(PreviewSignals));
       OnPropertyChanged(nameof(AllNonHiddenSignals));
     }
+    /// <summary>
+    /// Opens the Remove Derivative Signal Wizard
+    /// </summary>
     public void RemoveDerivative()
     {
       Dialog_Remove_Derivative dlg = new Dialog_Remove_Derivative(p_window,
                                                                   this,
-                                                                  p_DerivedSignals.ToArray());
+                                                                  sm.DerivedSignals.Select(temp => temp.DerivativeName).ToArray());
       p_window.ShowMetroDialogAsync(dlg);
     }
+    /// <summary>
+    /// The Remove Derivative Signal Wizard call this function to return user input
+    /// </summary>
+    /// <param name="RemovedSignals"> An entry for every derivative signal to remove </param>
     public void RemoveDerivativeOutput(string[] RemovedSignals)
     {
       for (int x = 0; x < RemovedSignals.Length; x++)
       {
-        List<string[]> RemovedDerivatives = p_DerivedSignals.FindAll(temp => temp[0].Trim() == RemovedSignals[x].Trim()).ToList();
-        p_DerivedSignals.RemoveAll(temp => temp[0].Trim() == RemovedSignals[x].Trim());
-        RemoveFromCommonDerivativesFile(RemovedDerivatives);
-
-        if (pm.PreviewSelectedSignals.Contains(RemovedSignals[x].Trim()))
-        {
-          pm.PreviewSelectedSignals.Remove(RemovedSignals[x].Trim());
-        }
-
+        List<DerivativeSignal> RemovedDerivatives = sm.DerivedSignals.FindAll(temp => temp.DerivativeName.Trim() == RemovedSignals[x].Trim()).ToList();
+        sm.DerivedSignals.RemoveAll(temp => RemovedDerivatives.Contains(temp));
+        
         // Remove Potentially Saved Min/Max Values
-        p_SignalsMaxValues.RemoveAll(temp => temp[0].Trim() == RemovedSignals[x].Trim());
-        p_SignalsMinValues.RemoveAll(temp => temp[0].Trim() == RemovedSignals[x].Trim());
+        sm.SignalsYAxisExtremes.RemoveAll(temp => temp.SignalName.Trim() == RemovedSignals[x].Trim());
       }
 
       OnPropertyChanged(nameof(PreviewSignals));
       OnPropertyChanged(nameof(AllNonHiddenSignals));
     }
 
-    // Hidden Signal Management
-    private List<string> p_HiddenSignals = new List<string>();
-    private void LoadHiddenSignalsFile()
-    {
-      p_HiddenSignals.Clear();
-      if (File.Exists("hiddensignals.txt"))
-      {
-        StreamReader sr = new StreamReader("hiddensignals.txt");
-        p_HiddenSignals = sr.ReadToEnd().Replace("\r\n", "\n").Split('\n').ToList();
-        p_HiddenSignals = p_HiddenSignals.Select(temp => temp.Trim()).Where(temp => temp != "").ToList();
-        sr.Close();
-      }
-    }
-    private void WriteToHiddenSignalsFile()
-    {
-      StreamWriter sw = new StreamWriter("hiddensignals.txt");
-      for (int x = 0; x < p_HiddenSignals.Count; x++)
-      {
-        sw.WriteLine(p_HiddenSignals[x]);
-      }
-      sw.Close();
-    }
+    /// <summary>
+    /// Calls the Hide/Unhide Signals Wizard
+    /// </summary>
     public void HideSignals()
     {
       bool[] input = new bool[EDFAllSignals.Count];
       for (int x = 0; x < EDFAllSignals.Count; x++)
       {
-        if (p_HiddenSignals.Contains(EDFAllSignals[x]))
+        if (sm.HiddenSignals.Contains(EDFAllSignals[x]))
           input[x] = true;
         else
           input[x] = false;
@@ -2479,129 +1960,104 @@ namespace SleepApneaDiagnoser
                                                         input);
       p_window.ShowMetroDialogAsync(dlg);
     }
+    /// <summary>
+    /// The Hide/Unhide Signals Wizard calls this function to return user inpout
+    /// </summary>
+    /// <param name="hide_signals_new"> An array with an entry for all EDF Signals. True means hide signal, false means show signal </param>
     public void HideSignalsOutput(bool[] hide_signals_new)
     {
       for (int x = 0; x < hide_signals_new.Length; x++)
       {
         if (hide_signals_new[x])
         {
-          if (!p_HiddenSignals.Contains(EDFAllSignals[x]))
+          if (!sm.HiddenSignals.Contains(EDFAllSignals[x]))
           {
-            p_HiddenSignals.Add(EDFAllSignals[x]);
+            sm.HiddenSignals.Add(EDFAllSignals[x]);
           }
         }
         else
         {
-          if (p_HiddenSignals.Contains(EDFAllSignals[x]))
+          if (sm.HiddenSignals.Contains(EDFAllSignals[x]))
           {
-            p_HiddenSignals.Remove(EDFAllSignals[x]);
+            sm.HiddenSignals.Remove(EDFAllSignals[x]);
           }
         }
       }
 
       OnPropertyChanged(nameof(PreviewSignals));
       OnPropertyChanged(nameof(AllNonHiddenSignals));
-
-      WriteToHiddenSignalsFile();
     }
 
-    private List<string[]> p_SignalsMinValues = new List<string[]>();
-    private List<string[]> p_SignalsMaxValues = new List<string[]>();
-    private double? GetMaxSignalValue(string Signal, List<float> values)
+    /// <summary>
+    /// Call the Add Filtered Signal Wizard
+    /// </summary>
+    public void AddFilter()
     {
-      string[] find = p_SignalsMaxValues.Find(temp => temp[0].Trim() == Signal.Trim());
+      Dialog_Add_Filter dlg = new Dialog_Add_Filter(p_window,
+                                                            this,
+                                                            EDFAllSignals.ToArray(),
+                                                            sm.DerivedSignals.Select(temp => temp.DerivativeName).ToArray(),
+                                                            AllSignals.ToArray()
+                                                            );
+      p_window.ShowMetroDialogAsync(dlg);
 
-      if (find != null)
-        return Double.Parse(find[1]);
-      else
-      {
-        double? value = null;
-        value = GetPercentileValue(values.ToArray(), 99);
-        SetMaxSignalValue(Signal, value ?? 0);
-        return value;
-      }
     }
-    private double? GetMinSignalValue(string Signal, List<float> values)
+    /// <summary>
+    /// The Add Filtered Signal Wizard calls this function to return user input
+    /// </summary>
+    public void AddFilterOutput(FilteredSignal filteredSignal)
     {
-      string[] find = p_SignalsMinValues.Find(temp => temp[0].Trim() == Signal.Trim());
+      sm.FilteredSignals.Add(filteredSignal);
 
-      if (find != null)
-        return Double.Parse(find[1]);
-      else
-      {
-        double? value = null;
-        value = GetPercentileValue(values.ToArray(), 1);
-        SetMinSignalValue(Signal, value ?? 0);
-        return value;
-      }
+      OnPropertyChanged(nameof(PreviewSignals));
+      OnPropertyChanged(nameof(AllNonHiddenSignals));
     }
-    private double? GetMaxSignalValue(string Signal, List<float> values1, List<float> values2)
+    /// <summary>
+    /// Calls the Remove Filtered Signal Wizard.
+    /// </summary>
+    public void RemoveFilter()
     {
-      string[] find = p_SignalsMaxValues.Find(temp => temp[0].Trim() == Signal.Trim());
-
-      if (find != null)
-        return Double.Parse(find[1]);
-      else
-      {
-        double? value = null;
-        value = GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), 99);
-        SetMaxSignalValue(Signal, value ?? 0);
-        return value;
-      }
+      Dialog_Remove_Filter dlg = new Dialog_Remove_Filter(p_window,
+                                                          this,
+                                                          sm.FilteredSignals.Select(temp => temp.SignalName).ToArray());
+      p_window.ShowMetroDialogAsync(dlg);
     }
-    private double? GetMinSignalValue(string Signal, List<float> values1, List<float> values2)
+    /// <summary>
+    /// The Remove Filtered Signal Wizard calls this function to return user input.
+    /// </summary>
+    public void RemoveFilterOutput(string[] RemovedSignals)
     {
-      string[] find = p_SignalsMinValues.Find(temp => temp[0].Trim() == Signal.Trim());
-
-      if (find != null)
-        return Double.Parse(find[1]);
-      else
+      for (int x = 0; x < RemovedSignals.Length; x++)
       {
-        double? value = null;
-        value = GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), 1);
-        SetMinSignalValue(Signal, value ?? 0);
-        return value;
-      }
-    }
-
-    private void SetMaxSignalValue(string Signal, double Value)
-    {
-      string[] find = p_SignalsMaxValues.Find(temp => temp[0].Trim() == Signal.Trim());
-
-      if (find != null)
-      {
-        p_SignalsMaxValues.Remove(find);
+        List<FilteredSignal> RemovedFilters = sm.FilteredSignals.FindAll(temp => temp.SignalName.Trim() == RemovedSignals[x].Trim()).ToList();
+        sm.FilteredSignals.RemoveAll(temp => RemovedFilters.Contains(temp));
+        
+        // Remove Potentially Saved Min/Max Values
+        sm.SignalsYAxisExtremes.RemoveAll(temp => temp.SignalName.Trim() == RemovedSignals[x].Trim());
       }
 
-      p_SignalsMaxValues.Add(new string[] { Signal.Trim(), Value.ToString() });
-    }
-    private void SetMinSignalValue(string Signal, double Value)
-    {
-      string[] find = p_SignalsMinValues.Find(temp => temp[0].Trim() == Signal.Trim());
+      OnPropertyChanged(nameof(PreviewSignals));
+      OnPropertyChanged(nameof(AllNonHiddenSignals));
 
-      if (find != null)
-      {
-        p_SignalsMinValues.Remove(find);
-      }
-
-      p_SignalsMinValues.Add(new string[] { Signal.Trim(), Value.ToString() });
     }
 
     public void WriteSettings()
     {
-      WriteToHiddenSignalsFile();
-      WriteToCategoriesFile();
+      Utils.WriteToDerivativesFile(sm.DerivedSignals.ToArray(), AllSignals.ToArray());
+      Utils.WriteToFilteredSignalsFile(sm.FilteredSignals.ToArray(), AllSignals.ToArray());
+      Utils.WriteToHiddenSignalsFile(sm.HiddenSignals.ToArray());
+      Utils.WriteToCategoriesFile(sm.SignalCategories.ToArray(), AllSignals.ToArray());
     }
     public void LoadSettings()
     {
-      LoadHiddenSignalsFile();
-      LoadCommonDerivativesFile();
-      LoadCategoriesFile();
+      sm.SignalsYAxisExtremes.Clear();
+      sm.HiddenSignals = Utils.LoadHiddenSignalsFile().ToList();
+      sm.DerivedSignals = Utils.LoadDerivativesFile(LoadedEDFFile).ToList();
+      sm.FilteredSignals = Utils.LoadFilteredSignalsFile(AllSignals.ToArray()).ToList();
+      sm.SignalCategories = Utils.LoadCategoriesFile(AllSignals.ToArray()).ToList();
       OnPropertyChanged(nameof(PreviewSignals));
       OnPropertyChanged(nameof(AllNonHiddenSignals));
     }
-
-    /*********************************************************************************************************************************/
 
     #endregion
 
@@ -2641,6 +2097,8 @@ namespace SleepApneaDiagnoser
     /// Coherence Model
     /// </summary>
     private CoherenceModel cm = new CoherenceModel();
+
+    private SettingsModel sm = new SettingsModel();
 
     /*********************************************************************************************************************************/
 
@@ -2762,6 +2220,14 @@ namespace SleepApneaDiagnoser
     {
       CoherenceProgressRingEnabled = false;
     }
+    private void PreviewPropertiesSelectedSignal_Changed()
+    {
+      OnPropertyChanged(nameof(PreviewPropertiesSelectedSignal));
+      OnPropertyChanged(nameof(PreviewPropertiesSampleRate));
+      OnPropertyChanged(nameof(PreviewPropertiesComponentSignal));
+      OnPropertyChanged(nameof(PreviewPropertiesLowPassFilter));
+      OnPropertyChanged(nameof(PreviewPropertiesSmoothFilter));
+    }
 
     /*********************************************************** GENERAL ************************************************************/
 
@@ -2816,7 +2282,13 @@ namespace SleepApneaDiagnoser
       get
       {
         if (IsEDFLoaded)
-          return (LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.DurationOfDataRecordInSeconds * LoadedEDFFile.Header.NumberOfDataRecords)).ToString();
+        {
+          DateTime EndTime = LoadedEDFFile.Header.StartDateTime 
+                             + new TimeSpan(
+                               (long)(TimeSpan.TicksPerSecond * LoadedEDFFile.Header.DurationOfDataRecordInSeconds * LoadedEDFFile.Header.NumberOfDataRecords)
+                               );
+          return EndTime.ToString();
+        }
         else
           return "";
       }
@@ -2899,7 +2371,8 @@ namespace SleepApneaDiagnoser
         {
           List<string> output = new List<string>();
           output.AddRange(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray());
-          output.AddRange(p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+          output.AddRange(sm.DerivedSignals.Select(temp => temp.DerivativeName.Trim()).ToArray());
+          output.AddRange(sm.FilteredSignals.Select(temp => temp.SignalName));
           return Array.AsReadOnly(output.ToArray());
         }
         else
@@ -2925,13 +2398,136 @@ namespace SleepApneaDiagnoser
         if (IsEDFLoaded)
         {
           List<string> output = new List<string>();
-          output.AddRange(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).Where(temp => !p_HiddenSignals.Contains(temp)).ToArray());
-          output.AddRange(p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+          output.AddRange(AllSignals.Where(temp => !(EDFAllSignals.Contains(temp) && sm.HiddenSignals.Contains(temp))).ToArray());
           return Array.AsReadOnly(output.ToArray());
         }
         else
         {
           return Array.AsReadOnly(new string[0]);
+        }
+      }
+    }
+
+    // Signal Properties
+    public string PreviewPropertiesSelectedSignal
+    {
+      get
+      {
+        return pm.PreviewPropertiesSelectedSignal;
+      }
+      set
+      {
+        pm.PreviewPropertiesSelectedSignal = value;
+        PreviewPropertiesSelectedSignal_Changed();
+      }
+    }
+    public string PreviewPropertiesSampleRate
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+        {
+          string Signal = PreviewPropertiesSelectedSignal;
+
+          // Check signal type
+          FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
+          if (filteredSignal != null) Signal = filteredSignal.OriginalName;
+          EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal.Trim());
+          DerivativeSignal deriv_info = sm.DerivedSignals.Find(temp => temp.DerivativeName == Signal);
+
+          if (edfsignal != null) // Is EDF Signal
+          {
+            return ((int)((double)edfsignal.NumberOfSamplesPerDataRecord / (double)LoadedEDFFile.Header.DurationOfDataRecordInSeconds)).ToString();
+          }
+          else if (deriv_info != null) // Is Derivative Signal
+          {
+            EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal1Name.Trim());
+            EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal2Name.Trim());
+            return Math.Max(
+              ((int)((double)edfsignal1.NumberOfSamplesPerDataRecord / (double)LoadedEDFFile.Header.DurationOfDataRecordInSeconds)),
+              ((int)((double)edfsignal2.NumberOfSamplesPerDataRecord / (double)LoadedEDFFile.Header.DurationOfDataRecordInSeconds))
+              ).ToString();
+          }
+          else
+          {
+            return "";
+          }
+        }
+        else
+        {
+          return "";
+        }
+      }
+    }
+    public string PreviewPropertiesComponentSignal
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+        {
+          string Signal = PreviewPropertiesSelectedSignal;
+
+          // Check signal type
+          FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
+          EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == PreviewPropertiesSelectedSignal.Trim());
+          DerivativeSignal deriv_info = sm.DerivedSignals.Find(temp => temp.DerivativeName == Signal);
+
+          if (edfsignal != null) // Is an EDF Signal 
+            return "NA";
+          else if (filteredSignal != null) // Is a Filtered Signal 
+            return filteredSignal.OriginalName;
+          else if (deriv_info != null) // Is a Derivative Signal 
+          {
+            return "(" + deriv_info.Signal1Name + ") - (" + deriv_info.Signal1Name + ")";
+          }
+          else
+            return "";
+        }
+        else
+        {
+          return "";
+        }
+      }
+    }
+    public string PreviewPropertiesLowPassFilter
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+        {
+          // Check if this signal is a filtered signal
+          string Signal = PreviewPropertiesSelectedSignal;
+          FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
+
+          if (filteredSignal != null && filteredSignal.LowPass_Enabled)
+            return filteredSignal.LowPassCutoff.ToString("0.## Hz");
+          else
+            return "NA";
+        }
+        else
+        {
+          return "";
+        }
+      }
+    }
+    public string PreviewPropertiesSmoothFilter
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+        {
+          // Check if this signal is a filtered signal
+          string Signal = PreviewPropertiesSelectedSignal;
+          FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
+
+          if (filteredSignal != null && filteredSignal.WeightedAverage_Enabled)
+            return filteredSignal.WeightedAverage_Length.ToString("0.## ms");
+          else
+            return "NA";
+        }
+        else
+        {
+          return "";
         }
       }
     }
@@ -2957,7 +2553,7 @@ namespace SleepApneaDiagnoser
         if (PreviewCurrentCategory == -1)
           return "All";
         else
-          return p_SignalCategories[PreviewCurrentCategory];
+          return sm.SignalCategories[PreviewCurrentCategory].CategoryName;
       }
     }
     public ReadOnlyCollection<string> PreviewSignals
@@ -2967,12 +2563,11 @@ namespace SleepApneaDiagnoser
         if (IsEDFLoaded)
         {
           if (PreviewCurrentCategory != -1)
-            return Array.AsReadOnly(p_SignalCategoryContents[PreviewCurrentCategory].Where(temp => !p_HiddenSignals.Contains(temp)).ToArray());
+            return Array.AsReadOnly(sm.SignalCategories[PreviewCurrentCategory].Signals.Where(temp => !sm.HiddenSignals.Contains(temp)).ToArray());
           else
           {
             List<string> output = new List<string>();
-            output.AddRange(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).Where(temp => !p_HiddenSignals.Contains(temp)).ToArray());
-            output.AddRange(p_DerivedSignals.Select(temp => temp[0].Trim()).ToArray());
+            output.AddRange(AllNonHiddenSignals.Where(temp => !sm.HiddenSignals.Contains(temp)).ToArray());
             return Array.AsReadOnly(output.ToArray());
           }
         }
@@ -2990,7 +2585,7 @@ namespace SleepApneaDiagnoser
 
       DrawChart();
     }
-
+    
     // Preview Plot Range
     public bool PreviewUseAbsoluteTime
     {
@@ -3014,7 +2609,7 @@ namespace SleepApneaDiagnoser
           if (PreviewUseAbsoluteTime)
             return pm.PreviewViewStartTime;
           else
-            return EpochtoDateTime(pm.PreviewViewStartRecord, LoadedEDFFile);
+            return Utils.EpochtoDateTime(pm.PreviewViewStartRecord, LoadedEDFFile);
         }
         else
         {
@@ -3026,7 +2621,7 @@ namespace SleepApneaDiagnoser
         if (PreviewUseAbsoluteTime && IsEDFLoaded)
         {
           pm.PreviewViewStartTime = value ?? new DateTime();
-          pm.PreviewViewStartRecord = DateTimetoEpoch(pm.PreviewViewStartTime, LoadedEDFFile);
+          pm.PreviewViewStartRecord = Utils.DateTimetoEpoch(pm.PreviewViewStartTime, LoadedEDFFile);
           PreviewView_Changed();
         }
       }
@@ -3038,7 +2633,7 @@ namespace SleepApneaDiagnoser
         if (IsEDFLoaded)
         {
           if (PreviewUseAbsoluteTime)
-            return DateTimetoEpoch(PreviewViewStartTime ?? new DateTime(), LoadedEDFFile);
+            return Utils.DateTimetoEpoch(PreviewViewStartTime ?? new DateTime(), LoadedEDFFile);
           else
             return pm.PreviewViewStartRecord;
         }
@@ -3052,7 +2647,7 @@ namespace SleepApneaDiagnoser
         if (!PreviewUseAbsoluteTime && IsEDFLoaded)
         {
           pm.PreviewViewStartRecord = value ?? 0;
-          pm.PreviewViewStartTime = EpochtoDateTime(pm.PreviewViewStartRecord, LoadedEDFFile);
+          pm.PreviewViewStartTime = Utils.EpochtoDateTime(pm.PreviewViewStartRecord, LoadedEDFFile);
           PreviewView_Changed();
         }
       }
@@ -3066,7 +2661,7 @@ namespace SleepApneaDiagnoser
           if (PreviewUseAbsoluteTime)
             return pm.PreviewViewDuration;
           else
-            return TimeSpantoEpochPeriod(new TimeSpan(0, 0, pm.PreviewViewDuration));
+            return Utils.TimeSpantoEpochPeriod(new TimeSpan(0, 0, pm.PreviewViewDuration));
         }
         else
         {
@@ -3080,7 +2675,7 @@ namespace SleepApneaDiagnoser
           if (PreviewUseAbsoluteTime)
             pm.PreviewViewDuration = value ?? 0;
           else
-            pm.PreviewViewDuration = (int)EpochPeriodtoTimeSpan((value ?? 0)).TotalSeconds;
+            pm.PreviewViewDuration = (int)Utils.EpochPeriodtoTimeSpan((value ?? 0)).TotalSeconds;
         }
 
         PreviewView_Changed();
@@ -3095,7 +2690,7 @@ namespace SleepApneaDiagnoser
           if (PreviewUseAbsoluteTime)
             return (PreviewViewStartTime ?? new DateTime()) + new TimeSpan(0, 0, 0, PreviewViewDuration ?? 0);
           else
-            return (PreviewViewStartTime ?? new DateTime()) + EpochPeriodtoTimeSpan(PreviewViewDuration ?? 0);
+            return (PreviewViewStartTime ?? new DateTime()) + Utils.EpochPeriodtoTimeSpan(PreviewViewDuration ?? 0);
         }
         else
         {
@@ -3109,9 +2704,11 @@ namespace SleepApneaDiagnoser
       get
       {
         if (LoadedEDFFile != null)
-          return LoadedEDFFile.Header.StartDateTime // Start Time
-              + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds) // Total Duration
-              - new TimeSpan(0, 0, pm.PreviewViewDuration); // View Duration
+        {
+          DateTime EndTime = DateTime.Parse(EDFEndTime); // EDF End Time
+          TimeSpan duration = new TimeSpan(TimeSpan.TicksPerSecond * pm.PreviewViewDuration); // User Selected Duration 
+          return EndTime - duration; 
+        }
         else
           return new DateTime();
       }
@@ -3131,7 +2728,7 @@ namespace SleepApneaDiagnoser
       get
       {
         if (LoadedEDFFile != null)
-          return DateTimetoEpoch(PreviewViewStartTimeMax, LoadedEDFFile); // PreviewViewStartTimeMax to Record
+          return Utils.DateTimetoEpoch(PreviewViewStartTimeMax, LoadedEDFFile); // PreviewViewStartTimeMax to Record
         else
           return 0;
       }
@@ -3149,15 +2746,19 @@ namespace SleepApneaDiagnoser
       {
         if (LoadedEDFFile != null) // File Loaded
         {
+          DateTime EndTime = DateTime.Parse(EDFEndTime); // EDF End Time
+          TimeSpan duration = EndTime - (PreviewViewStartTime ?? new DateTime()); // Theoretical Limit Duration
+          TimeSpan limit = new TimeSpan(TimeSpan.TicksPerHour * 2); // Practical Limit Duration
+
           if (pm.PreviewUseAbsoluteTime)
             return Math.Min(
-                2 * 60 * 60,
-                (int)((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)) - (PreviewViewStartTime ?? new DateTime())).TotalSeconds
+                (int)limit.TotalSeconds,
+                (int)duration.TotalSeconds
                 );
           else
             return Math.Min(
-                (int)((2 * 60 * 60) / ((double)EPOCH_SEC)),
-                DateTimetoEpoch((LoadedEDFFile.Header.StartDateTime + new TimeSpan(0, 0, LoadedEDFFile.Header.NumberOfDataRecords * LoadedEDFFile.Header.DurationOfDataRecordInSeconds)), LoadedEDFFile) - DateTimetoEpoch((PreviewViewStartTime ?? new DateTime()), LoadedEDFFile)
+                Utils.TimeSpantoEpochPeriod(limit),
+                Utils.TimeSpantoEpochPeriod(duration)
                 );
         }
         else // No File Loaded
@@ -3529,6 +3130,215 @@ namespace SleepApneaDiagnoser
       }
     }
 
+    /********************************************************** SETTINGS ***********************************************************/
+
+    // Settings Flyout
+    public bool FlyoutOpen
+    {
+      get
+      {
+        return sm.FlyoutOpen;
+      }
+      set
+      {
+        sm.FlyoutOpen = value;
+        OnPropertyChanged(nameof(FlyoutOpen));
+      }
+    }
+
+    // Recent File List and Functions. 
+    public ReadOnlyCollection<string> RecentFiles
+    {
+      get
+      {
+        if (!Directory.Exists("Settings"))
+          Directory.CreateDirectory("Settings");
+
+        string[] value = null;
+
+        if (File.Exists("Settings\\recent.txt"))
+        {
+          StreamReader sr = new StreamReader("Settings\\recent.txt");
+          string[] text = sr.ReadToEnd().Split('\n');
+          List<string> values = new List<string>();
+          for (int x = 0; x < text.Length; x++)
+            if (File.Exists(text[x].Trim()))
+              values.Add(text[x].Trim());
+          sr.Close();
+
+          value = values.ToArray();
+        }
+        else
+        {
+          value = new string[0];
+        }
+
+        return Array.AsReadOnly(value);
+      }
+    }
+    public void RecentFiles_Add(string path)
+    {
+      if (!Directory.Exists("Settings"))
+        Directory.CreateDirectory("Settings");
+
+      List<string> array = RecentFiles.ToArray().ToList();
+      array.Insert(0, path);
+      array = array.Distinct().ToList();
+
+      StreamWriter sw = new StreamWriter("Settings\\recent.txt");
+      for (int x = 0; x < array.Count; x++)
+      {
+        sw.WriteLine(array[x]);
+      }
+      sw.Close();
+
+      p_window.LoadRecent();
+    }
+    public void RecentFiles_Remove(string path)
+    {
+      if (!Directory.Exists("Settings"))
+        Directory.CreateDirectory("Settings");
+
+      List<string> array = RecentFiles.ToArray().ToList();
+      array.Remove(path);
+      array = array.Distinct().ToList();
+
+      StreamWriter sw = new StreamWriter("Settings\\recent.txt");
+      for (int x = 0; x < array.Count; x++)
+      {
+        sw.WriteLine(array[x]);
+      }
+      sw.Close();
+
+      p_window.LoadRecent();
+    }
+
+    // Signal Y Axis Extremes
+    private int percent_high = 99;
+    private int percent_low = 1;
+    private double? GetMaxSignalValue(string Signal, List<float> values)
+    {
+      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
+
+      if (find != null)
+      {
+        if (!Double.IsNaN(find.yMax))
+          return find.yMax;
+        else
+        {
+          double? value = null;
+          value = Utils.GetPercentileValue(values.ToArray(), percent_high);
+          SetMaxSignalValue(Signal, value ?? 0);
+          return value;
+        }
+      }
+      else
+      {
+        double? value = null;
+        value = Utils.GetPercentileValue(values.ToArray(), percent_high);
+        SetMaxSignalValue(Signal, value ?? 0);
+        return value;
+      }
+    }
+    private double? GetMinSignalValue(string Signal, List<float> values)
+    {
+      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
+
+      if (find != null)
+      {
+        if (!Double.IsNaN(find.yMin))
+          return find.yMin;
+        else
+        {
+          double? value = null;
+          value = Utils.GetPercentileValue(values.ToArray(), percent_low);
+          SetMinSignalValue(Signal, value ?? 0);
+          return value;
+        }
+      }
+      else
+      {
+        double? value = null;
+        value = Utils.GetPercentileValue(values.ToArray(), percent_low);
+        SetMinSignalValue(Signal, value ?? 0);
+        return value;
+      }
+    }
+    private double? GetMaxSignalValue(string Signal, List<float> values1, List<float> values2)
+    {
+      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
+
+      if (find != null)
+      {
+        if (!Double.IsNaN(find.yMax))
+          return find.yMax;
+        else
+        {
+          double? value = null;
+          value = Utils.GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), percent_high);
+          SetMaxSignalValue(Signal, value ?? 0);
+          return value;
+        }
+      }
+      else
+      {
+        double? value = null;
+        value = Utils.GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), percent_high);
+        SetMaxSignalValue(Signal, value ?? 0);
+        return value;
+      }
+    }
+    private double? GetMinSignalValue(string Signal, List<float> values1, List<float> values2)
+    {
+      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
+
+      if (find != null)
+      {
+        if (!Double.IsNaN(find.yMin))
+          return find.yMin;
+        else
+        {
+          double? value = null;
+          value = Utils.GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), percent_low);
+          SetMinSignalValue(Signal, value ?? 0);
+          return value;
+        }
+      }
+      else
+      {
+        double? value = null;
+        value = Utils.GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), percent_low);
+        SetMinSignalValue(Signal, value ?? 0);
+        return value;
+      }
+    }
+    private void SetMaxSignalValue(string Signal, double Value)
+    {
+      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
+
+      if (find != null)
+      {
+        find.yMax = Value;
+      }
+      else
+      {
+        sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(Signal) { yMax = Value });
+      }
+    }
+    private void SetMinSignalValue(string Signal, double Value)
+    {
+      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
+
+      if (find != null)
+      {
+        find.yMin = Value;
+      }
+      else
+      {
+        sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(Signal) { yMin = Value });
+      }
+    }
+
     /*********************************************************************************************************************************/
 
     #endregion
@@ -3554,7 +3364,7 @@ namespace SleepApneaDiagnoser
         bw.DoWork += new DoWorkEventHandler(
           delegate (object sender1, DoWorkEventArgs e1)
           {
-            MATLAB_Coherence(new float[] { 1, 1, 1, 1, 1, 1, 1, 1 }, new float[] { 1, 1, 1, 1, 1, 1, 1, 1 });
+            Utils.MATLAB_Coherence(new float[] { 1, 1, 1, 1, 1, 1, 1, 1 }, new float[] { 1, 1, 1, 1, 1, 1, 1, 1 });
           }
           );
         bw.RunWorkerAsync();
@@ -3564,7 +3374,7 @@ namespace SleepApneaDiagnoser
         bw.DoWork += new DoWorkEventHandler(
           delegate (object sender1, DoWorkEventArgs e1)
           {
-            MATLAB_Resample(new float[] { 1, 1, 1, 1, 1, 1, 1, 1 }, 2);
+            Utils.MATLAB_Resample(new float[] { 1, 1, 1, 1, 1, 1, 1, 1 }, 2);
           }
           );
         bw.RunWorkerAsync();

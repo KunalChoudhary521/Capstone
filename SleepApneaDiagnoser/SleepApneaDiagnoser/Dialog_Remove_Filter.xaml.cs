@@ -19,7 +19,7 @@ namespace SleepApneaDiagnoser
   /// <summary>
   /// Interaction logic for Dialog_Remove_Derivative.xaml
   /// </summary>
-  public partial class Dialog_Remove_Derivative
+  public partial class Dialog_Remove_Filter
   {
     public string[] RemovedSignals
     {
@@ -37,12 +37,12 @@ namespace SleepApneaDiagnoser
     private MetroWindow window;
     private ModelView model;
 
-    public Dialog_Remove_Derivative(MetroWindow i_window, ModelView i_model, string[] DerivedSignals)
+    public Dialog_Remove_Filter(MetroWindow i_window, ModelView i_model, string[] FilteredSignals)
     {
       InitializeComponent();
 
-      for (int x = 0; x < DerivedSignals.Length; x++)
-        listBox_DerivedSignals.Items.Add(DerivedSignals[x]);
+      for (int x = 0; x < FilteredSignals.Length; x++)
+        listBox_DerivedSignals.Items.Add(FilteredSignals[x]);
 
       window = i_window;
       model = i_model;
@@ -52,7 +52,7 @@ namespace SleepApneaDiagnoser
     {
       if (listBox_DerivedSignals.SelectedItems.Count > 0)
       {
-        model.RemoveDerivativeOutput(RemovedSignals);
+        model.RemoveFilterOutput(RemovedSignals);
         DialogManager.HideMetroDialogAsync(window, this);
       }
       else

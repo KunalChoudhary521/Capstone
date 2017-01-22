@@ -43,17 +43,17 @@ namespace SleepApneaDiagnoser
       }
     }
 
-    private string[] DerivedSignals;
+    private string[] AllSignals;
     private string[] Signals;
     private MetroWindow window;
     private ModelView model;
 
-    public Dialog_Add_Derivative(MetroWindow i_window, ModelView i_model, string[] i_Signals, string[] i_DerivedSignals)
+    public Dialog_Add_Derivative(MetroWindow i_window, ModelView i_model, string[] i_Signals, string[] i_AllSignals)
     {
       InitializeComponent();
 
       Signals = i_Signals;
-      DerivedSignals = i_DerivedSignals;
+      AllSignals = i_AllSignals;
 
       for (int x = 0; x < i_Signals.Length; x++)
       {
@@ -69,7 +69,7 @@ namespace SleepApneaDiagnoser
     {
       if (comboBox_Signal1.Text.Trim() != "" && comboBox_Signal2.Text.Trim() != "" && textBox_SignalName.Text.Trim() != "")
       {
-        if (Signals.ToList().Contains(textBox_SignalName.Text.Trim()) || DerivedSignals.ToList().Contains(textBox_SignalName.Text.Trim()))
+        if (AllSignals.ToList().Contains(textBox_SignalName.Text.Trim()))
         {
           window.ShowMessageAsync("Error", "Please select a unique signal name.");
         }
