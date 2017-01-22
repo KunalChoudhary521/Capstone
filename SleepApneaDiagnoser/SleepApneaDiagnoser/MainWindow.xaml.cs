@@ -140,6 +140,7 @@ namespace SleepApneaDiagnoser
 
       model = new ModelView(this);
       this.DataContext = model;
+      this.Respiratory_Settings.DataContext = model;
       LoadRecent();
 
       try
