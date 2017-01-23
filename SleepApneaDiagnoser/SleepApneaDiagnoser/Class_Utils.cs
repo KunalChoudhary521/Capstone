@@ -350,12 +350,17 @@ namespace SleepApneaDiagnoser
       // Check for removals
       for (int x = 0; x < current_SignalCategories.Count; x++)
       {
+        List<string> to_remove = new List<string>();
         for (int y = 0; y < current_SignalCategories[x].Signals.Count; y++)
         {
           if (AllSignalsList.Contains(current_SignalCategories[x].Signals[y]))
           {
-            current_SignalCategories[x].Signals.Remove(current_SignalCategories[x].Signals[y]);
+            to_remove.Add(current_SignalCategories[x].Signals[y]);
           }
+        }
+        for (int y = 0; y < to_remove.Count; y++)
+        {
+          current_SignalCategories[x].Signals.Remove(to_remove[y]);
         }
       }
 

@@ -77,11 +77,12 @@ namespace SleepApneaDiagnoser
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
-      model.LoadPersonalization();
+      model.LoadAppSettings();
     }
     private void Window_Closing(object sender, CancelEventArgs e)
     {
-      model.WriteSettings();
+      model.WriteAppSettings();
+      model.WriteEDFSettings();
     }
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
     {
@@ -116,8 +117,6 @@ namespace SleepApneaDiagnoser
     // Home Tab Events
     private void TextBlock_OpenEDF_Click(object sender, RoutedEventArgs e)
     {
-      model.LoadedEDFFile = null;
-
       Microsoft.Win32.OpenFileDialog dialog = new Microsoft.Win32.OpenFileDialog();
       dialog.Filter = "EDF files (*.edf)|*.edf";
       dialog.Title = "Select an EDF file";
@@ -129,8 +128,6 @@ namespace SleepApneaDiagnoser
     }
     private void TextBlock_Recent_Click(object sender, RoutedEventArgs e)
     {
-      model.LoadedEDFFile = null;
-
       List<string> array = model.RecentFiles.ToArray().ToList();
       List<string> selected = array.Where(temp => temp.Split('\\')[temp.Split('\\').Length - 1] == ((Hyperlink)sender).Inlines.FirstInline.DataContext.ToString()).ToList();
 
@@ -428,7 +425,7 @@ namespace SleepApneaDiagnoser
       LoadedEDFFile = temp;
 
       // Load Settings Files
-      LoadSettings();
+      LoadEDFSettings();
 
       // End 'Update Progress Bar' Task 
       bw_progressbar.CancelAsync();
@@ -456,6 +453,9 @@ namespace SleepApneaDiagnoser
     public async void LoadEDFFile(string fileNameIn)
     {
       controller = await p_window.ShowProgressAsync("Please wait...", "Loading EDF File: " + fileNameIn);
+
+      WriteEDFSettings();
+      LoadedEDFFile = null;
 
       LoadedEDFFileName = fileNameIn;
       BackgroundWorker bw = new BackgroundWorker();
@@ -1889,6 +1889,18 @@ namespace SleepApneaDiagnoser
         sm.SignalsYAxisExtremes.RemoveAll(temp => temp.SignalName.Trim() == RemovedSignals[x].Trim());
       }
 
+      // Remove from categories
+      for (int x = 0; x < RemovedSignals.Length; x++)
+      {
+        for (int y = 0; y < sm.SignalCategories.Count; y++)
+        {
+          if (sm.SignalCategories[y].Signals.Contains(RemovedSignals[x]))
+          {
+            sm.SignalCategories[y].Signals.Remove(RemovedSignals[x]);
+          }
+        }
+      }
+
       OnPropertyChanged(nameof(PreviewSignals));
       OnPropertyChanged(nameof(AllNonHiddenSignals));
     }
@@ -1989,31 +2001,47 @@ namespace SleepApneaDiagnoser
         sm.SignalsYAxisExtremes.RemoveAll(temp => temp.SignalName.Trim() == RemovedSignals[x].Trim());
       }
 
+      // Remove from categories
+      for (int x = 0; x < RemovedSignals.Length; x++)
+      {
+        for (int y = 0; y < sm.SignalCategories.Count; y++)
+        {
+          if (sm.SignalCategories[y].Signals.Contains(RemovedSignals[x]))
+          {
+            sm.SignalCategories[y].Signals.Remove(RemovedSignals[x]);
+          }
+        }
+      }
+
       OnPropertyChanged(nameof(PreviewSignals));
       OnPropertyChanged(nameof(AllNonHiddenSignals));
 
     }
 
-    public void WriteSettings()
+    public void WriteEDFSettings()
     {
       Utils.WriteToDerivativesFile(sm.DerivedSignals.ToArray(), AllSignals.ToArray());
       Utils.WriteToFilteredSignalsFile(sm.FilteredSignals.ToArray(), AllSignals.ToArray());
-      Utils.WriteToHiddenSignalsFile(sm.HiddenSignals.ToArray());
       Utils.WriteToCategoriesFile(sm.SignalCategories.ToArray(), AllSignals.ToArray());
+    }
+    public void WriteAppSettings()
+    {
+      Utils.WriteToHiddenSignalsFile(sm.HiddenSignals.ToArray());
       Utils.WriteToPersonalization(UseCustomColor, ThemeColor, UseDarkTheme);
     }
-    public void LoadSettings()
+    public void LoadEDFSettings()
     {
       sm.SignalsYAxisExtremes.Clear();
-      sm.HiddenSignals = Utils.LoadHiddenSignalsFile().ToList();
       sm.DerivedSignals = Utils.LoadDerivativesFile(LoadedEDFFile).ToList();
       sm.FilteredSignals = Utils.LoadFilteredSignalsFile(AllSignals.ToArray()).ToList();
       sm.SignalCategories = Utils.LoadCategoriesFile(AllSignals.ToArray()).ToList();
       OnPropertyChanged(nameof(PreviewSignals));
       OnPropertyChanged(nameof(AllNonHiddenSignals));
     }
-    public void LoadPersonalization()
+    public void LoadAppSettings()
     {
+      sm.HiddenSignals = Utils.LoadHiddenSignalsFile().ToList();
+
       Color t_ThemeColor;
       bool t_UseDarkTheme;
       bool t_UseCustomColor;
