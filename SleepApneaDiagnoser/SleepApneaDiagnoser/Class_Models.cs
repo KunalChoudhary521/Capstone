@@ -245,5 +245,9 @@ namespace SleepApneaDiagnoser
     public List<string> HiddenSignals = new List<string>();
     public List<SignalYAxisExtremes> SignalsYAxisExtremes = new List<SignalYAxisExtremes>();
     public List<FilteredSignal> FilteredSignals = new List<FilteredSignal>();
+
+    public System.Windows.Media.Color ThemeColor = System.Windows.Media.Colors.Blue;
+    public bool UseCustomColor = false;
+    public bool UseDarkTheme = false;
   }
 }

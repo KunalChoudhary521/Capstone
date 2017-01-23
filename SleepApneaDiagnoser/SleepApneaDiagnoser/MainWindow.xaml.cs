@@ -50,77 +50,6 @@ namespace SleepApneaDiagnoser
     ModelView model;
 
     /// <summary>
-    /// Modified From Sample MahApps.Metro Project
-    /// https://github.com/punker76/code-samples/blob/master/MahAppsMetroThemesSample/MahAppsMetroThemesSample/ThemeManagerHelper.cs
-    /// </summary>
-    public static void UseWindowsThemeColor()
-    {
-      byte a = ((Color)SystemParameters.WindowGlassBrush.GetValue(SolidColorBrush.ColorProperty)).A;
-      byte g = ((Color)SystemParameters.WindowGlassBrush.GetValue(SolidColorBrush.ColorProperty)).G;
-      byte r = ((Color)SystemParameters.WindowGlassBrush.GetValue(SolidColorBrush.ColorProperty)).R;
-      byte b = ((Color)SystemParameters.WindowGlassBrush.GetValue(SolidColorBrush.ColorProperty)).B;
-
-      // create a runtime accent resource dictionary
-
-      var resourceDictionary = new ResourceDictionary();
-
-      resourceDictionary.Add("HighlightColor", Color.FromArgb(a, r, g, b));
-      resourceDictionary.Add("AccentColor", Color.FromArgb(a, r, g, b));
-      resourceDictionary.Add("AccentColor2", Color.FromArgb(a, r, g, b));
-      resourceDictionary.Add("AccentColor3", Color.FromArgb(a, r, g, b));
-      resourceDictionary.Add("AccentColor4", Color.FromArgb(a, r, g, b));
-
-      resourceDictionary.Add("HighlightBrush", new SolidColorBrush((Color)resourceDictionary["HighlightColor"]));
-      resourceDictionary.Add("AccentColorBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor"]));
-      resourceDictionary.Add("AccentColorBrush2", new SolidColorBrush((Color)resourceDictionary["AccentColor2"]));
-      resourceDictionary.Add("AccentColorBrush3", new SolidColorBrush((Color)resourceDictionary["AccentColor3"]));
-      resourceDictionary.Add("AccentColorBrush4", new SolidColorBrush((Color)resourceDictionary["AccentColor4"]));
-      resourceDictionary.Add("WindowTitleColorBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor"]));
-
-      resourceDictionary.Add("ProgressBrush", new LinearGradientBrush(
-          new GradientStopCollection(new[]
-          {
-                new GradientStop((Color)resourceDictionary["HighlightColor"], 0),
-                new GradientStop((Color)resourceDictionary["AccentColor3"], 1)
-          }),
-          new Point(0.001, 0.5), new Point(1.002, 0.5)));
-
-      resourceDictionary.Add("CheckmarkFill", new SolidColorBrush((Color)resourceDictionary["AccentColor"]));
-      resourceDictionary.Add("RightArrowFill", new SolidColorBrush((Color)resourceDictionary["AccentColor"]));
-
-      resourceDictionary.Add("IdealForegroundColor", Colors.White);
-      resourceDictionary.Add("IdealForegroundColorBrush", new SolidColorBrush((Color)resourceDictionary["IdealForegroundColor"]));
-      resourceDictionary.Add("AccentSelectedColorBrush", new SolidColorBrush((Color)resourceDictionary["IdealForegroundColor"]));
-
-      // DataGrid brushes since latest alpha after 1.1.2
-      resourceDictionary.Add("MetroDataGrid.HighlightBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor"]));
-      resourceDictionary.Add("MetroDataGrid.HighlightTextBrush", new SolidColorBrush((Color)resourceDictionary["IdealForegroundColor"]));
-      resourceDictionary.Add("MetroDataGrid.MouseOverHighlightBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor3"]));
-      resourceDictionary.Add("MetroDataGrid.FocusBorderBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor"]));
-      resourceDictionary.Add("MetroDataGrid.InactiveSelectionHighlightBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor2"]));
-      resourceDictionary.Add("MetroDataGrid.InactiveSelectionHighlightTextBrush", new SolidColorBrush((Color)resourceDictionary["IdealForegroundColor"]));
-
-      // applying theme to MahApps
-
-      var resDictName = string.Format("ApplicationAccent_{0}.xaml", Color.FromArgb(a, r, g, b).ToString().Replace("#", string.Empty));
-      var fileName = System.IO.Path.Combine(System.IO.Path.GetTempPath(), resDictName);
-      using (var writer = System.Xml.XmlWriter.Create(fileName, new System.Xml.XmlWriterSettings { Indent = true }))
-      {
-        System.Windows.Markup.XamlWriter.Save(resourceDictionary, writer);
-        writer.Close();
-      }
-
-      resourceDictionary = new ResourceDictionary() { Source = new Uri(fileName, UriKind.Absolute) };
-
-      var newAccent = new Accent { Name = resDictName, Resources = resourceDictionary };
-      ThemeManager.AddAccent(newAccent.Name, newAccent.Resources.Source);
-
-      var application = System.Windows.Application.Current;
-      var applicationTheme = ThemeManager.AppThemes.First(x => string.Equals(x.Name, "BaseLight"));
-      ThemeManager.ChangeAppStyle(application, newAccent, applicationTheme);
-    }
-
-    /// <summary>
     /// Function called to populate recent files list. Called when application is first loaded and if the recent files list changes.
     /// </summary>
     public void LoadRecent()
@@ -142,18 +71,14 @@ namespace SleepApneaDiagnoser
 
       model = new ModelView(this);
       this.DataContext = model;
-      this.Respiratory_Settings.DataContext = model;
+      this.Bound_Settings.DataContext = model;
       LoadRecent();
-
-      try
-      {
-        UseWindowsThemeColor();
-      }
-      catch
-      {
-      }
     }
 
+    private void Window_Loaded(object sender, RoutedEventArgs e)
+    {
+      model.LoadPersonalization();
+    }
     private void Window_Closing(object sender, CancelEventArgs e)
     {
       model.WriteSettings();
@@ -336,13 +261,12 @@ namespace SleepApneaDiagnoser
     {
       model.PerformCoherenceAnalysisEDF();
     }
-
   }
 
   public class ModelView : INotifyPropertyChanged
   {
     #region Helper Functions
-    
+
     /// <summary>
     /// From a signal, returns a series of X,Y values for use with a PlotModel
     /// Also returns y axis information and the sample_period of the signal
@@ -441,7 +365,7 @@ namespace SleepApneaDiagnoser
         {
           float LENGTH;
           LENGTH = Math.Max(filteredSignal.WeightedAverage_Length / (sample_period * 1000), 1);
-            
+
           series = Utils.ApplyWeightedAverageFilter(series, LENGTH);
         }
       }
@@ -470,13 +394,13 @@ namespace SleepApneaDiagnoser
     private void BW_LoadEDFFileUpDateProgress(object sender, DoWorkEventArgs e)
     {
       long process_start = Process.GetCurrentProcess().PagedMemorySize64;
-      long file_size = (long) (new FileInfo(e.Argument.ToString()).Length * 2.2);
+      long file_size = (long)(new FileInfo(e.Argument.ToString()).Length * 2.2);
       long current_progress = 0;
 
       while (!bw_progressbar.CancellationPending)
       {
         current_progress = Math.Max(current_progress, Process.GetCurrentProcess().PagedMemorySize64 - process_start);
-        double progress = Math.Min(99, (current_progress * 100 / (double) file_size));
+        double progress = Math.Min(99, (current_progress * 100 / (double)file_size));
 
         controller.SetProgress(progress);
       }
@@ -562,7 +486,7 @@ namespace SleepApneaDiagnoser
       else
         PreviewCurrentCategory--;
     }
-    
+
     /// <summary>
     /// Background process for drawing preview chart
     /// </summary>
@@ -594,8 +518,8 @@ namespace SleepApneaDiagnoser
           bw.DoWork += new DoWorkEventHandler(
             delegate (object sender1, DoWorkEventArgs e1)
             {
-            // Get Series for each signal
-            int y = (int)e1.Argument;
+              // Get Series for each signal
+              int y = (int)e1.Argument;
               double? min_y, max_y;
               float sample_period;
               LineSeries series = GetSeriesFromSignalName(out sample_period,
@@ -608,8 +532,8 @@ namespace SleepApneaDiagnoser
               series.YAxisKey = pm.PreviewSelectedSignals[y];
               series.XAxisKey = "DateTime";
 
-            // Create Y Axis for each signal
-            LinearAxis yAxis = new LinearAxis();
+              // Create Y Axis for each signal
+              LinearAxis yAxis = new LinearAxis();
               yAxis.MajorGridlineStyle = LineStyle.Solid;
               yAxis.MinorGridlineStyle = LineStyle.Dot;
               yAxis.Title = pm.PreviewSelectedSignals[y];
@@ -664,7 +588,7 @@ namespace SleepApneaDiagnoser
       if (pm.PreviewSelectedSignals.Count > 0)
       {
         Dialog_Export_Previewed_Signals dlg = new Dialog_Export_Previewed_Signals(pm.PreviewSelectedSignals);
-
+        
         controller = await p_window.ShowProgressAsync("Export", "Exporting preview signals to binary...");
 
         controller.SetCancelable(false);
@@ -758,11 +682,11 @@ namespace SleepApneaDiagnoser
         bin_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".bin", FileMode.OpenOrCreate); //reload
         BinaryWriter bin_writer = new BinaryWriter(bin_file);
 
-        int start_index = (int)((signals_data.Epochs_From * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds)* edfsignal.NumberOfSamplesPerDataRecord; // from epoch number * 30 seconds per epoch * sample rate = start time
-        int end_index = (int)((signals_data.Epochs_To * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds)* edfsignal.NumberOfSamplesPerDataRecord; // to epoch number * 30 seconds per epoch * sample rate = end time
+        int start_index = (int)((signals_data.Epochs_From * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * edfsignal.NumberOfSamplesPerDataRecord; // from epoch number * 30 seconds per epoch * sample rate = start time
+        int end_index = (int)((signals_data.Epochs_To * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * edfsignal.NumberOfSamplesPerDataRecord; // to epoch number * 30 seconds per epoch * sample rate = end time
 
         if (start_index < 0) { start_index = 0; }
-        if (end_index > signalValues.Count()) { end_index = signalValues.Count(); }        
+        if (end_index > signalValues.Count()) { end_index = signalValues.Count(); }
 
         for (int i = start_index; i < end_index; i++)
         {
@@ -774,7 +698,7 @@ namespace SleepApneaDiagnoser
         #endregion
       }
     }
-    
+
     /// <summary>
     /// Exports chart to image
     /// </summary>
@@ -811,7 +735,7 @@ namespace SleepApneaDiagnoser
         FileStream bin_file = new FileStream(dialog.FileName, FileMode.Open);
         BinaryReader reader = new BinaryReader(bin_file);
 
-        byte[] value =  new byte[4];
+        byte[] value = new byte[4];
         bool didReachEnd = false;
         List<float> signal_values = new List<float>();
         // read the whole binary file and build the signal values
@@ -1129,24 +1053,24 @@ namespace SleepApneaDiagnoser
       for (int x = 0; x < series_norm.Points.Count; x++)
       {
         // If positive spike
-        if (positive != false) 
+        if (positive != false)
         {
           // If end of positive spike
-          if (series_norm.Points[x].Y < 0 || x == series_norm.Points.Count - 1) 
+          if (series_norm.Points[x].Y < 0 || x == series_norm.Points.Count - 1)
           {
             // If spike is appropriate length
-            if (spike_length > min_spike_length) 
+            if (spike_length > min_spike_length)
             {
               if (
                   // If user does not mind consequent peaks of same sign
-                  !RespiratoryRemoveMultiplePeaks || 
+                  !RespiratoryRemoveMultiplePeaks ||
                   // If first positive peak
                   series_pos_peaks.Points.Count == 0 ||
                   // If last peak was negative
-                  (series_neg_peaks.Points.Count != 0 && 
-                  DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) > 
+                  (series_neg_peaks.Points.Count != 0 &&
+                  DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) >
                   DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))
-                 ) 
+                 )
               {
                 // Add new positive peak and onset 
                 series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
@@ -1155,7 +1079,7 @@ namespace SleepApneaDiagnoser
               else
               {
                 // If this peak is greater than the previous
-                if (series_norm.Points[maxima].Y > series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].Y) 
+                if (series_norm.Points[maxima].Y > series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].Y)
                 {
                   // Replace previous spike maxima with latest spike maxima
                   series_pos_peaks.Points.Remove(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1]);
@@ -1195,10 +1119,10 @@ namespace SleepApneaDiagnoser
                   // If first negative peak
                   series_neg_peaks.Points.Count == 0 ||
                   // If last peak was positive 
-                  (series_pos_peaks.Points.Count != 0 && 
-                  DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) < 
+                  (series_pos_peaks.Points.Count != 0 &&
+                  DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) <
                   DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))
-                ) 
+                )
               {
                 // Add new negative peak and onset 
                 series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
@@ -1207,7 +1131,7 @@ namespace SleepApneaDiagnoser
               else
               {
                 // If this peak is less than the previous
-                if (series_norm.Points[maxima].Y < series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].Y) 
+                if (series_norm.Points[maxima].Y < series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].Y)
                 {
                   // Replace previous spike maxima with latest spike maxima
                   series_neg_peaks.Points.Remove(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1]);
@@ -1494,7 +1418,7 @@ namespace SleepApneaDiagnoser
 
     //EEG Analysis From EDF File
     private void BW_EEGAnalysisEDF(object sender, DoWorkEventArgs e)
-    {      
+    {
       double? max_y, min_y;
       float sample_period;
       LineSeries series = GetSeriesFromSignalName(out sample_period,
@@ -1505,12 +1429,12 @@ namespace SleepApneaDiagnoser
                                                   Utils.EpochtoDateTime(EEGEDFStartRecord ?? 0, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(EEGEDFDuration ?? 0)
                                                   );
 
-      if(series.Points.Count == 0)//select length to be more than From (on GUI)
+      if (series.Points.Count == 0)//select length to be more than From (on GUI)
       {
         //need to type error message for User
         return;
       }
-      
+
       const int freqbands = 7;
       MWNumericArray[] freqRange = new MWNumericArray[freqbands];
       freqRange[0] = new MWNumericArray(1, 2, new double[] { 0.1, 3 });//delta band
@@ -1528,11 +1452,11 @@ namespace SleepApneaDiagnoser
       }
 
       /********************Computing Absolute, Relative & TotalPower*************************/
-      MWNumericArray mlabArraySignal = new MWNumericArray(signal);      
+      MWNumericArray mlabArraySignal = new MWNumericArray(signal);
       EEGPower pwr = new EEGPower();
       double totalPower = 0.0;
       MWNumericArray[] absPower = new MWNumericArray[freqbands];
-      MWNumericArray sampleFreq = new MWNumericArray(1/sample_period);
+      MWNumericArray sampleFreq = new MWNumericArray(1 / sample_period);
       ColumnItem[] absPlotbandItems = new ColumnItem[freqbands];
       for (int i = 0; i < freqRange.Length; i++)
       {
@@ -1599,27 +1523,27 @@ namespace SleepApneaDiagnoser
         LegendOrientation = LegendOrientation.Horizontal,
         LegendBorderThickness = 0
       };
-      
+
       ColumnSeries absPlotbars = new ColumnSeries
       {
         //Title = "Abs_Pwr",
         StrokeColor = OxyColors.Black,
         StrokeThickness = 1,
         FillColor = OxyColors.Blue//changes color of bars
-      };      
-      absPlotbars.Items.AddRange(absPlotbandItems);            
+      };
+      absPlotbars.Items.AddRange(absPlotbandItems);
 
       CategoryAxis absbandLabels = new CategoryAxis { Position = AxisPosition.Bottom };
-            
-      absbandLabels.Labels.AddRange(freqBandName);      
-      
-      LinearAxis absYAxis = new LinearAxis { Position = AxisPosition.Left, Title="Power (db)", MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0, TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8 };
+
+      absbandLabels.Labels.AddRange(freqBandName);
+
+      LinearAxis absYAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Power (db)", MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0, TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8 };
       tempAbsPwr.Series.Add(absPlotbars);
       tempAbsPwr.Axes.Add(absbandLabels);
       tempAbsPwr.Axes.Add(absYAxis);
 
       PlotAbsPwr = tempAbsPwr;
-      
+
 
       /*************************************Plotting relative power graph****************************/
       PlotModel tempRelPwr = new PlotModel()
@@ -1636,13 +1560,13 @@ namespace SleepApneaDiagnoser
         StrokeColor = OxyColors.Black,
         StrokeThickness = 1,
         FillColor = OxyColors.Red//changes color of bars
-      };      
+      };
       relPlotbars.Items.AddRange(relPlotbandItems);
-      
+
       CategoryAxis relbandLabels = new CategoryAxis { Position = AxisPosition.Bottom };
-      
+
       relbandLabels.Labels.AddRange(freqBandName);
-      
+
       LinearAxis relYAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Power (%)", MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0, TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8 };
       tempRelPwr.Series.Add(relPlotbars);
       tempRelPwr.Axes.Add(relbandLabels);
@@ -1657,14 +1581,14 @@ namespace SleepApneaDiagnoser
       };
       LinearColorAxis specLegend = new LinearColorAxis() { Position = AxisPosition.Right, Palette = OxyPalettes.Jet(100), HighColor = OxyColors.Red, LowColor = OxyColors.Blue };
       LinearAxis specYAxis = new LinearAxis() { Position = AxisPosition.Left, Title = "Frequency (Hz)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8 };
-      LinearAxis specXAxis = new LinearAxis() { Position = AxisPosition.Bottom, Title = "Time (s)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold };     
-      
+      LinearAxis specXAxis = new LinearAxis() { Position = AxisPosition.Bottom, Title = "Time (s)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold };
+
       tempSpectGram.Axes.Add(specLegend);
       tempSpectGram.Axes.Add(specXAxis);
       tempSpectGram.Axes.Add(specYAxis);
 
       double minTime = specMatrix.Min2D(), maxTime = specMatrix.Max2D(), minFreq = specMatrix.Min2D(), maxFreq = specMatrix.Max2D();//specTime.Max()
-      HeatMapSeries specGram = new HeatMapSeries() { X0 = minTime, X1 = maxTime, Y0 = minFreq, Y1 = maxFreq, Data = specMatrix };     
+      HeatMapSeries specGram = new HeatMapSeries() { X0 = minTime, X1 = maxTime, Y0 = minFreq, Y1 = maxFreq, Data = specMatrix };
       tempSpectGram.Series.Add(specGram);
 
       //PlotSpecGram = tempSpectGram;
@@ -1672,10 +1596,10 @@ namespace SleepApneaDiagnoser
       /***************************Plotting Power Spectral Density ****************************/
       PlotModel tempPSD = new PlotModel()
       {
-        Title = "Power Spectral Density"       
+        Title = "Power Spectral Density"
       };
-      LineSeries psdSeries = new LineSeries() { Color = OxyColors.Green};
-      for(int i = 0; i < psdValues.Length; i++)
+      LineSeries psdSeries = new LineSeries() { Color = OxyColors.Green };
+      for (int i = 0; i < psdValues.Length; i++)
       {
         psdSeries.Points.Add(new DataPoint(frqValues[i], psdValues[i]));
       }
@@ -1691,21 +1615,21 @@ namespace SleepApneaDiagnoser
 
       dataLine = String.Format("Epoch#, Power(db), Frequency(Hz)");
       eegStream.WriteLine(dataLine);
-            
-      for (int i = 1; i < psdValues.Length;i++)
+
+      for (int i = 1; i < psdValues.Length; i++)
       {
-        dataLine = String.Format("{0},{1:0.00},{2:0.00}", " ",psdValues[i], frqValues[i]);
+        dataLine = String.Format("{0},{1:0.00},{2:0.00}", " ", psdValues[i], frqValues[i]);
         eegStream.WriteLine(dataLine.ToString());
       }
       eegStream.Close();
-      
+
 
       /**************************Exporting EEG Signal to .csv*************************/
       StreamWriter eegSignalStream = new StreamWriter("EEGSignal.csv");
       dataLine = null;
       dataLine = String.Format("X(time), Y(SigVal)");
       eegSignalStream.WriteLine(dataLine);
-      for(int i = 0; i < series.Points.Count; i++)
+      for (int i = 0; i < series.Points.Count; i++)
       {
         dataLine = String.Format("{0},{1:0.00}", series.Points[i].X, series.Points[i].Y);
         eegSignalStream.WriteLine(dataLine.ToString());
@@ -1875,7 +1799,7 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public void PerformCoherenceAnalysisEDF()
     {
-      CoherenceProgressRingEnabled = true; 
+      CoherenceProgressRingEnabled = true;
 
       BackgroundWorker bw = new BackgroundWorker();
       bw.DoWork += BW_CoherenceAnalysisEDF;
@@ -1960,7 +1884,7 @@ namespace SleepApneaDiagnoser
       {
         List<DerivativeSignal> RemovedDerivatives = sm.DerivedSignals.FindAll(temp => temp.DerivativeName.Trim() == RemovedSignals[x].Trim()).ToList();
         sm.DerivedSignals.RemoveAll(temp => RemovedDerivatives.Contains(temp));
-        
+
         // Remove Potentially Saved Min/Max Values
         sm.SignalsYAxisExtremes.RemoveAll(temp => temp.SignalName.Trim() == RemovedSignals[x].Trim());
       }
@@ -2060,7 +1984,7 @@ namespace SleepApneaDiagnoser
       {
         List<FilteredSignal> RemovedFilters = sm.FilteredSignals.FindAll(temp => temp.SignalName.Trim() == RemovedSignals[x].Trim()).ToList();
         sm.FilteredSignals.RemoveAll(temp => RemovedFilters.Contains(temp));
-        
+
         // Remove Potentially Saved Min/Max Values
         sm.SignalsYAxisExtremes.RemoveAll(temp => temp.SignalName.Trim() == RemovedSignals[x].Trim());
       }
@@ -2076,6 +2000,7 @@ namespace SleepApneaDiagnoser
       Utils.WriteToFilteredSignalsFile(sm.FilteredSignals.ToArray(), AllSignals.ToArray());
       Utils.WriteToHiddenSignalsFile(sm.HiddenSignals.ToArray());
       Utils.WriteToCategoriesFile(sm.SignalCategories.ToArray(), AllSignals.ToArray());
+      Utils.WriteToPersonalization(UseCustomColor, ThemeColor, UseDarkTheme);
     }
     public void LoadSettings()
     {
@@ -2086,6 +2011,16 @@ namespace SleepApneaDiagnoser
       sm.SignalCategories = Utils.LoadCategoriesFile(AllSignals.ToArray()).ToList();
       OnPropertyChanged(nameof(PreviewSignals));
       OnPropertyChanged(nameof(AllNonHiddenSignals));
+    }
+    public void LoadPersonalization()
+    {
+      Color t_ThemeColor;
+      bool t_UseDarkTheme;
+      bool t_UseCustomColor;
+      Utils.LoadPersonalization(out t_UseCustomColor, out t_ThemeColor, out t_UseDarkTheme);
+      ThemeColor = t_ThemeColor;
+      UseDarkTheme = t_UseDarkTheme;
+      UseCustomColor = t_UseCustomColor;
     }
 
     #endregion
@@ -2265,6 +2200,16 @@ namespace SleepApneaDiagnoser
       OnPropertyChanged(nameof(PreviewPropertiesLowPassFilter));
       OnPropertyChanged(nameof(PreviewPropertiesSmoothFilter));
     }
+    private void AppliedThemeColor_Changed()
+    {
+      OnPropertyChanged(nameof(AppliedThemeColor));
+
+      var application = System.Windows.Application.Current;
+      Accent newAccent = Utils.ThemeColorToAccent(AppliedThemeColor);
+
+      ThemeManager.AddAccent(newAccent.Name, newAccent.Resources.Source);
+      ThemeManager.ChangeAppStyle(application, newAccent, ThemeManager.GetAppTheme(UseDarkTheme ? "BaseDark" : "BaseLight"));
+    }
 
     /*********************************************************** GENERAL ************************************************************/
 
@@ -2298,6 +2243,57 @@ namespace SleepApneaDiagnoser
       get
       {
         return LoadedEDFFile != null;
+      }
+    }
+
+    // Personalization
+    public Color ThemeColor
+    {
+      get
+      {
+        return sm.ThemeColor;
+      }
+      set
+      {
+        sm.ThemeColor = value;
+        OnPropertyChanged(nameof(ThemeColor));
+        AppliedThemeColor_Changed();
+      }
+    }
+    public bool UseCustomColor
+    {
+      get
+      {
+        return sm.UseCustomColor;
+      }
+      set
+      {
+        sm.UseCustomColor = value;
+        OnPropertyChanged(nameof(UseCustomColor));
+        AppliedThemeColor_Changed();
+      }
+    }
+    public Color AppliedThemeColor
+    {
+      get
+      {
+        if (sm.UseCustomColor)
+          return sm.ThemeColor;
+        else
+          return ((Color)SystemParameters.WindowGlassBrush.GetValue(SolidColorBrush.ColorProperty));
+      }
+    }
+    public bool UseDarkTheme
+    {
+      get
+      {
+        return sm.UseDarkTheme;
+      }
+      set
+      {
+        sm.UseDarkTheme = value;
+        OnPropertyChanged(nameof(UseDarkTheme));
+        AppliedThemeColor_Changed();
       }
     }
 

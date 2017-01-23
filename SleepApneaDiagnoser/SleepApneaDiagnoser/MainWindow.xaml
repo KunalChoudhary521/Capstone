@@ -10,7 +10,7 @@
         xmlns:mtr="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         xmlns:ControlzEx="clr-namespace:ControlzEx;assembly=MahApps.Metro" x:Name="Active" x:Class="SleepApneaDiagnoser.MainWindow"
         mc:Ignorable="d"
-        Title="Sleep Apnea Analysis Tool" MinHeight="640" MinWidth="640" Height="768" Width="1366" Closing="Window_Closing" StateChanged="Window_StateChanged" SizeChanged="Window_SizeChanged" WindowState="Maximized" TitleCaps="False" BorderBrush="{DynamicResource AccentColorBrush}" BorderThickness="1">
+        Title="Sleep Apnea Analysis Tool" MinHeight="640" MinWidth="640" Height="768" Width="1366" Closing="Window_Closing" Loaded="Window_Loaded" StateChanged="Window_StateChanged" SizeChanged="Window_SizeChanged" WindowState="Maximized" TitleCaps="False" BorderBrush="{DynamicResource AccentColorBrush}" BorderThickness="1">
 
     <mtr:MetroWindow.Resources>
         <Style TargetType="TextBlock">
@@ -33,29 +33,39 @@
 
     <mtr:MetroWindow.Flyouts>
         <mtr:FlyoutsControl>
-            <mtr:Flyout Name="Flyout_Settings" Header="Settings" Theme="Accent" Position="Right" Width="346" IsOpen="{Binding FlyoutOpen}" ExternalCloseButton="Left" IsPinned="False">
-                <StackPanel Background="White" Margin="0,0,0,0">
-                    <Grid Background="White" Margin="0,0,0,0">
+            <mtr:Flyout Name="Flyout_Settings" Header="Settings" BorderThickness="0.5" Theme="Adapt" Position="Right" Width="346" IsOpen="{Binding FlyoutOpen}" ExternalCloseButton="Left" IsPinned="False">
+                <ScrollViewer >
+                    <StackPanel Margin="0,0,0,0">
+                        <Grid Margin="0,0,0,0">
                         <Label Content="Signal Management" HorizontalAlignment="Left" Width="290" Height="32" VerticalAlignment="Top" Margin="10,0,0,0" FontWeight="Bold"/>
-                        <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,37,0,593" HorizontalContentAlignment="Left" Content="    Manage Categories" Height="37" Click="button_Categories_Click"/>
-                        <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,74,0,556" HorizontalContentAlignment="Left" Content="    Hide/Unhide EDF Signals" Height="37" Click="button_HideSignals_Click"/>
-                        <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,111,0,519" HorizontalContentAlignment="Left" Content="    Add Derivative" Height="37" Click="button_AddDerivative_Click"/>
-                        <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,148,0,482" HorizontalContentAlignment="Left" Content="    Remove Derivative" Height="37" Click="button_RemoveDerivative_Click"/>
-                        <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,185,0,445" HorizontalContentAlignment="Left" Content="    Add Filtered Signal" Height="37" Click="button_AddFilter_Click"/>
-                        <Button BorderThickness="0" Background="White" HorizontalAlignment="Stretch" Margin="0,222,0,408" HorizontalContentAlignment="Left" Content="    Remove Filtered Signal" Height="37" Click="button_RemoveFilter_Click"/>
+                        <Button BorderThickness="0" Background="Transparent" HorizontalAlignment="Stretch" Margin="0,37,0,593" HorizontalContentAlignment="Left" Content="    Manage Categories" Height="37" Click="button_Categories_Click"/>
+                        <Button BorderThickness="0" Background="Transparent" HorizontalAlignment="Stretch" Margin="0,74,0,556" HorizontalContentAlignment="Left" Content="    Hide/Unhide EDF Signals" Height="37" Click="button_HideSignals_Click"/>
+                        <Button BorderThickness="0" Background="Transparent" HorizontalAlignment="Stretch" Margin="0,111,0,519" HorizontalContentAlignment="Left" Content="    Add Derivative" Height="37" Click="button_AddDerivative_Click"/>
+                        <Button BorderThickness="0" Background="Transparent" HorizontalAlignment="Stretch" Margin="0,148,0,482" HorizontalContentAlignment="Left" Content="    Remove Derivative" Height="37" Click="button_RemoveDerivative_Click"/>
+                        <Button BorderThickness="0" Background="Transparent" HorizontalAlignment="Stretch" Margin="0,185,0,445" HorizontalContentAlignment="Left" Content="    Add Filtered Signal" Height="37" Click="button_AddFilter_Click"/>
+                        <Button BorderThickness="0" Background="Transparent" HorizontalAlignment="Stretch" Margin="0,222,0,408" HorizontalContentAlignment="Left" Content="    Remove Filtered Signal" Height="37" Click="button_RemoveFilter_Click"/>
 
+                            <Grid Name="Bound_Settings" Width="271" VerticalAlignment="Top" HorizontalAlignment="Left"  Margin="0,270,0,0">
+                                <!-- Respiratory Settings -->
+                                <Label Content="Respiratory Analysis" HorizontalAlignment="Left" Width="290" Height="32" VerticalAlignment="Top" Margin="10,0,0,0" FontWeight="Bold"/>
+                                <Label Content="Peak Detection Sensitivity (ms)" HorizontalAlignment="Left" Margin="15,35,0,0" VerticalAlignment="Top"/>
+                                <mtr:NumericUpDown Height="23" Margin="20,65,20,0" VerticalAlignment="Top" Value="{Binding RespiratoryMinimumPeakWidth}"/>
+                                <Label Content="Allow Multiple Subsequent Peaks" HorizontalAlignment="Left" Margin="15,95,0,0" VerticalAlignment="Top"/>
+                                <mtr:ToggleSwitchButton Margin="15,125,20,0" HorizontalAlignment="Right" FontFamily="Segoi UI" FontSize="14" IsChecked="{Binding RespiratoryRemoveMultiplePeaks}" VerticalAlignment="Top" />
+                                <TextBlock Name="TextBlock_RespAllowMultiplePeaks" FontFamily="Segoi UI" Text="Yes" HorizontalAlignment="Left" Margin="15,130,0,0" TextAlignment="Center" FontSize="14" Height="31" Width="35" VerticalAlignment="Top"/>
+                                <TextBlock Name="TextBlock_RespPendingChanges" Text="Changes applied when plot is redrawn." HorizontalAlignment="Left" Margin="15,160,0,0" Foreground="Blue"  Width="251" FontSize="14" Height="29" VerticalAlignment="Top"/>
 
-                        <Grid Name="Respiratory_Settings" HorizontalAlignment="Left" Width="271" Margin="0,270,0,10">
-                            <Label Content="Respiratory Analysis" HorizontalAlignment="Left" Width="290" Height="32" VerticalAlignment="Top" Margin="10,0,0,0" FontWeight="Bold"/>
-                            <Label Content="Peak Detection Sensitivity (ms)" HorizontalAlignment="Left" Margin="15,35,0,0" VerticalAlignment="Top"/>
-                            <mtr:NumericUpDown Height="23" Margin="20,65,20,0" VerticalAlignment="Top" Value="{Binding RespiratoryMinimumPeakWidth}"/>
-                            <Label Content="Allow Multiple Subsequent Peaks" HorizontalAlignment="Left" Margin="15,95,0,0" VerticalAlignment="Top"/>
-                            <mtr:ToggleSwitchButton Margin="15,125,20,0" HorizontalAlignment="Right" FontFamily="Segoi UI" FontSize="14" IsChecked="{Binding RespiratoryRemoveMultiplePeaks}" VerticalAlignment="Top" />
-                            <TextBlock Name="TextBlock_RespAllowMultiplePeaks" Foreground="Black" Text="Yes" HorizontalAlignment="Left" Margin="15,130,0,0" TextAlignment="Center" FontSize="14" Height="31" Width="35" VerticalAlignment="Top"/>
-                            <TextBlock Name="TextBlock_RespPendingChanges" Text="Changes applied when plot is redrawn." HorizontalAlignment="Left" Margin="15,160,0,0" Foreground="Blue"  Width="251" FontSize="14" Height="29" VerticalAlignment="Top"/>
+                                <!-- Personalization Settings -->
+                                <Label Content="Personalization" HorizontalAlignment="Left" Width="290" Height="32" VerticalAlignment="Top" Margin="10,180,0,0" FontWeight="Bold"/>
+                                <Label Content="Manually Select Theme Color" HorizontalAlignment="Left" Margin="15,215,0,0" VerticalAlignment="Top"/>
+                                <mtr:ToggleSwitch Margin="23,245,0,0" Width="228" HorizontalAlignment="Left" FontFamily="Segoi UI" FontSize="14" IsChecked="{Binding UseCustomColor}" VerticalAlignment="Top" />
+                                <xctk:ColorPicker Height="23" Margin="20,290,20,0" VerticalAlignment="Top"  FontFamily="Segoi UI" FontSize="14" IsEnabled="{Binding UseCustomColor}" SelectedColor="{Binding ThemeColor}"/>
+                                <Label Content="Use Dark Theme" HorizontalAlignment="Left" Margin="15,320,0,0" VerticalAlignment="Top"/>
+                                <mtr:ToggleSwitch Margin="23,350,0,0" Width="228" HorizontalAlignment="Left" FontFamily="Segoi UI" FontSize="14" IsChecked="{Binding UseDarkTheme}" VerticalAlignment="Top" />
+                            </Grid>
                         </Grid>
-                    </Grid>
                 </StackPanel>
+                </ScrollViewer>
             </mtr:Flyout>
         </mtr:FlyoutsControl>
     </mtr:MetroWindow.Flyouts>
@@ -65,7 +75,7 @@
 
             <mtr:MetroTabItem Header="Home" Height="40">
                 <Grid>
-                    <Grid HorizontalAlignment="Left" Width="299" Background="White" Margin="0,0">
+                    <Grid HorizontalAlignment="Left" Width="299" Margin="0,0">
                         <TextBlock Text="Start" Height="34" Width="94" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="18"  Margin="10,15,0,0"/>
                         <TextBlock x:Name="TextBlock_OpenEDF" TextDecorations="Underline" Height="34" Width="94" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10,49,0,0" FontSize="14"><Hyperlink Click="TextBlock_OpenEDF_Click" FontSize="14"><Run Text="Open EDF..."/></Hyperlink></TextBlock>
                         <TextBlock Text="Recent" Height="34" Width="94" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="18" Margin="10,136,0,0"/>
@@ -114,7 +124,7 @@
                             <mtr:NumericUpDown x:Name="timePicker_Period" Margin="65,40,10,10" TextAlignment="Center" Value="{Binding PreviewViewDuration, Delay=300}" Maximum="{Binding PreviewViewDurationMax}" Minimum="{Binding PreviewViewDurationMin}" IsEnabled="{Binding PreviewNavigationEnabled}" FontSize="14"/>
                             <ToggleButton x:Name="toggleButton_UseAbsoluteTime" Content="ABSOLUTE TIME" IsChecked="{Binding PreviewUseAbsoluteTime}" IsEnabled="{Binding PreviewNavigationEnabled}" Checked="toggleButton_UseAbsoluteTime_Checked" Unchecked="toggleButton_UseAbsoluteTime_Unchecked" Grid.Column="1" Margin="10,0,2,0" Height="32" VerticalAlignment="Top" />
                         </Grid>
-                        <oxy:PlotView x:Name="PlotView_signalPlot" Margin="10,137,10,10" Model="{Binding PreviewSignalPlot}" IsEnabled="{Binding PreviewNavigationEnabled}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Grid.Column="1"/>
+                        <oxy:PlotView Background="Transparent" x:Name="PlotView_signalPlot" Margin="10,137,10,10" Model="{Binding PreviewSignalPlot}" IsEnabled="{Binding PreviewNavigationEnabled}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Grid.Column="1"/>
                         <mtr:ProgressRing Name="ProgressRing_PreviewTab" IsActive="{Binding PreviewProgressRingEnabled}" Grid.Column="1" Margin="368,305,338.667,304.333"></mtr:ProgressRing>
                     </Grid>
 
@@ -196,7 +206,7 @@
                             </Grid>
 
                             <Label Content="Plot" FontSize="18" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="0,98,0,0"/>
-                            <oxy:PlotView Margin="10,135,10,130" Model="{Binding RespiratorySignalPlot}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
+                            <oxy:PlotView Background="Transparent" Margin="10,135,10,130" Model="{Binding RespiratorySignalPlot}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
 
                             <Label Content="Analysis" FontSize="18" Height="32" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="200" Margin="0,0,0,93"/>
                             <Grid Margin="0,0,0,10" Height="83" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="395">
@@ -237,10 +247,10 @@
                             </Grid>
 
                             <Label Content="Plot" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="0,98,0,0"/>
-                            <oxy:PlotView Margin="10,130,825,235"  Model ="{Binding PlotAbsPwr}"  ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
-                            <oxy:PlotView Margin="535,130,300,235" Model ="{Binding PlotRelPwr}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
-                            <oxy:PlotView Margin="10,356,825,10" Model ="{Binding PlotSpecGram}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
-                            <oxy:PlotView Margin="535,356,300,10" Model ="{Binding PlotPSD}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
+                            <oxy:PlotView Background="Transparent" Margin="10,130,825,235"  Model ="{Binding PlotAbsPwr}"  ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
+                            <oxy:PlotView Background="Transparent" Margin="535,130,300,235" Model ="{Binding PlotRelPwr}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
+                            <oxy:PlotView Background="Transparent" Margin="10,356,825,10" Model ="{Binding PlotSpecGram}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
+                            <oxy:PlotView Background="Transparent" Margin="535,356,300,10" Model ="{Binding PlotPSD}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
 
                             <Label Content="Analysis" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Right" Width="200" Margin="0,98,145,0"/>
                             <Grid HorizontalAlignment="Right" Width="335" Margin="0,135,10,10"/>
@@ -289,11 +299,11 @@
                                         <RowDefinition/>
                                     </Grid.RowDefinitions>
                                     <Label Content="Signal 1 (Time)" FontSize="18" Height="38" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="0,10,0,0"/>
-                                    <oxy:PlotView Margin="10,48,10,10" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Model="{Binding CoherenceSignalPlot1}"/>
+                                    <oxy:PlotView Background="Transparent" Margin="10,48,10,10" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Model="{Binding CoherenceSignalPlot1}"/>
                                     <Label Content="Signal 2 (Time)" FontSize="18" Height="38" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="10.333,12,0,0" Grid.Column="1"/>
-                                    <oxy:PlotView Margin="10,48,10,10" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Model="{Binding CoherenceSignalPlot2}" Grid.Column="1"/>
+                                    <oxy:PlotView Background="Transparent" Margin="10,48,10,10" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Model="{Binding CoherenceSignalPlot2}" Grid.Column="1"/>
                                     <Label Content="Coherence" FontSize="18" Height="38" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="10.333,10,0,0" Grid.Column="2"/>
-                                    <oxy:PlotView Margin="10,48,10,10" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Model="{Binding CoherencePlot}" Grid.Column="2"/>
+                                    <oxy:PlotView Background="Transparent" Margin="10,48,10,10" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Model="{Binding CoherencePlot}" Grid.Column="2"/>
                                 </Grid>
                                 <mtr:ProgressRing Name="ProgressRing_CoherenceTab" IsActive="{Binding CoherenceProgressRingEnabled}"></mtr:ProgressRing>
                             </Grid>

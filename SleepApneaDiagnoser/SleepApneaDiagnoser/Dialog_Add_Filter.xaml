@@ -8,7 +8,7 @@
         xmlns:mtr="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         xmlns:Dialog="clr-namespace:MahApps.Metro.Controls.Dialogs;assembly=MahApps.Metro"           
         Title="Add Filtered Signal">
-    <Grid Height="428" Width="303">
+    <Grid Height="430">
         <Label Content="Signal" HorizontalAlignment="Left" Margin="0,21,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.016,0.235"/>
         <TextBlock TextWrapping="WrapWithOverflow" VerticalAlignment="Top" Margin="0,0,20,0">
             Please select a signal and the filters to be applied.
