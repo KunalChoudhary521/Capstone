@@ -716,8 +716,7 @@ namespace SleepApneaDiagnoser
       stream.WriteTo(file);
       file.Close();
       stream.Close();
-    }
-
+    }    
     /************************************************** RESPIRATORY ANALYSIS TAB ****************************************************/
 
     /// <summary>
@@ -1517,11 +1516,7 @@ namespace SleepApneaDiagnoser
 
       PlotModel tempAbsPwr = new PlotModel()
       {
-        Title = "Absolute Power",
-        LegendPlacement = LegendPlacement.Outside,
-        LegendPosition = LegendPosition.BottomCenter,
-        LegendOrientation = LegendOrientation.Horizontal,
-        LegendBorderThickness = 0
+        Title = "Absolute Power"
       };
 
       ColumnSeries absPlotbars = new ColumnSeries
@@ -1548,15 +1543,10 @@ namespace SleepApneaDiagnoser
       /*************************************Plotting relative power graph****************************/
       PlotModel tempRelPwr = new PlotModel()
       {
-        Title = "Relative Power",
-        LegendPlacement = LegendPlacement.Outside,
-        LegendPosition = LegendPosition.BottomCenter,
-        LegendOrientation = LegendOrientation.Horizontal,
-        LegendBorderThickness = 0
+        Title = "Relative Power"
       };
       ColumnSeries relPlotbars = new ColumnSeries
-      {
-        //Title = "Rel_Pwr",
+      {        
         StrokeColor = OxyColors.Black,
         StrokeThickness = 1,
         FillColor = OxyColors.Red//changes color of bars
@@ -1587,13 +1577,13 @@ namespace SleepApneaDiagnoser
       tempSpectGram.Axes.Add(specXAxis);
       tempSpectGram.Axes.Add(specYAxis);
 
-      double minTime = specMatrix.Min2D(), maxTime = specMatrix.Max2D(), minFreq = specMatrix.Min2D(), maxFreq = specMatrix.Max2D();//specTime.Max()
-      HeatMapSeries specGram = new HeatMapSeries() { X0 = minTime, X1 = maxTime, Y0 = minFreq, Y1 = maxFreq, Data = specMatrix };
+      double minTime = specMatrix.Min2D(), maxTime = specMatrix.Max2D(), minFreq = specMatrix.Min2D(), maxFreq = specMatrix.Max2D();
+      HeatMapSeries specGram = new HeatMapSeries() { X0 = minTime, X1 = maxTime, Y0 = minFreq, Y1 = maxFreq, Data = specMatrix };     
       tempSpectGram.Series.Add(specGram);
 
       //PlotSpecGram = tempSpectGram;
 
-      /***************************Plotting Power Spectral Density ****************************/
+      /*************************Plotting Power Spectral Density *********************/
       PlotModel tempPSD = new PlotModel()
       {
         Title = "Power Spectral Density"
@@ -1609,20 +1599,31 @@ namespace SleepApneaDiagnoser
 
       PlotPSD = tempPSD;
 
-      /***************************Exporting Power Spectral Density to .csv****************************/
-      StreamWriter eegStream = new StreamWriter("EEGData.csv");
+      /**************************Exporting Abs Power to .csv*************************/
+      StreamWriter absPwrStream = new StreamWriter("EEGAbsPwr.csv");
       String dataLine = null;
 
+      dataLine = String.Format("delta, theta, alpha, beta1, beta2, gamma1, gamma2");
+      absPwrStream.WriteLine(dataLine);
+      dataLine = String.Format("{0:0.00},{1:0.00},{2:0.00},{3:0.00},{4:0.00},{5:0.00},{6:0.00}", absPower[0], absPower[1], absPower[2], absPower[3], absPower[4], absPower[5], absPower[6]);
+      absPwrStream.WriteLine(dataLine);
+
+      absPwrStream.Close();
+
+      /**********************Exporting Power Spectral Density to .csv***************/
+      StreamWriter psdStream = new StreamWriter("EEGData.csv");
+      
+
       dataLine = String.Format("Epoch#, Power(db), Frequency(Hz)");
-      eegStream.WriteLine(dataLine);
-
-      for (int i = 1; i < psdValues.Length; i++)
+      psdStream.WriteLine(dataLine);
+            
+      for (int i = 1; i < psdValues.Length;i++)
       {
-        dataLine = String.Format("{0},{1:0.00},{2:0.00}", " ", psdValues[i], frqValues[i]);
-        eegStream.WriteLine(dataLine.ToString());
+        dataLine = String.Format("{0},{1:0.00},{2:0.00}", " ",psdValues[i], frqValues[i]);
+        psdStream.WriteLine(dataLine.ToString());
       }
-      eegStream.Close();
-
+      psdStream.Close();
+      
 
       /**************************Exporting EEG Signal to .csv*************************/
       StreamWriter eegSignalStream = new StreamWriter("EEGSignal.csv");
@@ -1636,6 +1637,11 @@ namespace SleepApneaDiagnoser
       }
       eegSignalStream.Close();
 
+      /*************************Exporting to .tiff format**************************/
+      /*GenericExportImage(PlotAbsPwr, "AbsolutePower.png");
+      GenericExportImage(PlotRelPwr, "RelativePower.png");
+      GenericExportImage(PlotPSD, "PowerSpectralDensity.png");*/
+      //GenericExportImage(PlotSpecGram, "Spectrogram.png");//Need to review implementation
 
       return;//for debugging only
     }
@@ -3079,7 +3085,17 @@ namespace SleepApneaDiagnoser
         p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
       }
     }
-
+    public String[] EEGExportOptions
+    {
+      get
+      {
+        return eegm.EEGExportOptions;
+      }
+      set
+      {
+        eegm.EEGExportOptions = new String[] { "Absolute Power", "RelativePower", "PSD", "Sepctrogram" };
+      }
+    }
     /**************************************************** COHERENCE ANALYSIS TAB ****************************************************/
 
     public string CoherenceEDFSelectedSignal1

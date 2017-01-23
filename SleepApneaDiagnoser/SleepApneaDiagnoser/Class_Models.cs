@@ -135,6 +135,10 @@ namespace SleepApneaDiagnoser
     /// <summary>
     /// Displays the eeg spectrogram power plot
     /// </summary>
+    public String[] EEGExportOptions = null;
+    /// <summary>
+    /// Displays the eeg spectrogram power plot
+    /// </summary>
   }
 
   /// <summary>
