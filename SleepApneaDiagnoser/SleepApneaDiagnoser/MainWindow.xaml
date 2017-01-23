@@ -251,9 +251,6 @@
                             <oxy:PlotView Background="Transparent" Margin="535,130,300,235" Model ="{Binding PlotRelPwr}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
                             <oxy:PlotView Background="Transparent" Margin="10,356,825,10" Model ="{Binding PlotSpecGram}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
                             <oxy:PlotView Background="Transparent" Margin="535,356,300,10" Model ="{Binding PlotPSD}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
-
-                            <Label Content="Analysis" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Right" Width="200" Margin="0,98,145,0"/>
-                            <Grid HorizontalAlignment="Right" Width="335" Margin="0,135,10,10"/>
                         </Grid>
                     </mtr:MetroTabItem>
                 </TabControl>

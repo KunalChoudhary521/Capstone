@@ -67,9 +67,8 @@
     <Reference Include="MATLAB_496Native">
       <HintPath>..\..\References\MATLAB_496Native.dll</HintPath>
     </Reference>
-    <Reference Include="MWArray, Version=2.16.0.0, Culture=neutral, PublicKeyToken=e1d84a0da19db86f, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files (x86)\MATLAB-Runtime-x64\v901\toolbox\dotnetbuilder\bin\win64\v2.0\MWArray.dll</HintPath>
+    <Reference Include="MWArray">
+      <HintPath>..\..\References\MWArray.dll</HintPath>
     </Reference>
     <Reference Include="OxyPlot, Version=1.0.0.0, Culture=neutral, PublicKeyToken=638079a8f0bd61e9, processorArchitecture=MSIL">
       <HintPath>..\packages\OxyPlot.Core.1.0.0\lib\net45\OxyPlot.dll</HintPath>
