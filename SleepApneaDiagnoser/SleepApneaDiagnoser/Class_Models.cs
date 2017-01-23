@@ -91,7 +91,7 @@ namespace SleepApneaDiagnoser
     /// Effect where the insets, onsets, and peaks are detected
     /// Any "spike" that is less wide than the user setting in ms will be ignored
     /// </summary>
-    public int RespiratoryMinimumPeakWidth = 500;
+    public int RespiratoryMinimumPeakWidth = 100;
     /// <summary>
     /// A user selected option for choosing whether the analysis will allow for repeated peaks of
     /// the same polarity
@@ -249,5 +249,9 @@ namespace SleepApneaDiagnoser
     public List<string> HiddenSignals = new List<string>();
     public List<SignalYAxisExtremes> SignalsYAxisExtremes = new List<SignalYAxisExtremes>();
     public List<FilteredSignal> FilteredSignals = new List<FilteredSignal>();
+
+    public System.Windows.Media.Color ThemeColor = System.Windows.Media.Colors.Blue;
+    public bool UseCustomColor = false;
+    public bool UseDarkTheme = false;
   }
 }

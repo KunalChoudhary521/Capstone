@@ -8,22 +8,22 @@
         xmlns:mtr="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         xmlns:Dialog="clr-namespace:MahApps.Metro.Controls.Dialogs;assembly=MahApps.Metro"           
         Title="Add Filtered Signal">
-    <Grid Height="273" Width="439">
+    <Grid Height="430">
         <Label Content="Signal" HorizontalAlignment="Left" Margin="0,21,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.016,0.235"/>
         <TextBlock TextWrapping="WrapWithOverflow" VerticalAlignment="Top" Margin="0,0,20,0">
             Please select a signal and the filters to be applied.
         </TextBlock>
-        <ComboBox x:Name="comboBox_Signal" Margin="10,46,0,0" VerticalAlignment="Top" SelectionChanged="comboBox_Signal_SelectionChanged" HorizontalAlignment="Left" Width="298"/>
+        <ComboBox x:Name="comboBox_Signal" Margin="10,46,10,0" VerticalAlignment="Top" SelectionChanged="comboBox_Signal_SelectionChanged"/>
         <Label Content="Low Pass Filter" HorizontalAlignment="Left" Margin="0,77,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.016,0.235"/>
         <CheckBox x:Name="checkBox_ApplyLowPass" Content="Apply" HorizontalAlignment="Left" Margin="10,110,0,0" VerticalAlignment="Top" Unchecked="checkBox_ApplyLowPass_Unchecked" Checked="checkBox_ApplyLowPass_Checked"/>
         <Label Content="Cutoff (Hz): " HorizontalAlignment="Left" Margin="10,133,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.016,0.235"/>
         <TextBox x:Name="textBox_LowPassCutoff" HorizontalAlignment="Left" Text="2.5" Height="23" Margin="88,134,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
-        <Label Content="Triangle Moving Average Filter" HorizontalAlignment="Left" Margin="221,77,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.016,0.235"/>
-        <CheckBox x:Name="checkBox_ApplySmoothing" Content="Apply" HorizontalAlignment="Left" Margin="231,110,0,0" VerticalAlignment="Top" Unchecked="checkBox_ApplySmoothing_Unchecked" Checked="checkBox_ApplySmoothing_Checked"/>
-        <Label Content="Length (ms): " HorizontalAlignment="Left" Margin="231,133,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.016,0.235"/>
-        <TextBox x:Name="textBox_SmoothingLength" HorizontalAlignment="Left" Height="23" Margin="309,134,0,0" TextWrapping="Wrap" Text="10" VerticalAlignment="Top" Width="120"/>
-        <Label Content="Filtered Signal Name" HorizontalAlignment="Left" Margin="0,165,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.016,0.235"/>
-        <TextBox x:Name="textBox_SignalName" Margin="10,191,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="290"/>
+        <Label Content="Triangle Moving Average Filter" HorizontalAlignment="Left" Margin="0,169,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.016,0.235"/>
+        <CheckBox x:Name="checkBox_ApplySmoothing" Content="Apply" HorizontalAlignment="Left" Margin="10,202,0,0" VerticalAlignment="Top" Unchecked="checkBox_ApplySmoothing_Unchecked" Checked="checkBox_ApplySmoothing_Checked"/>
+        <Label Content="Length (ms): " HorizontalAlignment="Left" Margin="10,225,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.016,0.235"/>
+        <TextBox x:Name="textBox_SmoothingLength" HorizontalAlignment="Left" Height="23" Margin="88,226,0,0" TextWrapping="Wrap" Text="10" VerticalAlignment="Top" Width="120"/>
+        <Label Content="Filtered Signal Name" HorizontalAlignment="Left" Margin="0,274,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.016,0.235"/>
+        <TextBox x:Name="textBox_SignalName" Margin="10,300,10,0" VerticalAlignment="Top"/>
         <Button x:Name="button_Cancel" Content="Cancel" Margin="0,0,10,10" HorizontalAlignment="Right" Width="75" VerticalAlignment="Bottom" Click="button_Cancel_Click"/>
         <Button x:Name="button_OK" Content="OK" Margin="0,0,90,10" VerticalAlignment="Bottom" HorizontalAlignment="Right" Width="75" Click="button_OK_Click"/>
     </Grid>

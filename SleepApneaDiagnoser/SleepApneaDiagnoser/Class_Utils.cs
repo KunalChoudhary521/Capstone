@@ -13,12 +13,83 @@ using System.IO;
 using MathNet.Filtering.FIR;
 using MathNet.Filtering.IIR;
 using MathNet.Numerics;
+using MahApps.Metro.Controls;
+using MahApps.Metro.Controls.Dialogs;
+using MahApps.Metro;
+using System.Windows.Media;
+using System.Windows;
 
 namespace SleepApneaDiagnoser
 {
   class Utils
   {
     /******************************************************* STATIC FUNCTIONS *******************************************************/
+
+    /// <summary>
+    /// Modified From Sample MahApps.Metro Project
+    /// https://github.com/punker76/code-samples/blob/master/MahAppsMetroThemesSample/MahAppsMetroThemesSample/ThemeManagerHelper.cs
+    /// </summary>
+    public static Accent ThemeColorToAccent(Color color)
+    {
+      byte a = color.A;
+      byte g = color.G;
+      byte r = color.R;
+      byte b = color.B;
+
+      // create a runtime accent resource dictionary
+
+      var resourceDictionary = new ResourceDictionary();
+
+      resourceDictionary.Add("HighlightColor", Color.FromArgb(a, r, g, b));
+      resourceDictionary.Add("AccentColor", Color.FromArgb(a, r, g, b));
+      resourceDictionary.Add("AccentColor2", Color.FromArgb(a, r, g, b));
+      resourceDictionary.Add("AccentColor3", Color.FromArgb(a, r, g, b));
+      resourceDictionary.Add("AccentColor4", Color.FromArgb(a, r, g, b));
+
+      resourceDictionary.Add("HighlightBrush", new SolidColorBrush((Color)resourceDictionary["HighlightColor"]));
+      resourceDictionary.Add("AccentColorBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor"]));
+      resourceDictionary.Add("AccentColorBrush2", new SolidColorBrush((Color)resourceDictionary["AccentColor2"]));
+      resourceDictionary.Add("AccentColorBrush3", new SolidColorBrush((Color)resourceDictionary["AccentColor3"]));
+      resourceDictionary.Add("AccentColorBrush4", new SolidColorBrush((Color)resourceDictionary["AccentColor4"]));
+      resourceDictionary.Add("WindowTitleColorBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor"]));
+
+      resourceDictionary.Add("ProgressBrush", new LinearGradientBrush(
+          new GradientStopCollection(new[]
+          {
+                new GradientStop((Color)resourceDictionary["HighlightColor"], 0),
+                new GradientStop((Color)resourceDictionary["AccentColor3"], 1)
+          }),
+          new Point(0.001, 0.5), new Point(1.002, 0.5)));
+
+      resourceDictionary.Add("CheckmarkFill", new SolidColorBrush((Color)resourceDictionary["AccentColor"]));
+      resourceDictionary.Add("RightArrowFill", new SolidColorBrush((Color)resourceDictionary["AccentColor"]));
+
+      resourceDictionary.Add("IdealForegroundColor", Colors.White);
+      resourceDictionary.Add("IdealForegroundColorBrush", new SolidColorBrush((Color)resourceDictionary["IdealForegroundColor"]));
+      resourceDictionary.Add("AccentSelectedColorBrush", new SolidColorBrush((Color)resourceDictionary["IdealForegroundColor"]));
+
+      // DataGrid brushes since latest alpha after 1.1.2
+      resourceDictionary.Add("MetroDataGrid.HighlightBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor"]));
+      resourceDictionary.Add("MetroDataGrid.HighlightTextBrush", new SolidColorBrush((Color)resourceDictionary["IdealForegroundColor"]));
+      resourceDictionary.Add("MetroDataGrid.MouseOverHighlightBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor3"]));
+      resourceDictionary.Add("MetroDataGrid.FocusBorderBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor"]));
+      resourceDictionary.Add("MetroDataGrid.InactiveSelectionHighlightBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor2"]));
+      resourceDictionary.Add("MetroDataGrid.InactiveSelectionHighlightTextBrush", new SolidColorBrush((Color)resourceDictionary["IdealForegroundColor"]));
+
+      // applying theme to MahApps
+
+      var resDictName = string.Format("ApplicationAccent_{0}.xaml", Color.FromArgb(a, r, g, b).ToString().Replace("#", string.Empty));
+      var fileName = System.IO.Path.Combine(System.IO.Path.GetTempPath(), resDictName);
+      using (var writer = System.Xml.XmlWriter.Create(fileName, new System.Xml.XmlWriterSettings { Indent = true }))
+      {
+        System.Windows.Markup.XamlWriter.Save(resourceDictionary, writer);
+        writer.Close();
+      }
+
+      resourceDictionary = new ResourceDictionary() { Source = new Uri(fileName, UriKind.Absolute) };
+      
+      return new Accent { Name = string.Format("ApplicationAccent_{0}.xaml", Color.FromArgb(a, r, g, b).ToString().Replace("#", string.Empty)), Resources = resourceDictionary };
+    }
 
     /// <summary>
     /// The definition of epochs in seconds
@@ -496,7 +567,39 @@ namespace SleepApneaDiagnoser
       }
       sw.Close();
     }
-    
+    public static void LoadPersonalization(out bool UseCustomColor, out Color ThemeColor, out bool UseDarkTheme)
+    {
+      if (!Directory.Exists("Settings"))
+        Directory.CreateDirectory("Settings");
+
+      if (File.Exists("Settings\\personalization.txt"))
+      {
+        StreamReader sr = new StreamReader("Settings\\personalization.txt");
+        UseCustomColor = bool.Parse(sr.ReadLine());
+        string temp = sr.ReadLine();
+        ThemeColor = Color.FromArgb(byte.Parse(temp.Split(',')[0]), byte.Parse(temp.Split(',')[1]), byte.Parse(temp.Split(',')[2]), byte.Parse(temp.Split(',')[3]));
+        UseDarkTheme = bool.Parse(sr.ReadLine());
+        sr.Close();
+      }
+      else
+      {
+        UseCustomColor = false;
+        ThemeColor = Colors.AliceBlue;
+        UseDarkTheme = false;
+      }
+    }
+    public static void WriteToPersonalization(bool UseCustomColor, Color ThemeColor, bool UseDarkTheme)
+    {
+      if (!Directory.Exists("Settings"))
+        Directory.CreateDirectory("Settings");
+
+      StreamWriter sw = new StreamWriter("Settings\\personalization.txt");
+      sw.WriteLine(UseCustomColor.ToString());
+      sw.WriteLine(ThemeColor.A.ToString() + "," + ThemeColor.R.ToString() + "," + ThemeColor.G.ToString() + "," + ThemeColor.B.ToString());
+      sw.WriteLine(UseDarkTheme.ToString());
+      sw.Close();
+    }
+
     // Filters
     public static LineSeries ApplyWeightedAverageFilter(LineSeries series, float LENGTH)
     {
