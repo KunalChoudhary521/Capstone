@@ -71,7 +71,9 @@ namespace SleepApneaDiagnoser
 
       model = new ModelView(this);
       this.DataContext = model;
-      this.Bound_Settings.DataContext = model;
+      this.grid_MainMenu.DataContext = model;
+      this.grid_Respiratory.DataContext = model;
+      this.grid_Personalization.DataContext = model;
       LoadRecent();
     }
 
@@ -158,6 +160,27 @@ namespace SleepApneaDiagnoser
     private void button_Settings_Click(object sender, RoutedEventArgs e)
     {
       model.OpenCloseSettings();
+      model.SettingsMainMenuVisible = true;
+      model.SettingsPersonalizationVisible = false;
+      model.SettingsRespiratoryVisible = false;
+    }
+    private void button_MainMenuClick(object sender, RoutedEventArgs e)
+    {
+      model.SettingsMainMenuVisible = true;
+      model.SettingsPersonalizationVisible = false;
+      model.SettingsRespiratoryVisible = false;
+    }
+    private void button_PersonalizationSettings_Click(object sender, RoutedEventArgs e)
+    {
+      model.SettingsMainMenuVisible = false;
+      model.SettingsPersonalizationVisible = true;
+      model.SettingsRespiratoryVisible = false;
+    }
+    private void button_RespiratorySettings_Click(object sender, RoutedEventArgs e)
+    {
+      model.SettingsMainMenuVisible = false;
+      model.SettingsPersonalizationVisible = false;
+      model.SettingsRespiratoryVisible = true;
     }
     private void button_HideSignals_Click(object sender, RoutedEventArgs e)
     {
@@ -258,6 +281,7 @@ namespace SleepApneaDiagnoser
     {
       model.PerformCoherenceAnalysisEDF();
     }
+
   }
 
   public class ModelView : INotifyPropertyChanged
@@ -3220,6 +3244,42 @@ namespace SleepApneaDiagnoser
       {
         sm.FlyoutOpen = value;
         OnPropertyChanged(nameof(FlyoutOpen));
+      }
+    }
+    public bool SettingsMainMenuVisible
+    {
+      get
+      {
+        return sm.SettingsMainMenuVisible;
+      }
+      set
+      {
+        sm.SettingsMainMenuVisible = value;
+        OnPropertyChanged(nameof(SettingsMainMenuVisible));
+      }
+    }
+    public bool SettingsPersonalizationVisible
+    {
+      get
+      {
+        return sm.SettingsPersonalizationVisible;
+      }
+      set
+      {
+        sm.SettingsPersonalizationVisible = value;
+        OnPropertyChanged(nameof(SettingsPersonalizationVisible));
+      }
+    }
+    public bool SettingsRespiratoryVisible
+    {
+      get
+      {
+        return sm.SettingsRespiratoryVisible;
+      }
+      set
+      {
+        sm.SettingsRespiratoryVisible = value;
+        OnPropertyChanged(nameof(SettingsRespiratoryVisible));
       }
     }
 

@@ -244,6 +244,9 @@ namespace SleepApneaDiagnoser
   public class SettingsModel
   {
     public bool FlyoutOpen = false;
+    public bool SettingsMainMenuVisible = true;
+    public bool SettingsPersonalizationVisible = false;
+    public bool SettingsRespiratoryVisible = false;
     public List<SignalCategory> SignalCategories = new List<SignalCategory>();
     public List<DerivativeSignal> DerivedSignals = new List<DerivativeSignal>();
     public List<string> HiddenSignals = new List<string>();
