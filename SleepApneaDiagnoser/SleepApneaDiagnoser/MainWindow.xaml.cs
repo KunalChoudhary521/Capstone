@@ -3644,15 +3644,15 @@ namespace SleepApneaDiagnoser
     }
 
     // Signal Y Axis Extremes
-    private double percent_high = 99;
-    private double percent_low = 1;
+    private double percent_high = 98;
+    private double percent_low = 2;
     private void SetYBounds(string Signal)
     {
       SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
 
       if (find == null)
       {
-        List<int> values = new List<int>();
+        List<float> values = new List<float>();
 
         // Check if this signal needs filtering 
         FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
@@ -3661,12 +3661,7 @@ namespace SleepApneaDiagnoser
         if (EDFAllSignals.Contains(Signal)) // Regular Signal
         {
           EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal);
-          
-          for (int x = 0; x < LoadedEDFFile.DataRecords.Count; x+=1)
-          {
-            values.Add((int) LoadedEDFFile.DataRecords[x][edfsignal.IndexNumberWithLabel].Max());
-            values.Add((int) LoadedEDFFile.DataRecords[x][edfsignal.IndexNumberWithLabel].Min());
-          }
+          values = LoadedEDFFile.retrieveSignalSampleValues(edfsignal);
         }
         else // EDF Signal 
         {
@@ -3674,17 +3669,39 @@ namespace SleepApneaDiagnoser
           DerivativeSignal deriv_info = sm.DerivedSignals.Find(temp => temp.DerivativeName == Signal);
           EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal1Name.Trim());
           EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal2Name.Trim());
-          
-          for (int x = 0; x < LoadedEDFFile.DataRecords.Count; x+=1)
+
+          // Get Arrays and Perform Resampling if needed
+          List<float> values1;
+          List<float> values2;
+          if (edfsignal1.NumberOfSamplesPerDataRecord == edfsignal2.NumberOfSamplesPerDataRecord) // No resampling
           {
-            values.Add((int) LoadedEDFFile.DataRecords[x][edfsignal1.IndexNumberWithLabel].Max() - (int) LoadedEDFFile.DataRecords[x][edfsignal2.IndexNumberWithLabel].Min());
-            values.Add((int) LoadedEDFFile.DataRecords[x][edfsignal1.IndexNumberWithLabel].Min() - (int) LoadedEDFFile.DataRecords[x][edfsignal2.IndexNumberWithLabel].Max());
+            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
+            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
+          }
+          else if (edfsignal1.NumberOfSamplesPerDataRecord > edfsignal2.NumberOfSamplesPerDataRecord) // Upsample signal 2
+          {
+            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
+            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
+            values2 = Utils.MATLAB_Resample(values2.ToArray(), edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord);
+          }
+          else // Upsample signal 1
+          {
+            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
+            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
+            values1 = Utils.MATLAB_Resample(values1.ToArray(), edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord);
+          }
+
+          for (int x = 0; x < Math.Min(values1.Count, values2.Count); x+=1)
+          {
+            values.Add(values1[x] - values2[x]);
           }
         }
 
         values.Sort();
-        float high_value = values[(int)(percent_high / 100 * (values.Count - 1))];
-        float low_value = values[(int)(percent_low / 100 * (values.Count - 1))];
+        int high_index = (int)(percent_high / 100 * (values.Count - 1));
+        int low_index = (int)(percent_low / 100 * (values.Count - 1));
+        float high_value = values[high_index];
+        float low_value = values[low_index];
         sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(Signal) { yMax = high_value , yMin = low_value });
       }
     }
