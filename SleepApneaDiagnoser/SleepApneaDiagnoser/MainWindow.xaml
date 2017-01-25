@@ -254,10 +254,20 @@
                             </Grid>
 
                             <Label Content="Plot" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="0,98,0,0"/>
-                            <oxy:PlotView Background="Transparent" Margin="10,130,825,235"  Model ="{Binding PlotAbsPwr}"  ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
-                            <oxy:PlotView Background="Transparent" Margin="535,130,300,235" Model ="{Binding PlotRelPwr}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
-                            <oxy:PlotView Background="Transparent" Margin="10,356,825,10" Model ="{Binding PlotSpecGram}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
-                            <oxy:PlotView Background="Transparent" Margin="535,356,300,10" Model ="{Binding PlotPSD}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
+                            <Grid Margin="0,130,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="250*"/>
+                                    <RowDefinition Height="250*"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="500*"/>
+                                    <ColumnDefinition Width="500*"/>
+                                </Grid.ColumnDefinitions>
+                                <oxy:PlotView Background="Transparent" Margin="10"  Model ="{Binding PlotAbsPwr}"  ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
+                                <oxy:PlotView Background="Transparent" Margin="10" Model ="{Binding PlotRelPwr}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Grid.Column="1"/>
+                                <oxy:PlotView Background="Transparent" Margin="10" Model ="{Binding PlotSpecGram}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Grid.Row="1"/>
+                                <oxy:PlotView Background="Transparent" Margin="10" Model ="{Binding PlotPSD}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Grid.Column="1" Grid.Row="1"/>
+                            </Grid>
                         </Grid>
                     </mtr:MetroTabItem>
                 </TabControl>
