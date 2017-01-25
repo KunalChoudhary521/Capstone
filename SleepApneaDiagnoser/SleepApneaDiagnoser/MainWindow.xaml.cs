@@ -2600,7 +2600,7 @@ namespace SleepApneaDiagnoser
             return filteredSignal.OriginalName;
           else if (deriv_info != null) // Is a Derivative Signal 
           {
-            return "(" + deriv_info.Signal1Name + ") - (" + deriv_info.Signal1Name + ")";
+            return "(" + deriv_info.Signal1Name + ") - (" + deriv_info.Signal2Name + ")";
           }
           else
             return "";
@@ -3644,15 +3644,15 @@ namespace SleepApneaDiagnoser
     }
 
     // Signal Y Axis Extremes
-    private double percent_high = 97;
-    private double percent_low = 3;
+    private double percent_high = 99;
+    private double percent_low = 1;
     private void SetYBounds(string Signal)
     {
       SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
 
       if (find == null)
       {
-        List<int> value_high = new List<int>(), value_low = new List<int>();
+        List<int> values = new List<int>();
 
         // Check if this signal needs filtering 
         FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
@@ -3661,13 +3661,11 @@ namespace SleepApneaDiagnoser
         if (EDFAllSignals.Contains(Signal)) // Regular Signal
         {
           EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal);
-
-          int count = 0;
+          
           for (int x = 0; x < LoadedEDFFile.DataRecords.Count; x+=1)
           {
-            value_high.Add((int) LoadedEDFFile.DataRecords[x][edfsignal.IndexNumberWithLabel].Max());
-            value_low.Add((int) LoadedEDFFile.DataRecords[x][edfsignal.IndexNumberWithLabel].Min());
-            count++;
+            values.Add((int) LoadedEDFFile.DataRecords[x][edfsignal.IndexNumberWithLabel].Max());
+            values.Add((int) LoadedEDFFile.DataRecords[x][edfsignal.IndexNumberWithLabel].Min());
           }
         }
         else // EDF Signal 
@@ -3676,19 +3674,18 @@ namespace SleepApneaDiagnoser
           DerivativeSignal deriv_info = sm.DerivedSignals.Find(temp => temp.DerivativeName == Signal);
           EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal1Name.Trim());
           EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal2Name.Trim());
-
-          int count = 0;
+          
           for (int x = 0; x < LoadedEDFFile.DataRecords.Count; x+=1)
           {
-            value_high.Add((int) LoadedEDFFile.DataRecords[x][edfsignal1.IndexNumberWithLabel].Max() - (int) LoadedEDFFile.DataRecords[x][edfsignal2.IndexNumberWithLabel].Min());
-            value_low.Add((int) LoadedEDFFile.DataRecords[x][edfsignal1.IndexNumberWithLabel].Min() - (int) LoadedEDFFile.DataRecords[x][edfsignal2.IndexNumberWithLabel].Max());
-            count++;
+            values.Add((int) LoadedEDFFile.DataRecords[x][edfsignal1.IndexNumberWithLabel].Max() - (int) LoadedEDFFile.DataRecords[x][edfsignal2.IndexNumberWithLabel].Min());
+            values.Add((int) LoadedEDFFile.DataRecords[x][edfsignal1.IndexNumberWithLabel].Min() - (int) LoadedEDFFile.DataRecords[x][edfsignal2.IndexNumberWithLabel].Max());
           }
         }
 
-        value_high.Sort();
-        value_low.Sort();
-        sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(Signal) { yMax = value_high[(int) (percent_high/100 * (value_high.Count -1))], yMin = value_low[(int)(percent_low / 100 * (value_high.Count - 1))] });
+        values.Sort();
+        float high_value = values[(int)(percent_high / 100 * (values.Count - 1))];
+        float low_value = values[(int)(percent_low / 100 * (values.Count - 1))];
+        sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(Signal) { yMax = high_value , yMin = low_value });
       }
     }
     private double? GetMaxSignalValue(string Signal)
