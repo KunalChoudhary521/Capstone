@@ -106,8 +106,8 @@ namespace SleepApneaDiagnoser
     /// <returns> A DateTime structure corresponding the input epoch point in time </returns>
     public static DateTime EpochtoDateTime(int epoch, EDFFile file)
     {
-      // DateTime = StartTime + epoch * EPOCH_SEC
-      return file.Header.StartDateTime + new TimeSpan(0, 0, epoch * EPOCH_SEC);
+      // DateTime = StartTime + (epoch - 1) * EPOCH_SEC
+      return file.Header.StartDateTime + new TimeSpan(0, 0, (epoch - 1) * EPOCH_SEC);
     }
     /// <summary>
     /// Converts an epoch duration into a TimeSpan structure
@@ -131,7 +131,7 @@ namespace SleepApneaDiagnoser
     public static int DateTimetoEpoch(DateTime time, EDFFile file)
     {
       // epoch = (DateTime - StartTime) / EPOCH_SEC
-      return (int)((time - file.Header.StartDateTime).TotalSeconds / (double)EPOCH_SEC);
+      return (int)((time - file.Header.StartDateTime).TotalSeconds / (double)EPOCH_SEC) + 1;
     }
     /// <summary>
     /// Converts a TimeSpan structure into an epoch duration
@@ -150,7 +150,7 @@ namespace SleepApneaDiagnoser
     /// <param name="values_array"> The input array </param>
     /// <param name="percentile"> The percentile of the desired value </param>
     /// <returns> The desired value at the specified percentile </returns>
-    public static double? GetPercentileValue(float[] values_array, int percentile)
+    public static double? GetPercentileValue(float[] values_array, double percentile)
     {
       // Sort values in ascending order
       List<float> values = values_array.ToList();
@@ -160,7 +160,7 @@ namespace SleepApneaDiagnoser
       int index = (int)((double)percentile / (double)100 * (double)values.Count);
 
       // return desired value
-      return values[index];
+      return values[Math.Max(0, Math.Min(index, values.Count - 1))];
     }
     /// <summary>
     /// Gets a value at a specified percentile from the difference between two arrays
@@ -169,7 +169,7 @@ namespace SleepApneaDiagnoser
     /// <param name="values_array_2"> The input subtrahend array </param>
     /// <param name="percentile"> The percentile of the desired value </param>
     /// <returns> The desired value at the specified percentile </returns>
-    public static double? GetPercentileValueDeriv(float[] values_array_1, float[] values_array_2, int percentile)
+    public static double? GetPercentileValueDeriv(float[] values_array_1, float[] values_array_2, double percentile)
     {
       // Subtract two input arrays from each other
       List<float> values1 = values_array_1.ToList();

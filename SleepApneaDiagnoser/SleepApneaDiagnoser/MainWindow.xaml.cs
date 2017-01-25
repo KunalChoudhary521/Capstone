@@ -2167,27 +2167,28 @@ namespace SleepApneaDiagnoser
       {
         PreviewUseAbsoluteTime = false;
         PreviewViewStartTime = LoadedEDFFile.Header.StartDateTime;
-        PreviewViewStartRecord = 0;
+        PreviewViewStartRecord = 1;
         PreviewViewDuration = 1;
 
         RespiratoryBreathingPeriodMean = "";
         RespiratoryBreathingPeriodMedian = "";
         RespiratoryEDFSelectedSignal = null;
         RespiratorySignalPlot = null;
+        RespiratoryEDFStartRecord = 1;
         RespiratoryEDFDuration = 1;
-        RespiratoryEDFStartRecord = 0;
+        
 
         EEGEDFSelectedSignal = null;
+        EEGEDFStartRecord = 1;
         EEGEDFDuration = 1;
-        EEGEDFStartRecord = 0;
 
         CoherenceEDFSelectedSignal1 = null;
         CoherenceEDFSelectedSignal2 = null;
         CoherenceSignalPlot1 = null;
         CoherenceSignalPlot2 = null;
         CoherencePlot = null;
+        CoherenceEDFStartRecord = 1;
         CoherenceEDFDuration = 1;
-        CoherenceEDFStartRecord = 0;
       }
       OnPropertyChanged(nameof(PreviewNavigationEnabled));
 
@@ -2267,6 +2268,39 @@ namespace SleepApneaDiagnoser
 
       ThemeManager.AddAccent(newAccent.Name, newAccent.Resources.Source);
       ThemeManager.ChangeAppStyle(application, newAccent, ThemeManager.GetAppTheme(UseDarkTheme ? "BaseDark" : "BaseLight"));
+    }
+    private void RespiratoryView_Changed()
+    {
+      OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
+      OnPropertyChanged(nameof(RespiratoryEDFStartTime));
+      OnPropertyChanged(nameof(RespiratoryEDFDuration));
+      
+      OnPropertyChanged(nameof(RespiratoryEDFStartRecordMax));
+      OnPropertyChanged(nameof(RespiratoryEDFStartRecordMin));
+      OnPropertyChanged(nameof(RespiratoryEDFDurationMax));
+      OnPropertyChanged(nameof(RespiratoryEDFDurationMin));
+    }
+    private void EEGView_Changed()
+    {
+      OnPropertyChanged(nameof(EEGEDFStartRecord));
+      OnPropertyChanged(nameof(EEGEDFStartTime));
+      OnPropertyChanged(nameof(EEGEDFDuration));
+
+      OnPropertyChanged(nameof(EEGEDFStartRecordMax));
+      OnPropertyChanged(nameof(EEGEDFStartRecordMin));
+      OnPropertyChanged(nameof(EEGEDFDurationMax));
+      OnPropertyChanged(nameof(EEGEDFDurationMin));
+    }
+    private void CoherenceView_Changed()
+    {
+      OnPropertyChanged(nameof(CoherenceEDFStartRecord));
+      OnPropertyChanged(nameof(CoherenceEDFStartTime));
+      OnPropertyChanged(nameof(CoherenceEDFDuration));
+
+      OnPropertyChanged(nameof(CoherenceEDFStartRecordMax));
+      OnPropertyChanged(nameof(CoherenceEDFStartRecordMin));
+      OnPropertyChanged(nameof(CoherenceEDFDurationMax));
+      OnPropertyChanged(nameof(CoherenceEDFDurationMin));
     }
 
     /*********************************************************** GENERAL ************************************************************/
@@ -2828,7 +2862,10 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return 0; // Record 0
+        if (LoadedEDFFile != null)
+          return Utils.DateTimetoEpoch(PreviewViewStartTimeMin, LoadedEDFFile); // PreviewViewStartTimeMax to Record
+        else
+          return 0;
       }
     }
     public int PreviewViewDurationMax
@@ -2933,6 +2970,7 @@ namespace SleepApneaDiagnoser
       {
         rm.RespiratoryEDFStartRecord = value ?? 0;
         OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
+        RespiratoryView_Changed();
       }
     }
     public int? RespiratoryEDFDuration
@@ -2945,6 +2983,7 @@ namespace SleepApneaDiagnoser
       {
         rm.RespiratoryEDFDuration = value ?? 0;
         OnPropertyChanged(nameof(RespiratoryEDFDuration));
+        RespiratoryView_Changed();
       }
     }
     public PlotModel RespiratorySignalPlot
@@ -3016,6 +3055,90 @@ namespace SleepApneaDiagnoser
       }
     }
 
+    public DateTime RespiratoryEDFStartTime
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+          return Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile);
+        else
+          return new DateTime();
+      }
+    }
+    public DateTime RespiratoryEDFStartTimeMax
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+        {
+          DateTime EndTime = DateTime.Parse(EDFEndTime); // EDF End Time
+          TimeSpan duration = Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 1); // User Selected Duration 
+          return EndTime - duration;
+        }
+        else
+          return new DateTime();
+      }
+    }
+    public DateTime RespiratoryEDFStartTimeMin
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+          return LoadedEDFFile.Header.StartDateTime; // Start Time
+        else
+          return new DateTime();
+      }
+    }
+    public int RespiratoryEDFStartRecordMax
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+          return Utils.DateTimetoEpoch(RespiratoryEDFStartTimeMax, LoadedEDFFile); // RespiratoryViewStartTimeMax to Record
+        else
+          return 0;
+      }
+    }
+    public int RespiratoryEDFStartRecordMin
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+          return Utils.DateTimetoEpoch(RespiratoryEDFStartTimeMin, LoadedEDFFile); // RespiratoryViewStartTimeMax to Record
+        else
+          return 0;
+      }
+    }
+    public int RespiratoryEDFDurationMax
+    {
+      get
+      {
+        if (LoadedEDFFile != null) // File Loaded
+        {
+          DateTime EndTime = DateTime.Parse(EDFEndTime); // EDF End Time
+          TimeSpan duration = EndTime - (RespiratoryEDFStartTime); // Theoretical Limit Duration
+          TimeSpan limit = new TimeSpan(TimeSpan.TicksPerHour * 2); // Practical Limit Duration
+          
+          return Math.Min(
+              Utils.TimeSpantoEpochPeriod(limit),
+              Utils.TimeSpantoEpochPeriod(duration)
+              );
+        }
+        else // No File Loaded
+          return 0;
+      }
+    }
+    public int RespiratoryEDFDurationMin
+    {
+      get
+      {
+        if (LoadedEDFFile != null) // File Loaded
+          return 1;
+        else // No File Loaded
+          return 0;
+      }
+    }
+
     /****************************************************** EEG ANALYSIS TAB ********************************************************/
 
     //EEG Anaylsis
@@ -3041,6 +3164,7 @@ namespace SleepApneaDiagnoser
       {
         eegm.EEGEDFStartRecord = value ?? 0;
         OnPropertyChanged(nameof(EEGEDFStartRecord));
+        EEGView_Changed();
       }
     }
     public int? EEGEDFDuration
@@ -3053,6 +3177,7 @@ namespace SleepApneaDiagnoser
       {
         eegm.EEGEDFDuration = value ?? 0;
         OnPropertyChanged(nameof(EEGEDFDuration));
+        EEGView_Changed();
       }
     }
     public PlotModel PlotAbsPwr
@@ -3120,6 +3245,91 @@ namespace SleepApneaDiagnoser
         eegm.EEGExportOptions = new String[] { "Absolute Power", "RelativePower", "PSD", "Sepctrogram" };
       }
     }
+
+    public DateTime EEGEDFStartTime
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+          return Utils.EpochtoDateTime(EEGEDFStartRecord ?? 1, LoadedEDFFile);
+        else
+          return new DateTime();
+      }
+    }
+    public DateTime EEGEDFStartTimeMax
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+        {
+          DateTime EndTime = DateTime.Parse(EDFEndTime); // EDF End Time
+          TimeSpan duration = Utils.EpochPeriodtoTimeSpan(EEGEDFDuration ?? 1); // User Selected Duration 
+          return EndTime - duration;
+        }
+        else
+          return new DateTime();
+      }
+    }
+    public DateTime EEGEDFStartTimeMin
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+          return LoadedEDFFile.Header.StartDateTime; // Start Time
+        else
+          return new DateTime();
+      }
+    }
+    public int EEGEDFStartRecordMax
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+          return Utils.DateTimetoEpoch(EEGEDFStartTimeMax, LoadedEDFFile); // EEGViewStartTimeMax to Record
+        else
+          return 0;
+      }
+    }
+    public int EEGEDFStartRecordMin
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+          return Utils.DateTimetoEpoch(EEGEDFStartTimeMin, LoadedEDFFile); // EEGViewStartTimeMax to Record
+        else
+          return 0;
+      }
+    }
+    public int EEGEDFDurationMax
+    {
+      get
+      {
+        if (LoadedEDFFile != null) // File Loaded
+        {
+          DateTime EndTime = DateTime.Parse(EDFEndTime); // EDF End Time
+          TimeSpan duration = EndTime - (EEGEDFStartTime); // Theoretical Limit Duration
+          TimeSpan limit = new TimeSpan(TimeSpan.TicksPerHour * 2); // Practical Limit Duration
+
+          return Math.Min(
+              Utils.TimeSpantoEpochPeriod(limit),
+              Utils.TimeSpantoEpochPeriod(duration)
+              );
+        }
+        else // No File Loaded
+          return 0;
+      }
+    }
+    public int EEGEDFDurationMin
+    {
+      get
+      {
+        if (LoadedEDFFile != null) // File Loaded
+          return 1;
+        else // No File Loaded
+          return 0;
+      }
+    }
+
     /**************************************************** COHERENCE ANALYSIS TAB ****************************************************/
 
     public string CoherenceEDFSelectedSignal1
@@ -3156,6 +3366,7 @@ namespace SleepApneaDiagnoser
       {
         cm.CoherenceEDFStartRecord = value ?? 0;
         OnPropertyChanged(nameof(CoherenceEDFStartRecord));
+        CoherenceView_Changed();
       }
     }
     public int? CoherenceEDFDuration
@@ -3168,6 +3379,7 @@ namespace SleepApneaDiagnoser
       {
         cm.CoherenceEDFDuration = value ?? 0;
         OnPropertyChanged(nameof(CoherenceEDFDuration));
+        CoherenceView_Changed();
       }
     }
     public PlotModel CoherenceSignalPlot1
@@ -3228,6 +3440,90 @@ namespace SleepApneaDiagnoser
           return false;
         else
           return !CoherenceProgressRingEnabled;
+      }
+    }
+
+    public DateTime CoherenceEDFStartTime
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+          return Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 1, LoadedEDFFile);
+        else
+          return new DateTime();
+      }
+    }
+    public DateTime CoherenceEDFStartTimeMax
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+        {
+          DateTime EndTime = DateTime.Parse(EDFEndTime); // EDF End Time
+          TimeSpan duration = Utils.EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 1); // User Selected Duration 
+          return EndTime - duration;
+        }
+        else
+          return new DateTime();
+      }
+    }
+    public DateTime CoherenceEDFStartTimeMin
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+          return LoadedEDFFile.Header.StartDateTime; // Start Time
+        else
+          return new DateTime();
+      }
+    }
+    public int CoherenceEDFStartRecordMax
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+          return Utils.DateTimetoEpoch(CoherenceEDFStartTimeMax, LoadedEDFFile); // CoherenceViewStartTimeMax to Record
+        else
+          return 0;
+      }
+    }
+    public int CoherenceEDFStartRecordMin
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+          return Utils.DateTimetoEpoch(CoherenceEDFStartTimeMin, LoadedEDFFile); // CoherenceViewStartTimeMax to Record
+        else
+          return 0;
+      }
+    }
+    public int CoherenceEDFDurationMax
+    {
+      get
+      {
+        if (LoadedEDFFile != null) // File Loaded
+        {
+          DateTime EndTime = DateTime.Parse(EDFEndTime); // EDF End Time
+          TimeSpan duration = EndTime - (CoherenceEDFStartTime); // Theoretical Limit Duration
+          TimeSpan limit = new TimeSpan(TimeSpan.TicksPerHour * 2); // Practical Limit Duration
+
+          return Math.Min(
+              Utils.TimeSpantoEpochPeriod(limit),
+              Utils.TimeSpantoEpochPeriod(duration)
+              );
+        }
+        else // No File Loaded
+          return 0;
+      }
+    }
+    public int CoherenceEDFDurationMin
+    {
+      get
+      {
+        if (LoadedEDFFile != null) // File Loaded
+          return 1;
+        else // No File Loaded
+          return 0;
       }
     }
 
@@ -3351,8 +3647,8 @@ namespace SleepApneaDiagnoser
     }
 
     // Signal Y Axis Extremes
-    private int percent_high = 99;
-    private int percent_low = 1;
+    private double percent_high = 100;
+    private double percent_low = 0;
     private double? GetMaxSignalValue(string Signal, List<float> values)
     {
       SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());

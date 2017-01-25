@@ -206,9 +206,9 @@
                                 <Label Content="Signal" HorizontalAlignment="Left" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" Width="47" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="1"/>
                                 <ComboBox Margin="62,6,10,6" RenderTransformOrigin="1.025,1.5" Grid.Column="1" IsEnabled="{Binding IsEDFLoaded}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding RespiratoryEDFSelectedSignal}"/>
                                 <Label Content="From" HorizontalAlignment="Left" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" Width="47" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="2"/>
-                                <mtr:NumericUpDown Margin="62,6,10,6" TextAlignment="Center" FontSize="14" Grid.Column="2" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding RespiratoryEDFStartRecord}"/>
+                                <mtr:NumericUpDown Margin="62,6,10,6" TextAlignment="Center" FontSize="14" Grid.Column="2" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding RespiratoryEDFStartRecord}" Minimum="{Binding RespiratoryEDFStartRecordMin}" Maximum="{Binding RespiratoryEDFStartRecordMax}"/>
                                 <Label Content="Length" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" HorizontalContentAlignment="Center" FontSize="14" HorizontalAlignment="Left" Width="62" Grid.Column="3"/>
-                                <mtr:NumericUpDown Margin="77,6,10,6"  TextAlignment="Center" FontSize="14" Grid.Column="3" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding RespiratoryEDFDuration}"/>
+                                <mtr:NumericUpDown Margin="77,6,10,6"  TextAlignment="Center" FontSize="14" Grid.Column="3" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding RespiratoryEDFDuration}" Minimum="{Binding RespiratoryEDFDurationMin}" Maximum="{Binding RespiratoryEDFDurationMax}"/>
                                 <Button x:Name="button_PerformRespiratoryAnalysis" Content="Go" Margin="7,6,20,6" Grid.Column="4" IsEnabled="{Binding IsEDFLoaded}" Click="button_PerformRespiratoryAnalysis_Click" />
                             </Grid>
 
@@ -247,9 +247,9 @@
                                 <Label Content="Signal" HorizontalAlignment="Left" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" Width="47" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="1"/>
                                 <ComboBox Margin="62,6,10,6" RenderTransformOrigin="1.025,1.5" Grid.Column="1" IsEnabled="{Binding IsEDFLoaded}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding EEGEDFSelectedSignal}"/>
                                 <Label Content="From" HorizontalAlignment="Left" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" Width="47" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="2"/>
-                                <mtr:NumericUpDown Margin="62,6,10,6" TextAlignment="Center" FontSize="14" Grid.Column="2" IsEnabled="{Binding IsEDFLoaded}" Value ="{Binding EEGEDFStartRecord}"/>
+                                <mtr:NumericUpDown Margin="62,6,10,6" TextAlignment="Center" FontSize="14" Grid.Column="2" IsEnabled="{Binding IsEDFLoaded}" Value ="{Binding EEGEDFStartRecord}" Minimum="{Binding EEGEDFStartRecordMin}" Maximum="{Binding EEGEDFStartRecordMax}"/>
                                 <Label Content="Length" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" HorizontalContentAlignment="Center" FontSize="14" HorizontalAlignment="Left" Width="62" Grid.Column="3"/>
-                                <mtr:NumericUpDown Margin="77,6,10,6"  TextAlignment="Center" FontSize="14" Grid.Column="3" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding EEGEDFDuration}" />
+                                <mtr:NumericUpDown Margin="77,6,10,6"  TextAlignment="Center" FontSize="14" Grid.Column="3" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding EEGEDFDuration}" Minimum="{Binding EEGEDFDurationMin}" Maximum="{Binding EEGEDFDurationMax}"/>
                                 <Button x:Name="button_PerformEEGAnalysis" Content="Go" Margin="7,6,20,6" Grid.Column="4" IsEnabled="{Binding IsEDFLoaded}" Click="button_PerformEEGAnalysis_Click" />
                             </Grid>
 
@@ -288,9 +288,9 @@
                                     <Label Content="Signal 2" HorizontalAlignment="Left" Margin="10,48,0,4" RenderTransformOrigin="-5.432,0.857" Width="70" HorizontalContentAlignment="Left" FontSize="14" Grid.Column="1"/>
                                     <ComboBox Margin="85,46,10,6" RenderTransformOrigin="1.025,1.5" Grid.Column="1" IsEnabled="{Binding CoherenceEDFNavigationEnabled}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding CoherenceEDFSelectedSignal2}"/>
                                     <Label Content="From" HorizontalAlignment="Left" Margin="10,8,0,44" RenderTransformOrigin="-5.432,0.857" Width="62" HorizontalContentAlignment="Left" FontSize="14" Grid.Column="2"/>
-                                    <mtr:NumericUpDown Margin="72,8,10,44" TextAlignment="Center" FontSize="14" Grid.Column="2" IsEnabled="{Binding CoherenceEDFNavigationEnabled}" Value="{Binding CoherenceEDFStartRecord}"/>
+                                    <mtr:NumericUpDown Margin="72,8,10,44" TextAlignment="Center" FontSize="14" Grid.Column="2" IsEnabled="{Binding CoherenceEDFNavigationEnabled}" Value="{Binding CoherenceEDFStartRecord}" Minimum="{Binding CoherenceEDFStartRecordMin}" Maximum="{Binding CoherenceEDFStartRecordMax}"/>
                                     <Label Content="Length" Margin="10,46,0,6" RenderTransformOrigin="-5.432,0.857" HorizontalContentAlignment="Left" FontSize="14" HorizontalAlignment="Left" Width="62" Grid.Column="2"/>
-                                    <mtr:NumericUpDown Margin="72,46,10,6"  TextAlignment="Center" FontSize="14" Grid.Column="2" IsEnabled="{Binding CoherenceEDFNavigationEnabled}" Value="{Binding CoherenceEDFDuration}"/>
+                                    <mtr:NumericUpDown Margin="72,46,10,6"  TextAlignment="Center" FontSize="14" Grid.Column="2" IsEnabled="{Binding CoherenceEDFNavigationEnabled}" Value="{Binding CoherenceEDFDuration}" Minimum="{Binding CoherenceEDFDurationMin}" Maximum="{Binding CoherenceEDFDurationMax}"/>
                                     <Button x:Name="button_PerformCoherenceAnalysis" Content="Go" Margin="10,10,0,42" HorizontalAlignment="Left" Width="91" Grid.Column="3" IsEnabled="{Binding CoherenceEDFNavigationEnabled}" Click="button_PerformCoherenceAnalysis_Click" />
                                 </Grid>
                                 <Grid Margin="0,140,10,0">
