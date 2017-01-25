@@ -29,7 +29,7 @@ namespace SleepApneaDiagnoser
       this.selected_signals = new List<string>(selected_signals);
 
       this.textBox_subject_id.Text = "";
-      this.textBox_epochs_from.Text = "0";
+      this.textBox_epochs_from.Text = "1";
       this.textBox_epochs_to.Text = "10";
     }
 
@@ -70,9 +70,9 @@ namespace SleepApneaDiagnoser
           }
           else
           {
-            if (from_epochs < 0)
+            if (from_epochs < 1)
             {
-              this.ShowMessageAsync("Error", "From epochs must be greater than 0");
+              this.ShowMessageAsync("Error", "From epochs must be greater than 1");
             }
             else
             {
