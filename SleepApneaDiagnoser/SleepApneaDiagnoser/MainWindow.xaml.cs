@@ -287,61 +287,6 @@ namespace SleepApneaDiagnoser
   {
     #region Helper Functions
     /// <summary>
-    /// From a signal, return a list of Y values
-    /// </summary>
-    /// <param name="Signal"></param>
-    /// <returns></returns>
-    private List<float> GetValuesFromSignalName(string Signal)
-    {
-      List<float> values = new List<float>();
-
-      // Check if this signal needs filtering 
-      FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
-      if (filteredSignal != null)
-        Signal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal).OriginalName;
-
-      if (EDFAllSignals.Contains(Signal)) // Regular Signal
-      {
-        EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal);
-        values = LoadedEDFFile.retrieveSignalSampleValues(LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal.Trim()));
-      }
-      else // EDF Signal 
-      {
-        // Get Signals
-        DerivativeSignal deriv_info = sm.DerivedSignals.Find(temp => temp.DerivativeName == Signal);
-        EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal1Name.Trim());
-        EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal2Name.Trim());
-
-        // Get Arrays and Perform Resampling if needed
-        List<float> values1;
-        List<float> values2;
-        if (edfsignal1.NumberOfSamplesPerDataRecord == edfsignal2.NumberOfSamplesPerDataRecord) // No resampling
-        {
-          values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-          values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
-        }
-        else if (edfsignal1.NumberOfSamplesPerDataRecord > edfsignal2.NumberOfSamplesPerDataRecord) // Upsample signal 2
-        {
-          values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-          values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
-          values2 = Utils.MATLAB_Resample(values2.ToArray(), edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord);
-        }
-        else // Upsample signal 1
-        {
-          values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-          values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
-          values1 = Utils.MATLAB_Resample(values1.ToArray(), edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord);
-        }
-
-        for (int x = 0; x < Math.Min(values1.Count, values2.Count); x++)
-        {
-          values.Add(values1[x] - values2[x]);
-        }
-      }
-
-      return values;
-    }
-    /// <summary>
     /// From a signal, returns a series of X,Y values for use with a PlotModel
     /// Also returns y axis information and the sample_period of the signal
     /// </summary>
@@ -3704,15 +3649,45 @@ namespace SleepApneaDiagnoser
     private void SetYBounds(string Signal)
     {
       SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
-      
+
       if (find == null)
-      {
-        List<float> values = GetValuesFromSignalName(Signal);
+      { 
+        List<float> num = new List<float>();
+
+        // Check if this signal needs filtering 
+        FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
+        if (filteredSignal != null)
+          Signal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal).OriginalName;
+
+        if (EDFAllSignals.Contains(Signal)) // Regular Signal
+        {
+          EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal);
+          num = LoadedEDFFile.DataRecords.Select(temp => (float) temp[edfsignal.IndexNumberWithLabel].Max()).ToList();
+          num.AddRange(LoadedEDFFile.DataRecords.Select(temp => (float)temp[edfsignal.IndexNumberWithLabel].Min()).ToArray());
+        }
+        else // EDF Signal 
+        {
+          // Get Signals
+          DerivativeSignal deriv_info = sm.DerivedSignals.Find(temp => temp.DerivativeName == Signal);
+          EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal1Name.Trim());
+          EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal2Name.Trim());
+
+          List<float> num_1_min = LoadedEDFFile.DataRecords.Select(temp => (float)temp[edfsignal1.IndexNumberWithLabel].Min()).ToList();
+          List<float> num_2_min = LoadedEDFFile.DataRecords.Select(temp => (float)temp[edfsignal2.IndexNumberWithLabel].Min()).ToList();
+          List<float> num_1_max = LoadedEDFFile.DataRecords.Select(temp => (float)temp[edfsignal1.IndexNumberWithLabel].Max()).ToList();
+          List<float> num_2_max = LoadedEDFFile.DataRecords.Select(temp => (float)temp[edfsignal2.IndexNumberWithLabel].Max()).ToList();
+
+          for (int x = 0; x < Math.Min(num_1_max.Count, num_2_max.Count); x++)
+          {
+            num.Add(num_1_max[x] - num_2_min[x]);
+            num.Add(num_1_min[x] - num_2_max[x]);
+          }
+        }
         
         double? value_high = null;
         double? value_low = null;
-        value_high = Utils.GetPercentileValue(values.ToArray(), percent_high);
-        value_low = Utils.GetPercentileValue(values.ToArray(), percent_low);
+        value_high = Utils.GetPercentileValue(num.ToArray(), percent_high);
+        value_low = Utils.GetPercentileValue(num.ToArray(), percent_low);
 
         sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(Signal) { yMax = value_high ?? 0, yMin = value_low ?? 0 });
       }
