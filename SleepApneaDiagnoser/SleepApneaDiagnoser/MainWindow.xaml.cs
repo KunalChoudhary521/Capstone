@@ -287,7 +287,61 @@ namespace SleepApneaDiagnoser
   public class ModelView : INotifyPropertyChanged
   {
     #region Helper Functions
+    /// <summary>
+    /// From a signal, return a list of Y values
+    /// </summary>
+    /// <param name="Signal"></param>
+    /// <returns></returns>
+    private List<float> GetValuesFromSignalName(string Signal)
+    {
+      List<float> values = new List<float>();
 
+      // Check if this signal needs filtering 
+      FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
+      if (filteredSignal != null)
+        Signal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal).OriginalName;
+
+      if (EDFAllSignals.Contains(Signal)) // Regular Signal
+      {
+        EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal);
+        values = LoadedEDFFile.retrieveSignalSampleValues(LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal.Trim()));
+      }
+      else // EDF Signal 
+      {
+        // Get Signals
+        DerivativeSignal deriv_info = sm.DerivedSignals.Find(temp => temp.DerivativeName == Signal);
+        EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal1Name.Trim());
+        EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal2Name.Trim());
+
+        // Get Arrays and Perform Resampling if needed
+        List<float> values1;
+        List<float> values2;
+        if (edfsignal1.NumberOfSamplesPerDataRecord == edfsignal2.NumberOfSamplesPerDataRecord) // No resampling
+        {
+          values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
+          values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
+        }
+        else if (edfsignal1.NumberOfSamplesPerDataRecord > edfsignal2.NumberOfSamplesPerDataRecord) // Upsample signal 2
+        {
+          values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
+          values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
+          values2 = Utils.MATLAB_Resample(values2.ToArray(), edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord);
+        }
+        else // Upsample signal 1
+        {
+          values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
+          values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
+          values1 = Utils.MATLAB_Resample(values1.ToArray(), edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord);
+        }
+
+        for (int x = 0; x < Math.Min(values1.Count, values2.Count); x++)
+        {
+          values.Add(values1[x] - values2[x]);
+        }
+      }
+
+      return values;
+    }
     /// <summary>
     /// From a signal, returns a series of X,Y values for use with a PlotModel
     /// Also returns y axis information and the sample_period of the signal
@@ -326,8 +380,8 @@ namespace SleepApneaDiagnoser
         List<float> values = Utils.retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal, StartTime, EndTime);
 
         // Determine Y Axis Bounds
-        min_y = GetMinSignalValue(Signal, values);
-        max_y = GetMaxSignalValue(Signal, values);
+        min_y = GetMinSignalValue(Signal);
+        max_y = GetMaxSignalValue(Signal);
 
         // Add Points to Series
         for (int y = 0; y < values.Count; y++)
@@ -367,8 +421,8 @@ namespace SleepApneaDiagnoser
         }
 
         // Get Y Axis Bounds
-        min_y = GetMinSignalValue(Signal, values1, values2);
-        max_y = GetMaxSignalValue(Signal, values1, values2);
+        min_y = GetMinSignalValue(Signal);
+        max_y = GetMaxSignalValue(Signal);
         // Add Points to Series
         for (int y = 0; y < Math.Min(values1.Count, values2.Count); y++)
         {
@@ -393,7 +447,6 @@ namespace SleepApneaDiagnoser
 
       return series;
     }
-
     #endregion;
 
     #region Actions
@@ -813,8 +866,8 @@ namespace SleepApneaDiagnoser
       LineSeries series = new LineSeries();
 
       // Determine Y Axis Bounds
-      min_y = GetMinSignalValue(Signal, values);
-      max_y = GetMaxSignalValue(Signal, values);
+      min_y = GetMinSignalValue(Signal);
+      max_y = GetMaxSignalValue(Signal);
 
       //  // Add Points to Series
       for (int y = 0; y < values.Count; y++)
@@ -1320,8 +1373,8 @@ namespace SleepApneaDiagnoser
       LineSeries series = new LineSeries();
 
       // Determine Y Axis Bounds
-      min_y = GetMinSignalValue(Signal, values);
-      max_y = GetMaxSignalValue(Signal, values);
+      min_y = GetMinSignalValue(Signal);
+      max_y = GetMaxSignalValue(Signal);
 
       //  // Add Points to Series
       for (int y = 0; y < values.Count; y++)
@@ -3647,18 +3700,20 @@ namespace SleepApneaDiagnoser
     }
 
     // Signal Y Axis Extremes
-    private double percent_high = 100;
-    private double percent_low = 0;
-    private double? GetMaxSignalValue(string Signal, List<float> values)
+    private double percent_high = 97;
+    private double percent_low = 3;
+    private double? GetMaxSignalValue(string Signal)
     {
       SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
-
+      
       if (find != null)
       {
         if (!Double.IsNaN(find.yMax))
           return find.yMax;
         else
         {
+          List<float> values = GetValuesFromSignalName(Signal);
+
           double? value = null;
           value = Utils.GetPercentileValue(values.ToArray(), percent_high);
           SetMaxSignalValue(Signal, value ?? 0);
@@ -3667,13 +3722,15 @@ namespace SleepApneaDiagnoser
       }
       else
       {
+        List<float> values = GetValuesFromSignalName(Signal);
+
         double? value = null;
         value = Utils.GetPercentileValue(values.ToArray(), percent_high);
         SetMaxSignalValue(Signal, value ?? 0);
         return value;
       }
     }
-    private double? GetMinSignalValue(string Signal, List<float> values)
+    private double? GetMinSignalValue(string Signal)
     {
       SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
 
@@ -3683,6 +3740,8 @@ namespace SleepApneaDiagnoser
           return find.yMin;
         else
         {
+          List<float> values = GetValuesFromSignalName(Signal);
+
           double? value = null;
           value = Utils.GetPercentileValue(values.ToArray(), percent_low);
           SetMinSignalValue(Signal, value ?? 0);
@@ -3691,56 +3750,10 @@ namespace SleepApneaDiagnoser
       }
       else
       {
+        List<float> values = GetValuesFromSignalName(Signal);
+
         double? value = null;
         value = Utils.GetPercentileValue(values.ToArray(), percent_low);
-        SetMinSignalValue(Signal, value ?? 0);
-        return value;
-      }
-    }
-    private double? GetMaxSignalValue(string Signal, List<float> values1, List<float> values2)
-    {
-      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
-
-      if (find != null)
-      {
-        if (!Double.IsNaN(find.yMax))
-          return find.yMax;
-        else
-        {
-          double? value = null;
-          value = Utils.GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), percent_high);
-          SetMaxSignalValue(Signal, value ?? 0);
-          return value;
-        }
-      }
-      else
-      {
-        double? value = null;
-        value = Utils.GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), percent_high);
-        SetMaxSignalValue(Signal, value ?? 0);
-        return value;
-      }
-    }
-    private double? GetMinSignalValue(string Signal, List<float> values1, List<float> values2)
-    {
-      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
-
-      if (find != null)
-      {
-        if (!Double.IsNaN(find.yMin))
-          return find.yMin;
-        else
-        {
-          double? value = null;
-          value = Utils.GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), percent_low);
-          SetMinSignalValue(Signal, value ?? 0);
-          return value;
-        }
-      }
-      else
-      {
-        double? value = null;
-        value = Utils.GetPercentileValueDeriv(values1.ToArray(), values2.ToArray(), percent_low);
         SetMinSignalValue(Signal, value ?? 0);
         return value;
       }
