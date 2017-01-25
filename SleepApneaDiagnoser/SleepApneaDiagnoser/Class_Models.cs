@@ -91,7 +91,7 @@ namespace SleepApneaDiagnoser
     /// Effect where the insets, onsets, and peaks are detected
     /// Any "spike" that is less wide than the user setting in ms will be ignored
     /// </summary>
-    public int RespiratoryMinimumPeakWidth = 100;
+    public int RespiratoryMinimumPeakWidth = 300;
     /// <summary>
     /// A user selected option for choosing whether the analysis will allow for repeated peaks of
     /// the same polarity

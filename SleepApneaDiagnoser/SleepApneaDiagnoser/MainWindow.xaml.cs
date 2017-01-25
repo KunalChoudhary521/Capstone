@@ -126,7 +126,7 @@ namespace SleepApneaDiagnoser
       if (dialog.ShowDialog() == true)
       {
         model.LoadEDFFile(dialog.FileName);
-      }
+      }       
     }
     private void TextBlock_Recent_Click(object sender, RoutedEventArgs e)
     {
@@ -281,7 +281,6 @@ namespace SleepApneaDiagnoser
     {
       model.PerformCoherenceAnalysisEDF();
     }
-
   }
 
   public class ModelView : INotifyPropertyChanged
@@ -3702,32 +3701,42 @@ namespace SleepApneaDiagnoser
     // Signal Y Axis Extremes
     private double percent_high = 97;
     private double percent_low = 3;
-    private double? GetMaxSignalValue(string Signal)
+    private void SetYBounds(string Signal)
     {
       SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
       
+      if (find == null)
+      {
+        List<float> values = GetValuesFromSignalName(Signal);
+        
+        double? value_high = null;
+        double? value_low = null;
+        value_high = Utils.GetPercentileValue(values.ToArray(), percent_high);
+        value_low = Utils.GetPercentileValue(values.ToArray(), percent_low);
+
+        sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(Signal) { yMax = value_high ?? 0, yMin = value_low ?? 0 });
+      }
+    }
+    private double? GetMaxSignalValue(string Signal)
+    {
+      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
+
       if (find != null)
       {
         if (!Double.IsNaN(find.yMax))
+        {
           return find.yMax;
+        }
         else
         {
-          List<float> values = GetValuesFromSignalName(Signal);
-
-          double? value = null;
-          value = Utils.GetPercentileValue(values.ToArray(), percent_high);
-          SetMaxSignalValue(Signal, value ?? 0);
-          return value;
+          SetYBounds(Signal);
+          return GetMaxSignalValue(Signal);
         }
       }
       else
       {
-        List<float> values = GetValuesFromSignalName(Signal);
-
-        double? value = null;
-        value = Utils.GetPercentileValue(values.ToArray(), percent_high);
-        SetMaxSignalValue(Signal, value ?? 0);
-        return value;
+        SetYBounds(Signal);
+        return GetMaxSignalValue(Signal);
       }
     }
     private double? GetMinSignalValue(string Signal)
@@ -3737,54 +3746,22 @@ namespace SleepApneaDiagnoser
       if (find != null)
       {
         if (!Double.IsNaN(find.yMin))
+        {
           return find.yMin;
+        }
         else
         {
-          List<float> values = GetValuesFromSignalName(Signal);
-
-          double? value = null;
-          value = Utils.GetPercentileValue(values.ToArray(), percent_low);
-          SetMinSignalValue(Signal, value ?? 0);
-          return value;
+          SetYBounds(Signal);
+          return GetMinSignalValue(Signal);
         }
       }
       else
       {
-        List<float> values = GetValuesFromSignalName(Signal);
-
-        double? value = null;
-        value = Utils.GetPercentileValue(values.ToArray(), percent_low);
-        SetMinSignalValue(Signal, value ?? 0);
-        return value;
+        SetYBounds(Signal);
+        return GetMinSignalValue(Signal);
       }
     }
-    private void SetMaxSignalValue(string Signal, double Value)
-    {
-      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
-
-      if (find != null)
-      {
-        find.yMax = Value;
-      }
-      else
-      {
-        sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(Signal) { yMax = Value });
-      }
-    }
-    private void SetMinSignalValue(string Signal, double Value)
-    {
-      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
-
-      if (find != null)
-      {
-        find.yMin = Value;
-      }
-      else
-      {
-        sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(Signal) { yMin = Value });
-      }
-    }
-
+    
     /*********************************************************************************************************************************/
 
     #endregion
