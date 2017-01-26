@@ -3721,8 +3721,8 @@ namespace SleepApneaDiagnoser
     }
 
     // Signal Y Axis Extremes
-    private double percent_high = 98;
-    private double percent_low = 2;
+    private double percent_high = 96;
+    private double percent_low = 4;
     private void SetYBounds(string Signal)
     {
       SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
