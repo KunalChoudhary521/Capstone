@@ -1097,8 +1097,8 @@ namespace SleepApneaDiagnoser
       float sample_period;
       LineSeries series = GetSeriesFromSignalName(out sample_period,
                                                   RespiratoryEDFSelectedSignal,
-                                                  Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile),
-                                                  Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 0)
+                                                  Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile),
+                                                  Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 1)
                                                   );
       
       // Plot Insets of Respiration Expiration
@@ -1251,8 +1251,8 @@ namespace SleepApneaDiagnoser
 
       DateTimeAxis xAxis = new DateTimeAxis();
       xAxis.Key = "DateTime";
-      xAxis.Minimum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile));
-      xAxis.Maximum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 0));
+      xAxis.Minimum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile));
+      xAxis.Maximum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 1));
       temp_SignalPlot.Axes.Add(xAxis);
 
       LinearAxis yAxis = new LinearAxis();
@@ -1603,8 +1603,8 @@ namespace SleepApneaDiagnoser
       float sample_period;
       LineSeries series = GetSeriesFromSignalName(out sample_period,
                                                   EEGEDFSelectedSignal,
-                                                  Utils.EpochtoDateTime(EEGEDFStartRecord ?? 0, LoadedEDFFile),
-                                                  Utils.EpochtoDateTime(EEGEDFStartRecord ?? 0, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(EEGEDFDuration ?? 0)
+                                                  Utils.EpochtoDateTime(EEGEDFStartRecord ?? 1, LoadedEDFFile),
+                                                  Utils.EpochtoDateTime(EEGEDFStartRecord ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(EEGEDFDuration ?? 1)
                                                   );
 
       if (series.Points.Count == 0)//select length to be more than From (on GUI)
@@ -1851,8 +1851,8 @@ namespace SleepApneaDiagnoser
       float sample_period_1;
       LineSeries series_1 = GetSeriesFromSignalName(out sample_period_1,
                                                   CoherenceEDFSelectedSignal1,
-                                                  Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile),
-                                                  Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 0)
+                                                  Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 1, LoadedEDFFile),
+                                                  Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 1)
                                                   );
 
       // Plot Series 1
@@ -1861,8 +1861,8 @@ namespace SleepApneaDiagnoser
 
         DateTimeAxis xAxis = new DateTimeAxis();
         xAxis.Key = "DateTime";
-        xAxis.Minimum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile));
-        xAxis.Maximum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 0));
+        xAxis.Minimum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 1, LoadedEDFFile));
+        xAxis.Maximum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 1));
         temp_SignalPlot.Axes.Add(xAxis);
 
         LinearAxis yAxis = new LinearAxis();
@@ -1889,8 +1889,8 @@ namespace SleepApneaDiagnoser
       float sample_period_2;
       LineSeries series_2 = GetSeriesFromSignalName(out sample_period_2,
                                                   CoherenceEDFSelectedSignal2,
-                                                  Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile),
-                                                  Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 0)
+                                                  Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 1, LoadedEDFFile),
+                                                  Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 1)
                                                   );
       
       // Plot Series 2
@@ -1899,8 +1899,8 @@ namespace SleepApneaDiagnoser
 
         DateTimeAxis xAxis = new DateTimeAxis();
         xAxis.Key = "DateTime";
-        xAxis.Minimum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile));
-        xAxis.Maximum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 0));
+        xAxis.Minimum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 1, LoadedEDFFile));
+        xAxis.Maximum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 1));
         temp_SignalPlot.Axes.Add(xAxis);
 
         LinearAxis yAxis = new LinearAxis();
@@ -2920,7 +2920,7 @@ namespace SleepApneaDiagnoser
       {
         if (!PreviewUseAbsoluteTime && IsEDFLoaded)
         {
-          pm.PreviewViewStartRecord = value ?? 0;
+          pm.PreviewViewStartRecord = value ?? 1;
           pm.PreviewViewStartTime = Utils.EpochtoDateTime(pm.PreviewViewStartRecord, LoadedEDFFile);
           PreviewView_Changed();
         }
@@ -2947,9 +2947,9 @@ namespace SleepApneaDiagnoser
         if (IsEDFLoaded)
         {
           if (PreviewUseAbsoluteTime)
-            pm.PreviewViewDuration = value ?? 0;
+            pm.PreviewViewDuration = value ?? 1;
           else
-            pm.PreviewViewDuration = (int)Utils.EpochPeriodtoTimeSpan((value ?? 0)).TotalSeconds;
+            pm.PreviewViewDuration = (int)Utils.EpochPeriodtoTimeSpan((value ?? 1)).TotalSeconds;
         }
 
         PreviewView_Changed();
@@ -2962,9 +2962,9 @@ namespace SleepApneaDiagnoser
         if (IsEDFLoaded)
         {
           if (PreviewUseAbsoluteTime)
-            return (PreviewViewStartTime ?? new DateTime()) + new TimeSpan(0, 0, 0, PreviewViewDuration ?? 0);
+            return (PreviewViewStartTime ?? new DateTime()) + new TimeSpan(0, 0, 0, PreviewViewDuration ?? 1);
           else
-            return (PreviewViewStartTime ?? new DateTime()) + Utils.EpochPeriodtoTimeSpan(PreviewViewDuration ?? 0);
+            return (PreviewViewStartTime ?? new DateTime()) + Utils.EpochPeriodtoTimeSpan(PreviewViewDuration ?? 1);
         }
         else
         {
@@ -3117,7 +3117,7 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        rm.RespiratoryEDFStartRecord = value ?? 0;
+        rm.RespiratoryEDFStartRecord = value ?? 1;
         OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
         RespiratoryView_Changed();
       }
@@ -3130,7 +3130,7 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        rm.RespiratoryEDFDuration = value ?? 0;
+        rm.RespiratoryEDFDuration = value ?? 1;
         OnPropertyChanged(nameof(RespiratoryEDFDuration));
         RespiratoryView_Changed();
       }
@@ -3311,7 +3311,7 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        eegm.EEGEDFStartRecord = value ?? 0;
+        eegm.EEGEDFStartRecord = value ?? 1;
         OnPropertyChanged(nameof(EEGEDFStartRecord));
         EEGView_Changed();
       }
@@ -3324,7 +3324,7 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        eegm.EEGEDFDuration = value ?? 0;
+        eegm.EEGEDFDuration = value ?? 1;
         OnPropertyChanged(nameof(EEGEDFDuration));
         EEGView_Changed();
       }
@@ -3513,7 +3513,7 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        cm.CoherenceEDFStartRecord = value ?? 0;
+        cm.CoherenceEDFStartRecord = value ?? 1;
         OnPropertyChanged(nameof(CoherenceEDFStartRecord));
         CoherenceView_Changed();
       }
@@ -3526,7 +3526,7 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        cm.CoherenceEDFDuration = value ?? 0;
+        cm.CoherenceEDFDuration = value ?? 1;
         OnPropertyChanged(nameof(CoherenceEDFDuration));
         CoherenceView_Changed();
       }
@@ -3796,8 +3796,8 @@ namespace SleepApneaDiagnoser
     }
 
     // Signal Y Axis Extremes
-    private double percent_high = 95;
-    private double percent_low = 5;
+    private double percent_high = 99;
+    private double percent_low = 1;
     private void SetYBounds(string Signal)
     {
       string OrigName = Signal;
