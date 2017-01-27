@@ -3789,8 +3789,8 @@ namespace SleepApneaDiagnoser
     }
 
     // Signal Y Axis Extremes
-    private double percent_high = 95;
-    private double percent_low = 5;
+    private double percent_high = 99;
+    private double percent_low = 1;
     private void SetYBounds(string Signal)
     {
       string OrigName = Signal;
