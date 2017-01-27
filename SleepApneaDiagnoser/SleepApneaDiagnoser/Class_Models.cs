@@ -55,6 +55,11 @@ namespace SleepApneaDiagnoser
     /// If true, the plot is done being drawn
     /// </summary>
     public bool PreviewNavigationEnabled = false;
+    /// <summary>
+    /// If false, let the plot auto adjust
+    /// If true, the plot has a constant y axis
+    /// </summary>
+    public bool PreviewUseConstantAxis = true;
   }
 
   /// <summary>
@@ -97,6 +102,11 @@ namespace SleepApneaDiagnoser
     /// the same polarity
     /// </summary>
     public bool RespiratoryRemoveMultiplePeaks = true;
+    /// <summary>
+    /// If true, use a constant axis
+    /// If false, auto adjust to plot
+    /// </summary>
+    public bool RespiratoryUseConstantAxis = false;
   }
 
   /// <summary>
@@ -179,6 +189,11 @@ namespace SleepApneaDiagnoser
     /// If false, the progress ring should not be shown
     /// </summary>
     public bool CoherenceProgressRingEnabled = false;
+    /// <summary>
+    /// If true, use a constant axis
+    /// If false, auto adjust to plot
+    /// </summary>
+    public bool CoherenceUseConstantAxis = false;
   }
 
   public class SignalCategory

@@ -259,19 +259,19 @@ namespace SleepApneaDiagnoser
     }
 
     // Analysis Tab Events 
-    private void button_PerformRespiratoryAnalysis_Click(object sender, RoutedEventArgs e)
+    private void button_EDFRespiratoryAnalysis_Click(object sender, RoutedEventArgs e)
     {
       model.PerformRespiratoryAnalysisEDF();
     }
-    private void button_PerformEEGAnalysis_Click(object sender, RoutedEventArgs e)
+    private void button_EDFEEGAnalysis_Click(object sender, RoutedEventArgs e)
     {
       model.PerformEEGAnalysisEDF();
     }    
-    private void button_Load_Respiratory_Click(object sender, RoutedEventArgs e)
+    private void button_BINRespiratoryAnalysis_Click(object sender, RoutedEventArgs e)
     {
       model.PerformRespiratoryAnalysisBinary();
     }
-    private void Button_EEG_From_Bin(object sender, RoutedEventArgs e)
+    private void Button_BINEEGAnalysis_Click(object sender, RoutedEventArgs e)
     {
       model.PerformEEGAnalysisBinary();
     }
@@ -550,8 +550,11 @@ namespace SleepApneaDiagnoser
               yAxis.Key = pm.PreviewSelectedSignals[y];
               yAxis.EndPosition = (double)1 - (double)y * ((double)1 / (double)pm.PreviewSelectedSignals.Count);
               yAxis.StartPosition = (double)1 - (double)(y + 1) * ((double)1 / (double)pm.PreviewSelectedSignals.Count);
-              yAxis.Maximum = GetMaxSignalValue(pm.PreviewSelectedSignals[y]); 
-              yAxis.Minimum = GetMinSignalValue(pm.PreviewSelectedSignals[y]);
+              if (PreviewUseConstantAxis)
+              {
+                yAxis.Maximum = GetMaxSignalValue(pm.PreviewSelectedSignals[y]);
+                yAxis.Minimum = GetMinSignalValue(pm.PreviewSelectedSignals[y]);
+              }
               series_array[y] = series;
               axis_array[y] = yAxis;
             }
@@ -1253,8 +1256,12 @@ namespace SleepApneaDiagnoser
       yAxis.MinorGridlineStyle = LineStyle.Dot;
       yAxis.Title = RespiratoryEDFSelectedSignal;
       yAxis.Key = RespiratoryEDFSelectedSignal;
-      yAxis.Maximum = GetMaxSignalValue(RespiratoryEDFSelectedSignal) - bias;
-      yAxis.Minimum = GetMinSignalValue(RespiratoryEDFSelectedSignal) - bias;
+
+      if (RespiratoryUseConstantAxis)
+      {
+        yAxis.Maximum = GetMaxSignalValue(RespiratoryEDFSelectedSignal) - bias;
+        yAxis.Minimum = GetMinSignalValue(RespiratoryEDFSelectedSignal) - bias;
+      }
 
       series_onsets.MarkerFill = OxyColor.FromRgb(255, 0, 0);
       series_insets.MarkerFill = OxyColor.FromRgb(0, 255, 0);
@@ -1863,8 +1870,13 @@ namespace SleepApneaDiagnoser
         yAxis.MinorGridlineStyle = LineStyle.Dot;
         yAxis.Title = CoherenceEDFSelectedSignal1 + " (Time)";
         yAxis.Key = CoherenceEDFSelectedSignal1 + " (Time)";
-        yAxis.Maximum = GetMaxSignalValue(CoherenceEDFSelectedSignal1);
-        yAxis.Minimum = GetMinSignalValue(CoherenceEDFSelectedSignal1);
+
+        if (CoherenceUseConstantAxis)
+        {
+          yAxis.Maximum = GetMaxSignalValue(CoherenceEDFSelectedSignal1);
+          yAxis.Minimum = GetMinSignalValue(CoherenceEDFSelectedSignal1);
+        }
+
         temp_SignalPlot.Axes.Add(yAxis);
 
         series_1.YAxisKey = CoherenceEDFSelectedSignal1 + " (Time)";
@@ -1901,8 +1913,12 @@ namespace SleepApneaDiagnoser
         yAxis.MinorGridlineStyle = LineStyle.Dot;
         yAxis.Title = CoherenceEDFSelectedSignal2 + " (Time)";
         yAxis.Key = CoherenceEDFSelectedSignal2 + " (Time)";
-        yAxis.Maximum = GetMaxSignalValue(CoherenceEDFSelectedSignal2);
-        yAxis.Minimum = GetMinSignalValue(CoherenceEDFSelectedSignal2);
+
+        if (CoherenceUseConstantAxis)
+        {
+          yAxis.Maximum = GetMaxSignalValue(CoherenceEDFSelectedSignal2);
+          yAxis.Minimum = GetMinSignalValue(CoherenceEDFSelectedSignal2);
+        }
         temp_SignalPlot.Axes.Add(yAxis);
 
         series_2.YAxisKey = CoherenceEDFSelectedSignal2 + " (Time)";
@@ -2368,6 +2384,10 @@ namespace SleepApneaDiagnoser
       OnPropertyChanged(nameof(PreviewViewDurationMax));
       OnPropertyChanged(nameof(PreviewViewDurationMin));
 
+      DrawChart();
+    }
+    private void PreviewUseConstantAxis_Changed()
+    {
       DrawChart();
     }
     private void PreviewView_Changed()
@@ -3072,6 +3092,20 @@ namespace SleepApneaDiagnoser
       }
     }
 
+    // Preview Other
+    public bool PreviewUseConstantAxis
+    {
+      get
+      {
+        return pm.PreviewUseConstantAxis;
+      }
+      set
+      {
+        pm.PreviewUseConstantAxis = value;
+        OnPropertyChanged(nameof(PreviewUseConstantAxis));
+        PreviewUseConstantAxis_Changed();
+      }
+    }
     // Preview Plot
     public PlotModel PreviewSignalPlot
     {
@@ -3278,6 +3312,19 @@ namespace SleepApneaDiagnoser
           return 1;
         else // No File Loaded
           return 0;
+      }
+    }
+
+    public bool RespiratoryUseConstantAxis
+    {
+      get
+      {
+        return rm.RespiratoryUseConstantAxis;
+      }
+      set
+      {
+        rm.RespiratoryUseConstantAxis = value;
+        OnPropertyChanged(nameof(RespiratoryUseConstantAxis));
       }
     }
 
@@ -3666,6 +3713,19 @@ namespace SleepApneaDiagnoser
           return 1;
         else // No File Loaded
           return 0;
+      }
+    }
+
+    public bool CoherenceUseConstantAxis
+    {
+      get
+      {
+        return cm.CoherenceUseConstantAxis;
+      }
+      set
+      {
+        cm.CoherenceUseConstantAxis = value;
+        OnPropertyChanged(nameof(CoherenceUseConstantAxis));
       }
     }
 
