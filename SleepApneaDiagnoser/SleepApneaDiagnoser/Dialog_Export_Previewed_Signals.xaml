@@ -15,7 +15,7 @@
     <Button x:Name="button_export_cancel" Content="Cancel" HorizontalAlignment="Left" Height="43" Margin="259,249,0,0" VerticalAlignment="Top" Width="91" FontSize="14" Background="IndianRed" Click="button_export_cancel_Click"/>
     <Label x:Name="label_subject_id" Content="Enter subject ID (two digits)" HorizontalAlignment="Left" Height="31" Margin="25,18,0,0" VerticalAlignment="Top" Width="195" FontSize="14"/>
     <Label x:Name="label_epochs_from" Content="From" HorizontalAlignment="Left" Height="28" Margin="28,147,0,0" VerticalAlignment="Top" Width="84" FontSize="12" RenderTransformOrigin="0.472,1.404"/>
-    <Label x:Name="label_epochs_to" Content="To" HorizontalAlignment="Left" Height="28" Margin="136,147,0,0" VerticalAlignment="Top" Width="84" FontSize="12"/>
+    <Label x:Name="label_epochs_length" Content="Length" HorizontalAlignment="Left" Height="28" Margin="136,147,0,0" VerticalAlignment="Top" Width="84" FontSize="12"/>
     <Label x:Name="label_epochs" Content="Select Epochs" HorizontalAlignment="Left" Height="31" Margin="25,111,0,0" VerticalAlignment="Top" Width="96" FontSize="14"/>
 
   </Grid>

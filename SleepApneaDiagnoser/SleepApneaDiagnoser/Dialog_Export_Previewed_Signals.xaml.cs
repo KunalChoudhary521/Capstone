@@ -79,13 +79,13 @@ namespace SleepApneaDiagnoser
               int to_epochs;
               if (int.TryParse(this.textBox_epochs_to.Text, out to_epochs) == false)
               {
-                this.ShowMessageAsync("Error", "Please enter a valid 'to' epochs values.");
+                this.ShowMessageAsync("Error", "Please enter a valid 'length'");
               }
               else
               {
-                if (to_epochs < 0 || to_epochs <= from_epochs)
+                if (to_epochs <= 0)
                 {
-                  this.ShowMessageAsync("Error", "To epochs must be greater than from epochs.");
+                  this.ShowMessageAsync("Error", "Length of period must be greater than 0");
                 }
                 else
                 {

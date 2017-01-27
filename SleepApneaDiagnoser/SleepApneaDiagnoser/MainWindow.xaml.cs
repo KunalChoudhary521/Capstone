@@ -688,7 +688,7 @@ namespace SleepApneaDiagnoser
           if (foundInDerived) {
             double? maxY, minY;
             DateTime startTime = Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile); // epoch start
-            DateTime endTime = Utils.EpochtoDateTime(signals_data.Epochs_To, LoadedEDFFile); // epoch end
+            DateTime endTime = Utils.EpochtoDateTime((signals_data.Epochs_Length + 1), LoadedEDFFile); // epoch end
 
             LineSeries derivedSeries = GetSeriesFromSignalName(out derivedSamplePeriod, out maxY, out minY, signal, startTime, endTime);
 
@@ -702,7 +702,7 @@ namespace SleepApneaDiagnoser
             sb_hdr.AppendLine(signal) // name
                 .AppendLine(signals_data.Subject_ID.ToString()) // subject id
                 .AppendLine(Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile).ToString()) // epoch start
-                .AppendLine(Utils.EpochtoDateTime(signals_data.Epochs_To, LoadedEDFFile).ToString()) // epoch end
+                .AppendLine(Utils.EpochtoDateTime((signals_data.Epochs_Length + 1), LoadedEDFFile).ToString()) // epoch length
                 .AppendLine(derivedSamplePeriod.ToString()); // sample_period 
 
             var bytes_to_write = Encoding.ASCII.GetBytes(sb_hdr.ToString());
@@ -719,12 +719,10 @@ namespace SleepApneaDiagnoser
             bin_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".bin", FileMode.OpenOrCreate); //reload
             BinaryWriter bin_writer = new BinaryWriter(bin_file);
 
-            int start_index = (int)(((signals_data.Epochs_From - 1) * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * 
-              oneDerivedEdfSignal.NumberOfSamplesPerDataRecord; // from epoch number * 30 seconds per epoch * sample rate = start time
-            int end_index = (int)((signals_data.Epochs_To * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * oneDerivedEdfSignal.NumberOfSamplesPerDataRecord; // to epoch number * 30 seconds per epoch * sample rate = end time
+            int start_index = 0;
+            int end_index = derivedSeries.Points.Count();
 
             if (start_index < 0) { start_index = 0; }
-            if (end_index > derivedSeries.Points.Count) { end_index = derivedSeries.Points.Count(); }
 
             for (int i = start_index; i < end_index; i++)
             {
@@ -756,7 +754,7 @@ namespace SleepApneaDiagnoser
           sb_hdr.AppendLine(edfsignal.Label) // name
               .AppendLine(signals_data.Subject_ID.ToString()) // subject id
               .AppendLine(Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile).ToString()) // epoch start
-              .AppendLine(Utils.EpochtoDateTime(signals_data.Epochs_To, LoadedEDFFile).ToString()) // epoch end
+              .AppendLine(Utils.EpochtoDateTime((signals_data.Epochs_Length +1), LoadedEDFFile).ToString()) // epoch length
               .AppendLine(sample_period.ToString()); // sample_period 
 
           var bytes_to_write = Encoding.ASCII.GetBytes(sb_hdr.ToString());
@@ -776,8 +774,8 @@ namespace SleepApneaDiagnoser
           bin_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".bin", FileMode.OpenOrCreate); //reload
           BinaryWriter bin_writer = new BinaryWriter(bin_file);
 
-          int start_index = (int)(((signals_data.Epochs_From -1) * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * edfsignal.NumberOfSamplesPerDataRecord; // from epoch number * 30 seconds per epoch * sample rate = start time
-          int end_index = (int)((signals_data.Epochs_To * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * edfsignal.NumberOfSamplesPerDataRecord; // to epoch number * 30 seconds per epoch * sample rate = end time
+          int start_index = (int)(((signals_data.Epochs_From - 1) * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * edfsignal.NumberOfSamplesPerDataRecord; // from epoch number * 30 seconds per epoch * sample rate = start time
+          int end_index = (int)(((signals_data.Epochs_Length + 1) * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * edfsignal.NumberOfSamplesPerDataRecord; // to epoch number * 30 seconds per epoch * sample rate = end time
 
           if (start_index < 0) { start_index = 0; }
           if (end_index > signalValues.Count()) { end_index = signalValues.Count(); }
@@ -862,7 +860,7 @@ namespace SleepApneaDiagnoser
         string signal_name = file_reader.ReadLine();
         string subject_id = file_reader.ReadLine();
         string date_time_from = file_reader.ReadLine();
-        string date_time_to = file_reader.ReadLine();
+        string date_time_length = file_reader.ReadLine();
         string sample_period_s = file_reader.ReadLine();
 
         float sample_period = float.Parse(sample_period_s);
@@ -871,7 +869,7 @@ namespace SleepApneaDiagnoser
         double? max_y;
 
         DateTime epochs_from_datetime = DateTime.Parse(date_time_from);
-        DateTime epochs_to_datetime = DateTime.Parse(date_time_to);
+        DateTime epochs_to_datetime = DateTime.Parse(date_time_length);
 
         // perform all of the respiratory analysis
         RespiratoryAnalysisBinary(signal_name, signal_values, out min_y, out max_y, epochs_from_datetime, epochs_to_datetime, sample_period);
