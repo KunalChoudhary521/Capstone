@@ -367,6 +367,7 @@ namespace SleepApneaDiagnoser
         // Get Y Axis Bounds
         min_y = GetMinSignalValue(Signal);
         max_y = GetMaxSignalValue(Signal);
+
         // Add Points to Series
         for (int y = 0; y < Math.Min(values1.Count, values2.Count); y++)
         {
@@ -865,28 +866,25 @@ namespace SleepApneaDiagnoser
 
         float sample_period = float.Parse(sample_period_s);
 
-        double? min_y;
-        double? max_y;
-
         DateTime epochs_from_datetime = DateTime.Parse(date_time_from);
         DateTime epochs_to_datetime = DateTime.Parse(date_time_length);
 
         // perform all of the respiratory analysis
-        RespiratoryAnalysisBinary(signal_name, signal_values, out min_y, out max_y, epochs_from_datetime, epochs_to_datetime, sample_period);
+        RespiratoryAnalysisBinary(signal_name, signal_values, epochs_from_datetime, epochs_to_datetime, sample_period);
       }
       else
       {
         p_window.ShowMessageAsync("Error", "File could not be opened.");
       }
     }
-    private void RespiratoryAnalysisBinary(string Signal, List<float> values, out double? min_y, out double? max_y, DateTime epochs_from, DateTime epochs_to, float sample_period)
+    private void RespiratoryAnalysisBinary(string Signal, List<float> values, DateTime epochs_from, DateTime epochs_length, float sample_period)
     {
       // Variable To Return
       LineSeries series = new LineSeries();
 
       // Determine Y Axis Bounds
-      min_y = GetMinSignalValue(Signal);
-      max_y = GetMaxSignalValue(Signal);
+      //min_y = GetMinSignalValue(Signal);
+      //max_y = GetMaxSignalValue(Signal);
 
       //  // Add Points to Series
       for (int y = 0; y < values.Count; y++)
@@ -1048,7 +1046,7 @@ namespace SleepApneaDiagnoser
       DateTimeAxis xAxis = new DateTimeAxis();
       xAxis.Key = "DateTime";
       xAxis.Minimum = DateTimeAxis.ToDouble(epochs_from);
-      xAxis.Maximum = DateTimeAxis.ToDouble(epochs_to);
+      xAxis.Maximum = DateTimeAxis.ToDouble(epochs_length);
       temp_SignalPlot.Axes.Add(xAxis);
 
       LinearAxis yAxis = new LinearAxis();
@@ -1056,8 +1054,8 @@ namespace SleepApneaDiagnoser
       yAxis.MinorGridlineStyle = LineStyle.Dot;
       yAxis.Title = Signal;
       yAxis.Key = Signal;
-      yAxis.Maximum = (max_y ?? Double.NaN) - bias;
-      yAxis.Minimum = (min_y ?? Double.NaN) - bias;
+      //yAxis.Maximum = (max_y ?? Double.NaN) - bias;
+      //yAxis.Minimum = (min_y ?? Double.NaN) - bias;
 
       series_onsets.MarkerFill = OxyColor.FromRgb(255, 0, 0);
       series_insets.MarkerFill = OxyColor.FromRgb(0, 255, 0);
@@ -1372,28 +1370,21 @@ namespace SleepApneaDiagnoser
 
         float sample_period = float.Parse(sample_period_s);
 
-        double? min_y;
-        double? max_y;
-
         DateTime epochs_from_datetime = DateTime.Parse(date_time_from);
         DateTime epochs_to_datetime = DateTime.Parse(date_time_to);
 
         // perform all of the respiratory analysis
-        BW_EEGAnalysisBin(signal_name, signal_values, out min_y, out max_y, epochs_from_datetime, epochs_to_datetime, sample_period);
+        BW_EEGAnalysisBin(signal_name, signal_values, epochs_from_datetime, epochs_to_datetime, sample_period);
       }
       else
       {
         p_window.ShowMessageAsync("Error", "File could not be opened.");
       }
     }
-    private void BW_EEGAnalysisBin(string Signal, List<float> values, out double? min_y, out double? max_y, DateTime epochs_from, DateTime epochs_to, float sample_period)
+    private void BW_EEGAnalysisBin(string Signal, List<float> values, DateTime epochs_from, DateTime epochs_to, float sample_period)
     {
       // Variable To Return
       LineSeries series = new LineSeries();
-
-      // Determine Y Axis Bounds
-      min_y = GetMinSignalValue(Signal);
-      max_y = GetMaxSignalValue(Signal);
 
       //  // Add Points to Series
       for (int y = 0; y < values.Count; y++)
@@ -3793,13 +3784,13 @@ namespace SleepApneaDiagnoser
         }
         else
         {
-          SetYBounds(Signal);
+          //SetYBounds(Signal);
           return GetMaxSignalValue(Signal);
         }
       }
       else
       {
-        SetYBounds(Signal);
+        //SetYBounds(Signal);
         return GetMaxSignalValue(Signal);
       }
     }
