@@ -291,13 +291,11 @@ namespace SleepApneaDiagnoser
     /// Also returns y axis information and the sample_period of the signal
     /// </summary>
     /// <param name="sample_period"> Variable to contain the sample period of the signal </param>
-    /// <param name="max_y"> Variable to contain the maximum y axis value </param>
-    /// <param name="min_y"> Variable to contain the minimum y axis value </param>
     /// <param name="Signal"> The input signal name </param>
     /// <param name="StartTime">  The input start time to be contained in the series </param>
     /// <param name="EndTime"> The input end time to be contained in the series </param>
     /// <returns> The series of X,Y values to draw on the plot </returns>
-    private LineSeries GetSeriesFromSignalName(out float sample_period, out double? max_y, out double? min_y, string Signal, DateTime StartTime, DateTime EndTime)
+    private LineSeries GetSeriesFromSignalName(out float sample_period, string Signal, DateTime StartTime, DateTime EndTime)
     {
       // Variable To Return
       LineSeries series = new LineSeries();
@@ -322,11 +320,7 @@ namespace SleepApneaDiagnoser
 
         // Get Array
         List<float> values = Utils.retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal, StartTime, EndTime);
-
-        // Determine Y Axis Bounds
-        min_y = GetMinSignalValue(Signal);
-        max_y = GetMaxSignalValue(Signal);
-
+        
         // Add Points to Series
         for (int y = 0; y < values.Count; y++)
         {
@@ -363,10 +357,6 @@ namespace SleepApneaDiagnoser
           values1 = Utils.MATLAB_Resample(values1.ToArray(), edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord);
           sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal2.NumberOfSamplesPerDataRecord;
         }
-
-        // Get Y Axis Bounds
-        min_y = GetMinSignalValue(Signal);
-        max_y = GetMaxSignalValue(Signal);
 
         // Add Points to Series
         for (int y = 0; y < Math.Min(values1.Count, values2.Count); y++)
@@ -542,15 +532,13 @@ namespace SleepApneaDiagnoser
             {
               // Get Series for each signal
               int y = (int)e1.Argument;
-              double? min_y, max_y;
               float sample_period;
               LineSeries series = GetSeriesFromSignalName(out sample_period,
-                                                          out max_y,
-                                                          out min_y,
                                                           pm.PreviewSelectedSignals[y],
                                                           (PreviewViewStartTime ?? new DateTime()),
                                                           PreviewViewEndTime
                                                           );
+              
               series.YAxisKey = pm.PreviewSelectedSignals[y];
               series.XAxisKey = "DateTime";
 
@@ -562,8 +550,8 @@ namespace SleepApneaDiagnoser
               yAxis.Key = pm.PreviewSelectedSignals[y];
               yAxis.EndPosition = (double)1 - (double)y * ((double)1 / (double)pm.PreviewSelectedSignals.Count);
               yAxis.StartPosition = (double)1 - (double)(y + 1) * ((double)1 / (double)pm.PreviewSelectedSignals.Count);
-              yAxis.Maximum = max_y ?? Double.NaN;
-              yAxis.Minimum = min_y ?? Double.NaN;
+              yAxis.Maximum = GetMaxSignalValue(pm.PreviewSelectedSignals[y]); 
+              yAxis.Minimum = GetMinSignalValue(pm.PreviewSelectedSignals[y]);
               series_array[y] = series;
               axis_array[y] = yAxis;
             }
@@ -687,11 +675,10 @@ namespace SleepApneaDiagnoser
           }
 
           if (foundInDerived) {
-            double? maxY, minY;
             DateTime startTime = Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile); // epoch start
             DateTime endTime = Utils.EpochtoDateTime((signals_data.Epochs_Length + 1), LoadedEDFFile); // epoch end
 
-            LineSeries derivedSeries = GetSeriesFromSignalName(out derivedSamplePeriod, out maxY, out minY, signal, startTime, endTime);
+            LineSeries derivedSeries = GetSeriesFromSignalName(out derivedSamplePeriod, signal, startTime, endTime);
 
             FileStream hdr_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".hdr", FileMode.OpenOrCreate);
             hdr_file.SetLength(0); //clear it's contents
@@ -881,11 +868,7 @@ namespace SleepApneaDiagnoser
     {
       // Variable To Return
       LineSeries series = new LineSeries();
-
-      // Determine Y Axis Bounds
-      //min_y = GetMinSignalValue(Signal);
-      //max_y = GetMaxSignalValue(Signal);
-
+      
       //  // Add Points to Series
       for (int y = 0; y < values.Count; y++)
       {
@@ -1103,17 +1086,14 @@ namespace SleepApneaDiagnoser
 
       temp_SignalPlot.Series.Clear();
       temp_SignalPlot.Axes.Clear();
-
-      double? max_y, min_y;
+      
       float sample_period;
       LineSeries series = GetSeriesFromSignalName(out sample_period,
-                                                  out max_y,
-                                                  out min_y,
                                                   RespiratoryEDFSelectedSignal,
                                                   Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile),
                                                   Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 0, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 0)
                                                   );
-
+      
       // Plot Insets of Respiration Expiration
 
       // Calculate Bias
@@ -1273,8 +1253,8 @@ namespace SleepApneaDiagnoser
       yAxis.MinorGridlineStyle = LineStyle.Dot;
       yAxis.Title = RespiratoryEDFSelectedSignal;
       yAxis.Key = RespiratoryEDFSelectedSignal;
-      yAxis.Maximum = (max_y ?? Double.NaN) - bias;
-      yAxis.Minimum = (min_y ?? Double.NaN) - bias;
+      yAxis.Maximum = GetMaxSignalValue(RespiratoryEDFSelectedSignal) - bias;
+      yAxis.Minimum = GetMinSignalValue(RespiratoryEDFSelectedSignal) - bias;
 
       series_onsets.MarkerFill = OxyColor.FromRgb(255, 0, 0);
       series_insets.MarkerFill = OxyColor.FromRgb(0, 255, 0);
@@ -1613,11 +1593,8 @@ namespace SleepApneaDiagnoser
     //EEG Analysis From EDF File
     private void BW_EEGAnalysisEDF(object sender, DoWorkEventArgs e)
     {
-      double? max_y, min_y;
       float sample_period;
       LineSeries series = GetSeriesFromSignalName(out sample_period,
-                                                  out max_y,
-                                                  out min_y,
                                                   EEGEDFSelectedSignal,
                                                   Utils.EpochtoDateTime(EEGEDFStartRecord ?? 0, LoadedEDFFile),
                                                   Utils.EpochtoDateTime(EEGEDFStartRecord ?? 0, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(EEGEDFDuration ?? 0)
@@ -1864,11 +1841,8 @@ namespace SleepApneaDiagnoser
       #region Plot Series 1 in Time Domain 
 
       // Get Series 1
-      double? max_y_1, min_y_1;
       float sample_period_1;
       LineSeries series_1 = GetSeriesFromSignalName(out sample_period_1,
-                                                  out max_y_1,
-                                                  out min_y_1,
                                                   CoherenceEDFSelectedSignal1,
                                                   Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile),
                                                   Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 0)
@@ -1889,8 +1863,8 @@ namespace SleepApneaDiagnoser
         yAxis.MinorGridlineStyle = LineStyle.Dot;
         yAxis.Title = CoherenceEDFSelectedSignal1 + " (Time)";
         yAxis.Key = CoherenceEDFSelectedSignal1 + " (Time)";
-        yAxis.Maximum = (max_y_1 ?? Double.NaN);
-        yAxis.Minimum = (min_y_1 ?? Double.NaN);
+        yAxis.Maximum = GetMaxSignalValue(CoherenceEDFSelectedSignal1);
+        yAxis.Minimum = GetMinSignalValue(CoherenceEDFSelectedSignal1);
         temp_SignalPlot.Axes.Add(yAxis);
 
         series_1.YAxisKey = CoherenceEDFSelectedSignal1 + " (Time)";
@@ -1905,16 +1879,13 @@ namespace SleepApneaDiagnoser
       #region Plot Series 2 in Time Domain 
 
       // Get Series 2
-      double? max_y_2, min_y_2;
       float sample_period_2;
       LineSeries series_2 = GetSeriesFromSignalName(out sample_period_2,
-                                                  out max_y_2,
-                                                  out min_y_2,
                                                   CoherenceEDFSelectedSignal2,
                                                   Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile),
                                                   Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 0, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 0)
                                                   );
-
+      
       // Plot Series 2
       {
         PlotModel temp_SignalPlot = new PlotModel();
@@ -1930,8 +1901,8 @@ namespace SleepApneaDiagnoser
         yAxis.MinorGridlineStyle = LineStyle.Dot;
         yAxis.Title = CoherenceEDFSelectedSignal2 + " (Time)";
         yAxis.Key = CoherenceEDFSelectedSignal2 + " (Time)";
-        yAxis.Maximum = (max_y_2 ?? Double.NaN);
-        yAxis.Minimum = (min_y_2 ?? Double.NaN);
+        yAxis.Maximum = GetMaxSignalValue(CoherenceEDFSelectedSignal2);
+        yAxis.Minimum = GetMinSignalValue(CoherenceEDFSelectedSignal2);
         temp_SignalPlot.Axes.Add(yAxis);
 
         series_2.YAxisKey = CoherenceEDFSelectedSignal2 + " (Time)";
@@ -3822,6 +3793,7 @@ namespace SleepApneaDiagnoser
     private double percent_low = 10;
     private void SetYBounds(string Signal)
     {
+      string OrigName = Signal;
       SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
 
       if (find == null)
@@ -3877,10 +3849,10 @@ namespace SleepApneaDiagnoser
         float range = values[high_index] - values[low_index];
         float high_value = values[high_index] + range * (100 - (float)percent_high) / 100;
         float low_value = values[low_index] - range * ((float)percent_low) / 100;
-        sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(Signal) { yMax = high_value , yMin = low_value });
+        sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(OrigName) { yMax = high_value , yMin = low_value });
       }
     }
-    private double? GetMaxSignalValue(string Signal)
+    private double GetMaxSignalValue(string Signal)
     {
       SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
 
@@ -3892,17 +3864,17 @@ namespace SleepApneaDiagnoser
         }
         else
         {
-          //SetYBounds(Signal);
+          SetYBounds(Signal);
           return GetMaxSignalValue(Signal);
         }
       }
       else
       {
-        //SetYBounds(Signal);
+        SetYBounds(Signal);
         return GetMaxSignalValue(Signal);
       }
     }
-    private double? GetMinSignalValue(string Signal)
+    private double GetMinSignalValue(string Signal)
     {
       SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
 
