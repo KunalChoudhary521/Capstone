@@ -2887,7 +2887,7 @@ namespace SleepApneaDiagnoser
       {
         if (PreviewUseAbsoluteTime && IsEDFLoaded)
         {
-          pm.PreviewViewStartTime = value ?? DateTime.Parse(EDFStartTime);
+          pm.PreviewViewStartTime = value ?? new DateTime();
           pm.PreviewViewStartRecord = Utils.DateTimetoEpoch(pm.PreviewViewStartTime, LoadedEDFFile);
           PreviewView_Changed();
         }
