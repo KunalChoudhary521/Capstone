@@ -3789,8 +3789,8 @@ namespace SleepApneaDiagnoser
     }
 
     // Signal Y Axis Extremes
-    private double percent_high = 90;
-    private double percent_low = 10;
+    private double percent_high = 95;
+    private double percent_low = 5;
     private void SetYBounds(string Signal)
     {
       string OrigName = Signal;
@@ -3842,7 +3842,12 @@ namespace SleepApneaDiagnoser
             values.Add(values1[x] - values2[x]);
           }
         }
-        values = values.Distinct().ToList();
+        for (int x = 0; x < values.Count; x++)
+        {
+          if (x > 0 && values[x] == values[x - 1])
+            values[x] = float.NaN;
+        }
+        values.RemoveAll(temp => float.IsNaN(temp));
         values.Sort();
         int high_index = (int)(percent_high / 100 * (values.Count - 1));
         int low_index = (int)(percent_low / 100 * (values.Count - 1));
