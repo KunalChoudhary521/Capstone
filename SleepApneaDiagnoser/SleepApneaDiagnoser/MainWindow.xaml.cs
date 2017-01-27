@@ -606,37 +606,44 @@ namespace SleepApneaDiagnoser
 
         controller.SetCancelable(false);
 
-        if (dlg.ShowDialog() == true)
-        {
-          FolderBrowserDialog folder_dialog = new FolderBrowserDialog();
+                if (dlg.ShowDialog() == true)
+                {
+                    FolderBrowserDialog folder_dialog = new FolderBrowserDialog();
 
-          string location;
+                    string location;
 
-          if (folder_dialog.ShowDialog() == DialogResult.OK)
-          {
-            location = folder_dialog.SelectedPath;
-          }
-          else
-          {
-            await p_window.ShowMessageAsync("Cancelled", "Action was cancelled.");
+                    if (folder_dialog.ShowDialog() == DialogResult.OK)
+                    {
+                        location = folder_dialog.SelectedPath;
+                    }
+                    else
+                    {
+                        await p_window.ShowMessageAsync("Cancelled", "Action was cancelled.");
 
-            await controller.CloseAsync();
+                        await controller.CloseAsync();
 
-            return;
-          }
+                        return;
+                    }
 
-          ExportSignalModel signals_data = Dialog_Export_Previewed_Signals.signals_to_export;
+                    ExportSignalModel signals_data = Dialog_Export_Previewed_Signals.signals_to_export;
 
-          BackgroundWorker bw = new BackgroundWorker();
-          bw.DoWork += BW_ExportSignals;
-          bw.RunWorkerCompleted += BW_FinishExportSignals;
+                    BackgroundWorker bw = new BackgroundWorker();
+                    bw.DoWork += BW_ExportSignals;
+                    bw.RunWorkerCompleted += BW_FinishExportSignals;
 
-          List<dynamic> arguments = new List<dynamic>();
-          arguments.Add(signals_data);
-          arguments.Add(location);
+                    List<dynamic> arguments = new List<dynamic>();
+                    arguments.Add(signals_data);
+                    arguments.Add(location);
 
-          bw.RunWorkerAsync(arguments);
-        }
+                    bw.RunWorkerAsync(arguments);
+                }
+                else
+                {
+
+                    await controller.CloseAsync();
+
+                    await p_window.ShowMessageAsync("Export Cancelled", "Export was Cancelled");
+                }
       }
       else
       {
@@ -679,7 +686,7 @@ namespace SleepApneaDiagnoser
 
           if (foundInDerived) {
             DateTime startTime = Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile); // epoch start
-            DateTime endTime = Utils.EpochtoDateTime((signals_data.Epochs_Length + 1), LoadedEDFFile); // epoch end
+            DateTime endTime = Utils.EpochtoDateTime((signals_data.Epochs_From + signals_data.Epochs_Length), LoadedEDFFile); // epoch end
 
             LineSeries derivedSeries = GetSeriesFromSignalName(out derivedSamplePeriod, signal, startTime, endTime);
 
