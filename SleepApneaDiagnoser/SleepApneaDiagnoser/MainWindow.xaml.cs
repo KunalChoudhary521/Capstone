@@ -3842,10 +3842,13 @@ namespace SleepApneaDiagnoser
             values.Add(values1[x] - values2[x]);
           }
         }
+        int last_unique = 0;
         for (int x = 0; x < values.Count; x++)
         {
-          if (x > 0 && values[x] == values[x - 1])
+          if (x > 0 && values[x] == values[last_unique])
             values[x] = float.NaN;
+          else
+            last_unique = x;
         }
         values.RemoveAll(temp => float.IsNaN(temp));
         values.Sort();
