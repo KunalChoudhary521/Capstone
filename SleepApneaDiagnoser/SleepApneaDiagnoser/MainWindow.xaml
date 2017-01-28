@@ -82,7 +82,7 @@
 
             <mtr:MetroTabItem Header="Home" Height="40">
                 <Grid>
-                    <Grid HorizontalAlignment="Left" Width="494" Margin="0,0">
+                    <Grid HorizontalAlignment="Left" Width="494" Margin="0,70,0,0">
                         <TextBlock Text="Open Files" Height="34" Width="279" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="18"  Margin="10,15,0,0"/>
                         <TextBlock x:Name="TextBlock_OpenEDF" TextDecorations="Underline" Height="34" Width="94" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10,49,0,0" FontSize="14"><Hyperlink Click="TextBlock_OpenEDF_Click" FontSize="14"><Run Text="Open EDF..."/></Hyperlink></TextBlock>
                         <TextBlock Text="Recent Files" Height="34" VerticalAlignment="Top" FontSize="18" Margin="0,15,10,0" HorizontalAlignment="Right" Width="279"/>
