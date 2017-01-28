@@ -83,9 +83,9 @@
             <mtr:MetroTabItem Header="Home" Height="40">
                 <Grid>
                     <Grid HorizontalAlignment="Left" Width="299" Margin="0,0">
-                        <TextBlock Text="Open" Height="34" Width="94" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="18"  Margin="10,15,0,0"/>
+                        <TextBlock Text="Open New Files" Height="34" Width="279" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="18"  Margin="10,15,0,0"/>
                         <TextBlock x:Name="TextBlock_OpenEDF" TextDecorations="Underline" Height="34" Width="94" VerticalAlignment="Top" HorizontalAlignment="Left" Margin="10,49,0,0" FontSize="14"><Hyperlink Click="TextBlock_OpenEDF_Click" FontSize="14"><Run Text="Open EDF..."/></Hyperlink></TextBlock>
-                        <TextBlock Text="Recent Files" Height="34" Width="94" VerticalAlignment="Top" HorizontalAlignment="Left" FontSize="18" Margin="10,136,0,0"/>
+                        <TextBlock Text="Recently Opened Files" Height="34" VerticalAlignment="Top" FontSize="18" Margin="10,136,10,0"/>
                         <ItemsControl x:Name="itemControl_RecentEDF" Foreground="Blue" BorderBrush="Transparent" Margin="10,170,10,10" FontSize="14">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -104,7 +104,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition MaxWidth="270" Width="270*" MinWidth="270"/>
                         <ColumnDefinition Width="800*"/>
-                        <ColumnDefinition Name="column_EDFHeader" MaxWidth="300" Width="300*" MinWidth="300"/>
+                        <ColumnDefinition x:Name="column_EDFHeader" MaxWidth="300" Width="300*" MinWidth="300"/>
                     </Grid.ColumnDefinitions>
 
                     <!-- Signal Selection -->
@@ -186,28 +186,30 @@
                 <TabControl  Margin="10,10,10,10">
                     <mtr:MetroTabItem Header="Respiratory" Height="40">
                         <Grid>
-                            <Grid Height="40" VerticalAlignment="Top" Margin="0,10,10,0">
+                            <Grid Height="75" VerticalAlignment="Top" Margin="10,0,0.333,0">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="60"/>
-                                    <ColumnDefinition MaxWidth="250" Width="250*"/>
+                                    <ColumnDefinition Width="70"/>
+                                    <ColumnDefinition MaxWidth="300" Width="300*"/>
                                     <ColumnDefinition Width="620*"/>
                                 </Grid.ColumnDefinitions>
-                                <Label Content="BIN" FontSize="18" Margin="0,4,20,4"/>
-                                <Button Name="button_Load_Respiratory" Content="Open" Width="122" Margin="10,6,0,6" HorizontalAlignment="Left" Grid.Column="1" Click="button_BINRespiratoryAnalysis_Click"/>
-                                <ToggleButton Content="CONSTANT AXIS" IsChecked="{Binding RespiratoryUseConstantAxis}" Grid.Column="2" Margin="10.333,4,0,0" Height="32" VerticalAlignment="Top" HorizontalAlignment="Left" Width="122" />
+                                <Label Content="Binary" FontSize="14" Margin="0,0,20,4" Height="32" VerticalAlignment="Bottom"/>
+                                <Button Name="button_Load_Respiratory" Content="Open" Width="122" Margin="10,0,0,6" HorizontalAlignment="Left" Grid.Column="1" Click="button_BINRespiratoryAnalysis_Click" Height="28" VerticalAlignment="Bottom"/>
+                                <ToggleButton Content="CONSTANT AXIS" IsChecked="{Binding RespiratoryUseConstantAxis}" Grid.Column="2" Margin="10,0,0,6" HorizontalAlignment="Left" Width="122" Height="28" VerticalAlignment="Bottom" />
+                                <Label Content="Signal Selection" FontSize="18" Height="34" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Grid.ColumnSpan="2"/>
+                                <Label Content="Plot Options" FontSize="18" Height="34" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Grid.Column="2" Margin="10,0,0,0"/>
                             </Grid>
 
-                            <Grid Height="40" VerticalAlignment="Top" Margin="0,50,10,0">
+                            <Grid Height="40" VerticalAlignment="Top" Margin="10,75,0.333,0">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="60"/>
-                                    <ColumnDefinition MaxWidth="250" Width="250*"/>
+                                    <ColumnDefinition Width="70"/>
+                                    <ColumnDefinition MaxWidth="300" Width="300*"/>
                                     <ColumnDefinition MaxWidth="250" Width="250*"/>
                                     <ColumnDefinition MaxWidth="250" Width="250*"/>
                                     <ColumnDefinition Width="120*" MaxWidth="120"/>
                                 </Grid.ColumnDefinitions>
-                                <Label Content="EDF" FontSize="18" Margin="0,4,19,4"/>
+                                <Label Content="EDF" FontSize="14" Margin="0,4,19,4"/>
                                 <Label Content="Signal" HorizontalAlignment="Left" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" Width="47" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="1"/>
-                                <ComboBox Margin="62,6,6,6" RenderTransformOrigin="1.025,1.5" Grid.Column="1" IsEnabled="{Binding IsEDFLoaded}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding RespiratoryEDFSelectedSignal}"/>
+                                <ComboBox Margin="60,6,60,6" RenderTransformOrigin="1.025,1.5" Grid.Column="1" IsEnabled="{Binding IsEDFLoaded}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding RespiratoryEDFSelectedSignal}"/>
                                 <Label Content="From" HorizontalAlignment="Left" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" Width="47" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="2"/>
                                 <mtr:NumericUpDown Margin="62,6,6,6" TextAlignment="Center" FontSize="14" Grid.Column="2" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding RespiratoryEDFStartRecord}" Minimum="{Binding RespiratoryEDFStartRecordMin}" Maximum="{Binding RespiratoryEDFStartRecordMax}"/>
                                 <Label Content="Duration" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" HorizontalContentAlignment="Center" FontSize="14" HorizontalAlignment="Left" Width="67" Grid.Column="3"/>
@@ -215,8 +217,8 @@
                                 <Button x:Name="button_PerformRespiratoryAnalysis" Content="Go" Margin="12,6,12,6" Grid.Column="4" IsEnabled="{Binding IsEDFLoaded}" Click="button_EDFRespiratoryAnalysis_Click" />
                             </Grid>
 
-                            <Label Content="Plot" FontSize="18" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="0,98,0,0"/>
-                            <oxy:PlotView Background="Transparent" Margin="10,135,10,130" Model="{Binding RespiratorySignalPlot}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
+                            <Label Content="Plot" FontSize="18" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="10,120,0,0"/>
+                            <oxy:PlotView Background="Transparent" Margin="10,150,10.333,130" Model="{Binding RespiratorySignalPlot}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
 
                             <Label Content="Analysis" FontSize="18" Height="32" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="200" Margin="0,0,0,93"/>
                             <Grid Margin="0,0,0,10" Height="83" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="395">
@@ -227,28 +229,31 @@
                             </Grid>
                         </Grid>
                     </mtr:MetroTabItem>
-                    <mtr:MetroTabItem Header="EEG">
+                    <mtr:MetroTabItem Header="EEG" HorizontalAlignment="Left" Margin="0,0,0,0.333" Width="55">
                         <Grid>
-                            <Grid Height="40" VerticalAlignment="Top" Margin="0,10,10,0">
+                            <Grid Height="75" VerticalAlignment="Top" Margin="10,0,0.333,0">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="60"/>
-                                    <ColumnDefinition Width="870*"/>
+                                    <ColumnDefinition Width="70"/>
+                                    <ColumnDefinition MaxWidth="300" Width="300*"/>
+                                    <ColumnDefinition Width="620*"/>
                                 </Grid.ColumnDefinitions>
-                                <Label Content="BIN" FontSize="18" Margin="0,4,20,4"/>
-                                <Button Content="Open" Width="122" Margin="10,6,0,6" HorizontalAlignment="Left" Grid.Column="1" Click="Button_BINEEGAnalysis_Click"/>
+                                <Label Content="Binary" FontSize="14" Margin="0,0,20,4" Height="32" VerticalAlignment="Bottom"/>
+                                <Button Content="Open" Width="122" Margin="10,0,0,6" HorizontalAlignment="Left" Grid.Column="1" Click="Button_BINEEGAnalysis_Click" Height="28" VerticalAlignment="Bottom"/>
+                                <Label Content="Signal Selection" FontSize="18" Height="34" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Grid.ColumnSpan="2"/>
+                                <Label Content="Plot Options" FontSize="18" Height="34" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Grid.Column="2" Margin="10,0,0,0"/>
                             </Grid>
 
-                            <Grid Height="40" VerticalAlignment="Top" Margin="0,50,10,0">
+                            <Grid Height="40" VerticalAlignment="Top" Margin="10,75,0.333,0">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="60"/>
-                                    <ColumnDefinition MaxWidth="250" Width="250*"/>
+                                    <ColumnDefinition Width="70"/>
+                                    <ColumnDefinition MaxWidth="300" Width="300*"/>
                                     <ColumnDefinition MaxWidth="250" Width="250*"/>
                                     <ColumnDefinition MaxWidth="250" Width="250*"/>
                                     <ColumnDefinition Width="120*" MaxWidth="120"/>
                                 </Grid.ColumnDefinitions>
-                                <Label Content="EDF" FontSize="18" Margin="0,4,20,4"/>
+                                <Label Content="EDF" FontSize="14" Margin="0,4,20,4"/>
                                 <Label Content="Signal" HorizontalAlignment="Left" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" Width="47" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="1"/>
-                                <ComboBox Margin="62,6,6,6" RenderTransformOrigin="1.025,1.5" Grid.Column="1" IsEnabled="{Binding IsEDFLoaded}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding EEGEDFSelectedSignal}"/>
+                                <ComboBox Margin="60,6,60,6" RenderTransformOrigin="1.025,1.5" Grid.Column="1" IsEnabled="{Binding IsEDFLoaded}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding EEGEDFSelectedSignal}"/>
                                 <Label Content="From" HorizontalAlignment="Left" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" Width="47" HorizontalContentAlignment="Center" FontSize="14" Grid.Column="2"/>
                                 <mtr:NumericUpDown Margin="62,6,6,6" TextAlignment="Center" FontSize="14" Grid.Column="2" IsEnabled="{Binding IsEDFLoaded}" Value ="{Binding EEGEDFStartRecord}" Minimum="{Binding EEGEDFStartRecordMin}" Maximum="{Binding EEGEDFStartRecordMax}"/>
                                 <Label Content="Duration" Margin="10,6,0,6" RenderTransformOrigin="-5.432,0.857" HorizontalContentAlignment="Center" FontSize="14" HorizontalAlignment="Left" Width="67" Grid.Column="3"/>
@@ -256,8 +261,8 @@
                                 <Button x:Name="button_PerformEEGAnalysis" Content="Go" Margin="12,6,12,6" Grid.Column="4" IsEnabled="{Binding IsEDFLoaded}" Click="button_EDFEEGAnalysis_Click" />
                             </Grid>
 
-                            <Label Content="Plot" FontSize="18" Height="32" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="0,98,0,0"/>
-                            <Grid Margin="0,130,0,0">
+                            <Label Content="Plot" FontSize="18" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="10,120,0,0"/>
+                            <Grid Margin="0,150,0.333,0">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="250*"/>
                                     <RowDefinition Height="250*"/>
@@ -280,35 +285,37 @@
                     <mtr:MetroTabItem Header="Coherence">
                         <Grid>
                             <Grid>
-                                <Grid Height="40" VerticalAlignment="Top" Margin="0,10,10,0">
+                                <Grid Height="75" VerticalAlignment="Top" Margin="10,0,0.333,0">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="60"/>
-                                        <ColumnDefinition Width="250*" MaxWidth="250"/>
-                                        <ColumnDefinition Width="500*"/>
+                                        <ColumnDefinition Width="70"/>
+                                        <ColumnDefinition MaxWidth="300" Width="300*"/>
+                                        <ColumnDefinition Width="620*"/>
                                     </Grid.ColumnDefinitions>
-                                    <Label Content="BIN" FontSize="18" Margin="0,4,20,4"/>
-                                    <Button Content="Open" Width="122" Margin="10,6,0,6" HorizontalAlignment="Left" Grid.Column="1"/>
-                                    <ToggleButton Content="CONSTANT AXIS" IsChecked="{Binding CoherenceUseConstantAxis}" Grid.Column="2" Margin="9.667,4,0,0" Height="32" VerticalAlignment="Top" HorizontalAlignment="Left" Width="122" />
+                                    <Label Content="Binary" FontSize="14" Margin="0,0,20,4" Height="32" VerticalAlignment="Bottom"/>
+                                    <Button Content="Open" Width="122" Margin="10,0,0,6" HorizontalAlignment="Left" Grid.Column="1" Height="28" VerticalAlignment="Bottom"/>
+                                    <Label Content="Signal Selection" FontSize="18" Height="34" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Grid.ColumnSpan="2"/>
+                                    <Label Content="Plot Options" FontSize="18" Height="34" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Grid.Column="2" Margin="10,0,0,0"/>
+                                    <ToggleButton Content="CONSTANT AXIS" IsChecked="{Binding CoherenceUseConstantAxis}" Grid.Column="2" Margin="10,0,0,4" HorizontalAlignment="Left" Width="122" Height="30" VerticalAlignment="Bottom" />
                                 </Grid>
-                                <Grid Height="80" VerticalAlignment="Top" Margin="0,50,10.333,0">
+                                <Grid Height="80" VerticalAlignment="Top" Margin="10,75,0.333,0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="60"/>
-                                        <ColumnDefinition MaxWidth="250" Width="250*"/>
+                                        <ColumnDefinition MaxWidth="300" Width="300*"/>
                                         <ColumnDefinition MaxWidth="250" Width="250*"/>
                                         <ColumnDefinition MaxWidth="250" Width="250*"/>
                                     </Grid.ColumnDefinitions>
-                                    <Label Content="EDF" FontSize="18" Margin="0,4,20,4"/>
+                                    <Label Content="EDF" FontSize="14" Margin="0,4,20,4"/>
                                     <Label Content="Signal 1" HorizontalAlignment="Left" Margin="10,6,0,46" RenderTransformOrigin="-5.432,0.857" Width="70" HorizontalContentAlignment="Left" FontSize="14" Grid.Column="1"/>
-                                    <ComboBox Margin="85,6,10,46" RenderTransformOrigin="1.025,1.5" Grid.Column="1" IsEnabled="{Binding CoherenceEDFNavigationEnabled}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding CoherenceEDFSelectedSignal1}"/>
+                                    <ComboBox Margin="60,6,60,46" RenderTransformOrigin="1.025,1.5" Grid.Column="1" IsEnabled="{Binding CoherenceEDFNavigationEnabled}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding CoherenceEDFSelectedSignal1}"/>
                                     <Label Content="Signal 2" HorizontalAlignment="Left" Margin="10,48,0,4" RenderTransformOrigin="-5.432,0.857" Width="70" HorizontalContentAlignment="Left" FontSize="14" Grid.Column="1"/>
-                                    <ComboBox Margin="85,46,10,6" RenderTransformOrigin="1.025,1.5" Grid.Column="1" IsEnabled="{Binding CoherenceEDFNavigationEnabled}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding CoherenceEDFSelectedSignal2}"/>
+                                    <ComboBox Margin="60,46,60,6" RenderTransformOrigin="1.025,1.5" Grid.Column="1" IsEnabled="{Binding CoherenceEDFNavigationEnabled}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding CoherenceEDFSelectedSignal2}"/>
                                     <Label Content="From" HorizontalAlignment="Left" Margin="10,8,0,44" RenderTransformOrigin="-5.432,0.857" Width="62" HorizontalContentAlignment="Left" FontSize="14" Grid.Column="2"/>
                                     <mtr:NumericUpDown Margin="77.333,8,10,44" TextAlignment="Center" FontSize="14" Grid.Column="2" IsEnabled="{Binding CoherenceEDFNavigationEnabled}" Value="{Binding CoherenceEDFStartRecord}" Minimum="{Binding CoherenceEDFStartRecordMin}" Maximum="{Binding CoherenceEDFStartRecordMax}"/>
                                     <Label Content="Duration" Margin="10.333,46,0,6" RenderTransformOrigin="-5.432,0.857" HorizontalContentAlignment="Left" FontSize="14" HorizontalAlignment="Left" Width="67" Grid.Column="2"/>
                                     <mtr:NumericUpDown Margin="77.333,46,10,6"  TextAlignment="Center" FontSize="14" Grid.Column="2" IsEnabled="{Binding CoherenceEDFNavigationEnabled}" Value="{Binding CoherenceEDFDuration}" Minimum="{Binding CoherenceEDFDurationMin}" Maximum="{Binding CoherenceEDFDurationMax}"/>
                                     <Button x:Name="button_PerformCoherenceAnalysis" Content="Go" Margin="10,10,0,42" HorizontalAlignment="Left" Width="91" Grid.Column="3" IsEnabled="{Binding CoherenceEDFNavigationEnabled}" Click="button_PerformCoherenceAnalysis_Click" />
                                 </Grid>
-                                <Grid Margin="0,140,10,0">
+                                <Grid Margin="0,155,10.333,0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="300*"/>
                                         <ColumnDefinition Width="300*"/>

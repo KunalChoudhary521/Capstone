@@ -2437,7 +2437,18 @@ namespace SleepApneaDiagnoser
 
       ThemeManager.AddAccent(newAccent.Name, newAccent.Resources.Source);
       ThemeManager.ChangeAppStyle(application, newAccent, ThemeManager.GetAppTheme(UseDarkTheme ? "BaseDark" : "BaseLight"));
+      
+      // Update all charts to dark or light theme
+      PropertyInfo[] all_plotmodels = this.GetType().GetProperties().ToList().Where(temp => temp.PropertyType == new PlotModel().GetType()).ToArray();
+      for (int x = 0; x < all_plotmodels.Length; x++)
+      {
+        PlotModel model = (PlotModel) all_plotmodels[x].GetValue(this);
+
+        all_plotmodels[x].SetValue(this, null);
+        all_plotmodels[x].SetValue(this, model);
+      }
     }
+
     private void RespiratoryView_Changed()
     {
       OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
@@ -2555,6 +2566,26 @@ namespace SleepApneaDiagnoser
         sm.UseDarkTheme = value;
         OnPropertyChanged(nameof(UseDarkTheme));
         AppliedThemeColor_Changed();
+      }
+    }
+    public void ApplyThemeToPlot(PlotModel plot)
+    {
+      if (plot != null)
+      {
+        var color = UseDarkTheme ? OxyColors.LightGray : OxyColors.Black;
+
+        plot.PlotAreaBorderColor = color;
+        for (int x = 0; x < plot.Axes.Count; x++)
+        {
+          plot.Axes[x].AxislineColor = color;
+          plot.Axes[x].ExtraGridlineColor = color;
+          plot.Axes[x].MajorGridlineColor = color;
+          plot.Axes[x].MinorGridlineColor = color;
+          plot.Axes[x].MinorTicklineColor = color;
+          plot.Axes[x].TextColor = color;
+          plot.Axes[x].TicklineColor = color;
+          plot.Axes[x].TitleColor = color;
+        }
       }
     }
 
@@ -3122,6 +3153,7 @@ namespace SleepApneaDiagnoser
       }
       set
       {
+        ApplyThemeToPlot(value);
         pm.PreviewSignalPlot = value;
         OnPropertyChanged(nameof(PreviewSignalPlot));
         PreviewSignalPlot_Changed();
@@ -3177,6 +3209,7 @@ namespace SleepApneaDiagnoser
       }
       set
       {
+        ApplyThemeToPlot(value);
         rm.RespiratorySignalPlot = value;
         OnPropertyChanged(nameof(RespiratorySignalPlot));
         p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
@@ -3384,6 +3417,7 @@ namespace SleepApneaDiagnoser
       }
       set
       {
+        ApplyThemeToPlot(value);
         eegm.PlotAbsPwr = value;
         OnPropertyChanged(nameof(PlotAbsPwr));
         p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
@@ -3397,6 +3431,7 @@ namespace SleepApneaDiagnoser
       }
       set
       {
+        ApplyThemeToPlot(value);
         eegm.PlotRelPwr = value;
         OnPropertyChanged(nameof(PlotRelPwr));
         p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
@@ -3411,6 +3446,7 @@ namespace SleepApneaDiagnoser
       }
       set
       {
+        ApplyThemeToPlot(value);
         eegm.PlotSpecGram = value;
         OnPropertyChanged(nameof(PlotSpecGram));
         p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
@@ -3425,6 +3461,7 @@ namespace SleepApneaDiagnoser
       }
       set
       {
+        ApplyThemeToPlot(value);
         eegm.PlotPSD = value;
         OnPropertyChanged(nameof(PlotPSD));
         p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
@@ -3586,6 +3623,7 @@ namespace SleepApneaDiagnoser
       }
       set
       {
+        ApplyThemeToPlot(value);
         cm.CoherenceSignalPlot1 = value;
         OnPropertyChanged(nameof(CoherenceSignalPlot1));
       }
@@ -3598,6 +3636,7 @@ namespace SleepApneaDiagnoser
       }
       set
       {
+        ApplyThemeToPlot(value);
         cm.CoherenceSignalPlot2 = value;
         OnPropertyChanged(nameof(CoherenceSignalPlot2));
       }
@@ -3610,6 +3649,7 @@ namespace SleepApneaDiagnoser
       }
       set
       {
+        ApplyThemeToPlot(value);
         cm.CoherencePlot = value;
         OnPropertyChanged(nameof(CoherencePlot));
         CoherencePlot_Changed();
