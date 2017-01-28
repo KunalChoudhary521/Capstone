@@ -271,7 +271,7 @@ namespace SleepApneaDiagnoser
     {
       model.PerformRespiratoryAnalysisBinary();
     }
-    private void Button_BINEEGAnalysis_Click(object sender, RoutedEventArgs e)
+    private void button_BINEEGAnalysis_Click(object sender, RoutedEventArgs e)
     {
       model.PerformEEGAnalysisBinary();
     }
