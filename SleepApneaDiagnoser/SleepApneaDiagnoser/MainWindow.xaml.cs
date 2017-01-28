@@ -1968,6 +1968,7 @@ namespace SleepApneaDiagnoser
 
         coh = Utils.MATLAB_Coherence(values1.ToArray(), values2.ToArray());
         coh.YAxisKey = "Coherence";
+        coh.XAxisKey = "Normalized Frequency";
       }
 
       // Plot Coherence
@@ -1983,6 +1984,12 @@ namespace SleepApneaDiagnoser
         yAxis.Maximum = 1.25;
         yAxis.Minimum = 0;
         temp_plot.Axes.Add(yAxis);
+
+        LinearAxis xAxis = new LinearAxis();
+        xAxis.Position = AxisPosition.Bottom;
+        xAxis.Title = "Normalized Frequency";
+        xAxis.Key = "Normalized Frequency";
+        temp_plot.Axes.Add(xAxis);
 
         CoherencePlot = temp_plot;
       }
