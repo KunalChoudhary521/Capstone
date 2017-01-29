@@ -1875,15 +1875,18 @@ namespace SleepApneaDiagnoser
       LineSeries[] signalPerEpoch = new LineSeries[(int)ExportEpochEnd - (int)ExportEpochStart + 1];
 
       //Setup data to be entered in each file
-      StreamWriter fileSetup = new StreamWriter("EEGSignal.csv");
+      String analysisDirectory = "EEGAnalysis";
+      Directory.CreateDirectory(analysisDirectory);//if directory already exist, this line will be ignored
+
+      StreamWriter fileSetup = new StreamWriter(analysisDirectory + "//EEGSignal.csv");
       fileSetup.WriteLine(String.Format("Epoch#, X(time), Y(SigVal)"));
       fileSetup.Close();
 
-      fileSetup = new StreamWriter("EEGPSD.csv");
+      fileSetup = new StreamWriter(analysisDirectory + "//EEGPSD.csv");
       fileSetup.WriteLine(String.Format("Epoch#, Power(db),Frequency(Hz)"));
       fileSetup.Close();
 
-      fileSetup = new StreamWriter("EEGAbsPwr.csv");
+      fileSetup = new StreamWriter(analysisDirectory + "//EEGAbsPwr.csv");
       fileSetup.WriteLine(String.Format("Epoch#, delta, theta, alpha, beta1, beta2, gamma1, gamma2"));
       fileSetup.Close();
 
@@ -1893,7 +1896,7 @@ namespace SleepApneaDiagnoser
         EndEpoch = Utils.EpochtoDateTime((ExportEpochStart + i) ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(1);
         signalPerEpoch[i] = GetSeriesFromSignalName(out sample_period, EEGEDFSelectedSignal,
                                                   StartEpoch, EndEpoch);
-        EDFSignalToCSV(signalPerEpoch[i], i, "EEGSignal.csv");
+        EDFSignalToCSV(signalPerEpoch[i], i, analysisDirectory + "//EEGSignal.csv");
 
         signalToAnalyze = new double[signalPerEpoch[i].Points.Count];//select length to be more than From (on GUI)
         for (int s = 0; s < signalPerEpoch[i].Points.Count; s++)
@@ -1907,14 +1910,14 @@ namespace SleepApneaDiagnoser
         //perform Absolute power calculations
         AbsPwrAnalysis(out totalPower, out absPower, out absPlotbandItems, signalToMatlab, fqRange, sample_period);
         //output Absolute power calculations to file
-        AbsPwrToCSV(absPower, i, "EEGAbsPwr.csv");
+        AbsPwrToCSV(absPower, i, analysisDirectory + "//EEGAbsPwr.csv");
 
         //No need to perform Relative power calculations, as it is not exported. It can be derived from Absolute Power.
 
         //perform PSD calculations
         PSDAnalysis(out psdValue, out frqValue, signalToMatlab, sampleFreq);
         //output PSD calculations to file
-        PSDToCSV(psdValue, frqValue, i, "EEGPSD.csv");
+        PSDToCSV(psdValue, frqValue, i, analysisDirectory + "//EEGPSD.csv");
       }      
     }
     public void ExportEEGPlot(PlotModel pModel, String fileName)
