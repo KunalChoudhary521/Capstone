@@ -205,11 +205,11 @@
                                 <!-- From Binary -->
                                 <Label Content="Binary" FontSize="14" Margin="0,5,20,5" Grid.Row="1"/>
                                 <Button Content="Open" Width="100" HorizontalAlignment="Left" Margin="10,8,0,8" Grid.Column="1" Grid.Row="1" Click="button_BINRespiratoryAnalysis_Click" />
-                                <ToggleButton Content="CONSTANT AXIS" Margin="10,6,11,6" Grid.Column="4" Grid.Row="2" IsChecked="{Binding RespiratoryUseConstantAxis}"/>
+                                <ToggleButton Content="CONSTANT AXIS" Margin="10,6,11,6" Grid.Column="4" Grid.Row="2" IsEnabled="{Binding IsEDFLoaded}" IsChecked="{Binding RespiratoryUseConstantAxis}"/>
                                 <!-- From EDF -->
                                 <Label Content="EDF" FontSize="14" Margin="0,5,20,5" Grid.Row="2"/>
-                                <Label Content="Signal" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="10,5,0,5" HorizontalContentAlignment="Left" Grid.Column="1" Grid.Row="2"/>
-                                <ComboBox Margin="80,5,10,5" IsEnabled="{Binding IsEDFLoaded}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding RespiratoryEDFSelectedSignal}" Grid.Column="1" Grid.Row="2"/>
+                                <Label Content="Signal" FontSize="14" Width="50" HorizontalAlignment="Left" Margin="10,5,0,5" HorizontalContentAlignment="Left" Grid.Column="1" Grid.Row="2"/>
+                                <ComboBox Margin="60,5,10,5" IsEnabled="{Binding IsEDFLoaded}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding RespiratoryEDFSelectedSignal}" Grid.Column="1" Grid.Row="2"/>
                                 <Label Content="From" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="0,5,0,5" HorizontalContentAlignment="Left" Grid.Column="2" Grid.Row="2"/>
                                 <mtr:NumericUpDown FontSize="14"  Margin="65,5,10,5" TextAlignment="Center" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding RespiratoryEDFStartRecord}" Minimum="{Binding RespiratoryEDFStartRecordMin}" Maximum="{Binding RespiratoryEDFStartRecordMax}" Grid.Column="2" Grid.Row="2"/>
                                 <Label Content="Duration" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="0,5,0,5" HorizontalContentAlignment="Left" Grid.Column="3" Grid.Row="2"/>
@@ -251,8 +251,8 @@
                                 <Button Content="Open" Width="100" HorizontalAlignment="Left" Margin="10,8,0,8" Grid.Column="1" Grid.Row="1" Click="button_BINEEGAnalysis_Click" />
                                 <!-- From EDF -->
                                 <Label Content="EDF" FontSize="14" Margin="0,5,20,5" Grid.Row="2"/>
-                                <Label Content="Signal" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="10,5,0,5" HorizontalContentAlignment="Left" Grid.Column="1" Grid.Row="2"/>
-                                <ComboBox Margin="80,5,65,5" IsEnabled="{Binding IsEDFLoaded}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding EEGEDFSelectedSignal}" Grid.Column="1" Grid.Row="2"/>
+                                <Label Content="Signal" FontSize="14" Width="50" HorizontalAlignment="Left" Margin="10,5,0,5" HorizontalContentAlignment="Left" Grid.Column="1" Grid.Row="2"/>
+                                <ComboBox Margin="60,5,65,5" IsEnabled="{Binding IsEDFLoaded}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding EEGEDFSelectedSignal}" Grid.Column="1" Grid.Row="2"/>
                                 <Label Content="Epoch #" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="0,5,0,5" HorizontalContentAlignment="Left" Grid.Column="2" Grid.Row="2"/>
                                 <mtr:NumericUpDown FontSize="14"  Margin="65,5,10,5" TextAlignment="Center" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding EpochForAnalysis}" Minimum="{Binding EEGEDFStartRecordMin}" Maximum="{Binding EEGEDFStartRecordMax}" Grid.Column="2" Grid.Row="2"/>
                                 <Button Content="Go" Margin="0,6,10,6" IsEnabled="{Binding IsEDFLoaded}" Click="button_EDFEEGAnalysis_Click" Grid.Column="1" Grid.Row="2" HorizontalAlignment="Right" Width="50" />
@@ -310,7 +310,7 @@
                                     <!-- From Binary -->
                                     <Label Content="Binary" FontSize="14" Margin="0,5,20,5" Grid.Row="1"/>
                                     <Button Content="Open" Width="100" HorizontalAlignment="Left" Margin="10,8,0,8" Grid.Column="1" Grid.Row="1"/>
-                                    <ToggleButton Content="CONSTANT AXIS" Width="100" HorizontalAlignment="Left" Margin="10,6,0,6" Grid.Column="3" Grid.Row="2" IsChecked="{Binding CoherenceUseConstantAxis}"/>
+                                    <ToggleButton Content="CONSTANT AXIS" Width="100" HorizontalAlignment="Left" Margin="10,6,0,6" Grid.Column="3" Grid.Row="2" IsEnabled="{Binding IsEDFLoaded}"  IsChecked="{Binding CoherenceUseConstantAxis}"/>
                                     <!-- From EDF -->
                                     <Label Content="EDF" FontSize="14" Margin="0,5,20,0" Grid.Row="2"/>
                                     <Label Content="Signal 1" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="10,5,0,0" Grid.Column="1" Grid.Row="2"/>
