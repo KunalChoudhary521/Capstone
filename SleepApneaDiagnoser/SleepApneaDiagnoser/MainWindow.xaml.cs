@@ -2499,6 +2499,9 @@ namespace SleepApneaDiagnoser
 
       // Coherence
       OnPropertyChanged(nameof(CoherenceEDFNavigationEnabled));
+
+      EEGView_Changed();
+      RespiratoryView_Changed();
     }
     private void PreviewCurrentCategory_Changed()
     {
@@ -3520,7 +3523,6 @@ namespace SleepApneaDiagnoser
       {
         eegm.EpochForAnalysis = value ?? 1;
         OnPropertyChanged(nameof(EpochForAnalysis));
-        EEGView_Changed();
       }
     }
     public int? ExportEpochStart
@@ -3546,7 +3548,6 @@ namespace SleepApneaDiagnoser
       {
         eegm.ExportEpochEnd = value ?? 1;
         OnPropertyChanged(nameof(ExportEpochEnd));
-        EEGView_Changed();
       }
     }
     public PlotModel PlotAbsPwr
@@ -3636,8 +3637,7 @@ namespace SleepApneaDiagnoser
         if (LoadedEDFFile != null)
         {
           DateTime EndTime = DateTime.Parse(EDFEndTime); // EDF End Time
-          TimeSpan duration = Utils.EpochPeriodtoTimeSpan(ExportEpochEnd ?? 1); // User Selected Duration 
-          return EndTime - duration;
+          return EndTime;
         }
         else
           return new DateTime();
@@ -3670,35 +3670,6 @@ namespace SleepApneaDiagnoser
         if (LoadedEDFFile != null)
           return Utils.DateTimetoEpoch(EEGEDFStartTimeMin, LoadedEDFFile); // EEGViewStartTimeMax to Record
         else
-          return 0;
-      }
-    }
-    public int EEGEpochToMax
-    {
-      get
-      {
-        if (LoadedEDFFile != null) // File Loaded
-        {
-          DateTime EndTime = DateTime.Parse(EDFEndTime); // EDF End Time
-          TimeSpan duration = EndTime - (EEGEDFStartTime); // Theoretical Limit Duration
-          TimeSpan limit = new TimeSpan(TimeSpan.TicksPerHour * 2); // Practical Limit Duration
-
-          return Math.Min(
-              Utils.TimeSpantoEpochPeriod(limit),
-              Utils.TimeSpantoEpochPeriod(duration)
-              );
-        }
-        else // No File Loaded
-          return 0;
-      }
-    }
-    public int EEGEpochToMin
-    {
-      get
-      {
-        if (LoadedEDFFile != null) // File Loaded
-          return 1;
-        else // No File Loaded
           return 0;
       }
     }
