@@ -39,6 +39,7 @@ using System.Numerics;
 using MathNet.Filtering;
 using MathNet.Numerics;
 using System.Diagnostics;
+using System.Threading;
 
 namespace SleepApneaDiagnoser
 {
@@ -814,7 +815,22 @@ namespace SleepApneaDiagnoser
       stream.WriteTo(file);
       file.Close();
       stream.Close();
-    }    
+    }
+    public void ExportImage(PlotModel plot, String fileName)
+    {
+      var export = new OxyPlot.Wpf.PngExporter();
+      export.Width = 1280;
+      export.Height = 720;
+      export.Background = OxyColors.White;
+
+      MemoryStream stream = new MemoryStream();
+      FileStream file = new FileStream(fileName, FileMode.Create);
+
+      export.Export(plot, stream);
+      stream.WriteTo(file);
+      file.Close();
+      stream.Close();
+    }
     /************************************************** RESPIRATORY ANALYSIS TAB ****************************************************/
 
     /// <summary>
@@ -1591,13 +1607,7 @@ namespace SleepApneaDiagnoser
         dataLine = String.Format("{0},{1:0.00}", series.Points[i].X, series.Points[i].Y);
         eegSignalStream.WriteLine(dataLine.ToString());
       }
-      eegSignalStream.Close();
-
-      /*************************Exporting to .tiff format**************************/
-      /*GenericExportImage(PlotAbsPwr, "AbsolutePower.png");
-      GenericExportImage(PlotRelPwr, "RelativePower.png");
-      GenericExportImage(PlotPSD, "PowerSpectralDensity.png");*/
-      //GenericExportImage(PlotSpecGram, "Spectrogram.png");//Need to review implementation
+      eegSignalStream.Close();      
 
       return;//for debugging only
     }
@@ -1618,14 +1628,8 @@ namespace SleepApneaDiagnoser
       }
 
       const int freqbands = 7;
-      EEGfreqRange = new MWNumericArray[freqbands];
-      EEGfreqRange[0] = new MWNumericArray(1, 2, new double[] { 0.1, 3 });//delta band
-      EEGfreqRange[1] = new MWNumericArray(1, 2, new double[] { 4, 7 });//theta band
-      EEGfreqRange[2] = new MWNumericArray(1, 2, new double[] { 8, 12 });//alpha band
-      EEGfreqRange[3] = new MWNumericArray(1, 2, new double[] { 13, 17 });//beta1 band
-      EEGfreqRange[4] = new MWNumericArray(1, 2, new double[] { 18, 30 });//beta2 band
-      EEGfreqRange[5] = new MWNumericArray(1, 2, new double[] { 31, 40 });//gamma1 band
-      EEGfreqRange[6] = new MWNumericArray(1, 2, new double[] { 41, 50 });//gamma2 band
+      MWNumericArray[] fqRange;
+      setFreqBands(out fqRange, freqbands);
 
       double[] signal = new double[series.Points.Count];
       for (int i = 0; i < series.Points.Count; i++)
@@ -1639,7 +1643,7 @@ namespace SleepApneaDiagnoser
       double totalPower;
       MWNumericArray[] absPower;
       ColumnItem[] absPlotbandItems;
-      AbsPwrAnalysis(out totalPower, out absPower, out absPlotbandItems, mLabsignalSeries, EEGfreqRange, sample_period);
+      AbsPwrAnalysis(out totalPower, out absPower, out absPlotbandItems, mLabsignalSeries, fqRange, sample_period);
 
       /*******************************Relative & Total Power************************************/
       ColumnItem[] plotbandItems;
@@ -1671,8 +1675,8 @@ namespace SleepApneaDiagnoser
       {
         specTime[i] = (double)tempTime[i];
       }*/
-      
-      //order of bands MUST match the order of bands in EEGfreqRange array (see above)
+
+      //order of bands MUST match the order of bands in fqRange array (see above)
       String[] freqBandName = new String[] { "delta", "theta", "alpha", "beta1", "beta2", "gamma1", "gamma2" };
 
       /*****************************Plotting absolute power graph***************************/
@@ -1702,16 +1706,20 @@ namespace SleepApneaDiagnoser
       tempSpectGram.Series.Add(specGram);*/
 
       //PlotSpecGram = tempSpectGram;
-      
+
 
       /*************************Exporting to .tiff format**************************/
-      /*GenericExportImage(PlotAbsPwr, "AbsolutePower.png");
-      GenericExportImage(PlotRelPwr, "RelativePower.png");
-      GenericExportImage(PlotPSD, "PowerSpectralDensity.png");*/
+      String plotsDirectory = "EEGPlots";
+      Directory.CreateDirectory(plotsDirectory);//if directory already exist, this line will be ignored
+      ExportEEGPlot(PlotAbsPwr, plotsDirectory + "//AbsolutePower.png");
+      ExportEEGPlot(PlotRelPwr, plotsDirectory + "//RelativePower.png");
+      ExportEEGPlot(PlotPSD, plotsDirectory + "//PowerSpecDensity.png");
+            
       //GenericExportImage(PlotSpecGram, "Spectrogram.png");//Need to review implementation
 
       return;//for debugging only
     }
+
     public void setFreqBands(out MWNumericArray[] fRange, int numberOfBands)
     {
       fRange = new MWNumericArray[numberOfBands];
@@ -1846,16 +1854,17 @@ namespace SleepApneaDiagnoser
       double[] signalToAnalyze;
       float sample_period;
 
+      MWNumericArray signalToMatlab;
       MWNumericArray sampleFreq;
 
       DateTime StartEpoch, EndEpoch;
       double[] psdValue;
-      double[] frqValue;
-      MWNumericArray signalToMatlab;
+      double[] frqValue;      
 
       double totalPower;
       MWNumericArray[] absPower;
       ColumnItem[] absPlotbandItems;
+
       const int totalFreqBands = 7;
       MWNumericArray[] fqRange;
       setFreqBands(out fqRange, totalFreqBands);
@@ -1904,6 +1913,13 @@ namespace SleepApneaDiagnoser
         //output PSD calculations to file
         PSDToCSV(psdValue, frqValue, i, "EEGPSD.csv");
       }      
+    }
+    public void ExportEEGPlot(PlotModel pModel, String fileName)
+    {
+      Thread exportTh = new Thread(() => ExportImage(pModel, fileName));
+      exportTh.SetApartmentState(ApartmentState.STA);
+      exportTh.Start();
+      exportTh.Join();
     }
 
     public void AbsPwrToCSV(MWNumericArray[] absPwrData, int epoch, String fileName)
@@ -3699,19 +3715,6 @@ namespace SleepApneaDiagnoser
           return 0;
       }
     }
-    public MWNumericArray[] EEGfreqRange
-    {
-      get
-      {
-        return eegm.freqRange;
-      }
-      set
-      {
-        eegm.freqRange = value;
-        OnPropertyChanged(nameof(EEGfreqRange));
-      }
-    }
-
 
     /**************************************************** COHERENCE ANALYSIS TAB ****************************************************/
 
