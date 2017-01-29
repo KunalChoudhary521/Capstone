@@ -3688,19 +3688,7 @@ namespace SleepApneaDiagnoser
         else
           return 0;
       }
-    }
-    public MWNumericArray[] EEGfreqRange
-    {
-      get
-      {
-        return eegm.freqRange;
-      }
-      set
-      {
-        eegm.freqRange = value;
-        OnPropertyChanged(nameof(EEGfreqRange));
-      }
-    }
+    }    
 
     /**************************************************** COHERENCE ANALYSIS TAB ****************************************************/
 
