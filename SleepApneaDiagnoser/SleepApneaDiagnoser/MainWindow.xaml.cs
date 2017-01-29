@@ -676,7 +676,8 @@ namespace SleepApneaDiagnoser
         if (edfsignal == null)
         {
           bool foundInDerived = false;
-          float derivedSamplePeriod = 0;
+          //float derivedSamplePeriod = 0;
+          float derivedSampleFrequency;
           EDFSignal oneDerivedEdfSignal = null;
 
           // look for the signal in the derviatives
@@ -684,16 +685,17 @@ namespace SleepApneaDiagnoser
             if (derivedSignal.DerivativeName == signal) {
               foundInDerived = true;
               oneDerivedEdfSignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == derivedSignal.Signal1Name);
-              derivedSamplePeriod = LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)oneDerivedEdfSignal.NumberOfSamplesPerDataRecord; ;
+              //derivedSamplePeriod = LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)oneDerivedEdfSignal.NumberOfSamplesPerDataRecord; ;
+              derivedSampleFrequency = (float)oneDerivedEdfSignal.NumberOfSamplesPerDataRecord / LoadedEDFFile.Header.DurationOfDataRecordInSeconds ;
               break;
             }
           }
 
           if (foundInDerived) {
             DateTime startTime = Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile); // epoch start
-            DateTime endTime = Utils.EpochtoDateTime((signals_data.Epochs_From + signals_data.Epochs_Length), LoadedEDFFile); // epoch end
+            DateTime endTime = Utils.EpochtoDateTime((signals_data.Epochs_From + signals_data.Epochs_Length + 1), LoadedEDFFile); // epoch end
 
-            LineSeries derivedSeries = GetSeriesFromSignalName(out derivedSamplePeriod, signal, startTime, endTime);
+            LineSeries derivedSeries = GetSeriesFromSignalName(out derivedSampleFrequency, signal, startTime, endTime);
 
             FileStream hdr_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".hdr", FileMode.OpenOrCreate);
             hdr_file.SetLength(0); //clear it's contents
@@ -706,7 +708,7 @@ namespace SleepApneaDiagnoser
                 .AppendLine(signals_data.Subject_ID.ToString()) // subject id
                 .AppendLine(Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile).ToString()) // epoch start
                 .AppendLine(Utils.EpochtoDateTime((signals_data.Epochs_Length + 1), LoadedEDFFile).ToString()) // epoch length
-                .AppendLine(derivedSamplePeriod.ToString()); // sample_period 
+                .AppendLine(derivedSampleFrequency.ToString()); // sample_period 
 
             var bytes_to_write = Encoding.ASCII.GetBytes(sb_hdr.ToString());
             hdr_file.Write(bytes_to_write, 0, bytes_to_write.Length);
@@ -744,7 +746,8 @@ namespace SleepApneaDiagnoser
 
           }
         } else {
-          float sample_period = LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
+          //float sample_period = LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
+          float sample_frequency = (float) edfsignal.NumberOfSamplesPerDataRecord / LoadedEDFFile.Header.DurationOfDataRecordInSeconds;
 
           //hdr file contains metadata of the binary file
           FileStream hdr_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".hdr", FileMode.OpenOrCreate);
@@ -758,7 +761,7 @@ namespace SleepApneaDiagnoser
               .AppendLine(signals_data.Subject_ID.ToString()) // subject id
               .AppendLine(Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile).ToString()) // epoch start
               .AppendLine(Utils.EpochtoDateTime((signals_data.Epochs_Length +1), LoadedEDFFile).ToString()) // epoch length
-              .AppendLine(sample_period.ToString()); // sample_period 
+              .AppendLine(sample_frequency.ToString()); // sample_period 
 
           var bytes_to_write = Encoding.ASCII.GetBytes(sb_hdr.ToString());
           hdr_file.Write(bytes_to_write, 0, bytes_to_write.Length);
@@ -778,7 +781,7 @@ namespace SleepApneaDiagnoser
           BinaryWriter bin_writer = new BinaryWriter(bin_file);
 
           int start_index = (int)(((signals_data.Epochs_From - 1) * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * edfsignal.NumberOfSamplesPerDataRecord; // from epoch number * 30 seconds per epoch * sample rate = start time
-          int end_index = (int)(((signals_data.Epochs_Length + 1) * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * edfsignal.NumberOfSamplesPerDataRecord; // to epoch number * 30 seconds per epoch * sample rate = end time
+          int end_index = (int)(((signals_data.Epochs_From + signals_data.Epochs_Length + 1) * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * edfsignal.NumberOfSamplesPerDataRecord; // to epoch number * 30 seconds per epoch * sample rate = end time
 
           if (start_index < 0) { start_index = 0; }
           if (end_index > signalValues.Count()) { end_index = signalValues.Count(); }
@@ -879,9 +882,9 @@ namespace SleepApneaDiagnoser
         string subject_id = file_reader.ReadLine();
         string date_time_from = file_reader.ReadLine();
         string date_time_length = file_reader.ReadLine();
-        string sample_period_s = file_reader.ReadLine();
+        string sample_frequency_s = file_reader.ReadLine();
 
-        float sample_period = float.Parse(sample_period_s);
+        float sample_period = 1/float.Parse(sample_frequency_s);
 
         DateTime epochs_from_datetime = DateTime.Parse(date_time_from);
         DateTime epochs_to_datetime = DateTime.Parse(date_time_length);
@@ -1380,9 +1383,9 @@ namespace SleepApneaDiagnoser
         string subject_id = file_reader.ReadLine();
         string date_time_from = file_reader.ReadLine();
         string date_time_to = file_reader.ReadLine();
-        string sample_period_s = file_reader.ReadLine();
+        string sample_frequency_s = file_reader.ReadLine();
 
-        float sample_period = float.Parse(sample_period_s);
+        float sample_period = 1/float.Parse(sample_frequency_s);
 
         DateTime epochs_from_datetime = DateTime.Parse(date_time_from);
         DateTime epochs_to_datetime = DateTime.Parse(date_time_to);
