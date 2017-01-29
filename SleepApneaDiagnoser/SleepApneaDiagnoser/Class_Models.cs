@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using OxyPlot;
+using OxyPlot.Series;
+using MathWorks.MATLAB.NET.Arrays;
 
 namespace SleepApneaDiagnoser
 {
@@ -55,6 +57,11 @@ namespace SleepApneaDiagnoser
     /// If true, the plot is done being drawn
     /// </summary>
     public bool PreviewNavigationEnabled = false;
+    /// <summary>
+    /// If false, let the plot auto adjust
+    /// If true, the plot has a constant y axis
+    /// </summary>
+    public bool PreviewUseConstantAxis = true;
   }
 
   /// <summary>
@@ -91,12 +98,17 @@ namespace SleepApneaDiagnoser
     /// Effect where the insets, onsets, and peaks are detected
     /// Any "spike" that is less wide than the user setting in ms will be ignored
     /// </summary>
-    public int RespiratoryMinimumPeakWidth = 300;
+    public int RespiratoryMinimumPeakWidth = 500;
     /// <summary>
     /// A user selected option for choosing whether the analysis will allow for repeated peaks of
     /// the same polarity
     /// </summary>
     public bool RespiratoryRemoveMultiplePeaks = true;
+    /// <summary>
+    /// If true, use a constant axis
+    /// If false, auto adjust to plot
+    /// </summary>
+    public bool RespiratoryUseConstantAxis = false;
   }
 
   /// <summary>
@@ -109,13 +121,17 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public string EEGEDFSelectedSignal;
     /// <summary>
-    /// The user selected start time for the eeg analysis in 30s epochs
+    /// The user selected Number of Epochs for eeg analysis in 30s epochs
     /// </summary>
-    public int EEGEDFStartRecord;
+    public int EpochForAnalysis;
     /// <summary>
-    /// The user selected period for the eeg analysis in 30s epochs
+    /// The user selected start epoch for eeg analysis export in 30s epochs
     /// </summary>
-    public int EEGEDFDuration;
+    public int ExportEpochStart;
+    /// <summary>
+    /// The user selected end epoch for eeg analysis export in 30s epochs
+    /// </summary>
+    public int ExportEpochEnd;
     /// <summary>
     /// The eeg analysis plot to be displayed
     /// </summary>
@@ -139,6 +155,7 @@ namespace SleepApneaDiagnoser
     /// <summary>
     /// Displays the eeg spectrogram power plot
     /// </summary>
+    public MWNumericArray[] freqRange;
   }
 
   /// <summary>
@@ -179,6 +196,11 @@ namespace SleepApneaDiagnoser
     /// If false, the progress ring should not be shown
     /// </summary>
     public bool CoherenceProgressRingEnabled = false;
+    /// <summary>
+    /// If true, use a constant axis
+    /// If false, auto adjust to plot
+    /// </summary>
+    public bool CoherenceUseConstantAxis = false;
   }
 
   public class SignalCategory
