@@ -3529,6 +3529,7 @@ namespace SleepApneaDiagnoser
       {
         rm.RespiratoryUseConstantAxis = value;
         OnPropertyChanged(nameof(RespiratoryUseConstantAxis));
+        PerformRespiratoryAnalysisEDF();
       }
     }
 
