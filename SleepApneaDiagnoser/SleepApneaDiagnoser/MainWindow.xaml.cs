@@ -3674,7 +3674,7 @@ namespace SleepApneaDiagnoser
       get
       {
         if (LoadedEDFFile != null)
-          return Utils.DateTimetoEpoch(EEGEDFStartTimeMax, LoadedEDFFile); // EEGViewStartTimeMax to Record
+          return Utils.DateTimetoEpoch(EEGEDFStartTimeMax, LoadedEDFFile) - 1; // EEGViewStartTimeMax to Record
         else
           return 0;
       }
@@ -3688,7 +3688,7 @@ namespace SleepApneaDiagnoser
         else
           return 0;
       }
-    }    
+    }
 
     /**************************************************** COHERENCE ANALYSIS TAB ****************************************************/
 
