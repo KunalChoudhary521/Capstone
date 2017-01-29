@@ -260,10 +260,6 @@ namespace SleepApneaDiagnoser
     }
 
     // Analysis Tab Events 
-    private void button_EDFRespiratoryAnalysis_Click(object sender, RoutedEventArgs e)
-    {
-      model.PerformRespiratoryAnalysisEDF();
-    }
     private void button_EDFEEGAnalysis_Click(object sender, RoutedEventArgs e)
     {
       model.PerformEEGAnalysisEDF();
@@ -1115,6 +1111,9 @@ namespace SleepApneaDiagnoser
     /// <param name="e"></param>
     private void BW_RespiratoryAnalysisEDF(object sender, DoWorkEventArgs e)
     {
+      if (RespiratoryEDFSelectedSignal == null)
+        return; 
+
       PlotModel temp_SignalPlot = new PlotModel();
 
       temp_SignalPlot.Series.Clear();
@@ -3091,9 +3090,12 @@ namespace SleepApneaDiagnoser
       {
         if (PreviewUseAbsoluteTime && IsEDFLoaded)
         {
-          pm.PreviewViewStartTime = value ?? new DateTime();
-          pm.PreviewViewStartRecord = Utils.DateTimetoEpoch(pm.PreviewViewStartTime, LoadedEDFFile);
-          PreviewView_Changed();
+          if (pm.PreviewViewStartTime != (value ?? DateTime.Parse(EDFStartTime)))
+          {
+            pm.PreviewViewStartTime = value ?? DateTime.Parse(EDFStartTime);
+            pm.PreviewViewStartRecord = Utils.DateTimetoEpoch(pm.PreviewViewStartTime, LoadedEDFFile);
+            PreviewView_Changed();
+          }
         }
       }
     }
@@ -3117,9 +3119,12 @@ namespace SleepApneaDiagnoser
       {
         if (!PreviewUseAbsoluteTime && IsEDFLoaded)
         {
-          pm.PreviewViewStartRecord = value ?? 1;
-          pm.PreviewViewStartTime = Utils.EpochtoDateTime(pm.PreviewViewStartRecord, LoadedEDFFile);
-          PreviewView_Changed();
+          if (pm.PreviewViewStartRecord != (value ?? 1))
+          {
+            pm.PreviewViewStartRecord = value ?? 1;
+            pm.PreviewViewStartTime = Utils.EpochtoDateTime(pm.PreviewViewStartRecord, LoadedEDFFile);
+            PreviewView_Changed();
+          }
         }
       }
     }
@@ -3144,12 +3149,22 @@ namespace SleepApneaDiagnoser
         if (IsEDFLoaded)
         {
           if (PreviewUseAbsoluteTime)
-            pm.PreviewViewDuration = value ?? 1;
+          {
+            if (pm.PreviewViewDuration != (value ?? 1))
+            {
+              pm.PreviewViewDuration = value ?? 1;
+              PreviewView_Changed();
+            }
+          }
           else
-            pm.PreviewViewDuration = (int)Utils.EpochPeriodtoTimeSpan((value ?? 1)).TotalSeconds;
+          {
+            if (pm.PreviewViewDuration != (int)Utils.EpochPeriodtoTimeSpan((value ?? 1)).TotalSeconds)
+            {
+              pm.PreviewViewDuration = (int)Utils.EpochPeriodtoTimeSpan((value ?? 1)).TotalSeconds;
+              PreviewView_Changed();
+            }
+          }
         }
-
-        PreviewView_Changed();
       }
     }
     public DateTime PreviewViewEndTime
@@ -3319,6 +3334,7 @@ namespace SleepApneaDiagnoser
       {
         rm.RespiratoryEDFSelectedSignal = value;
         OnPropertyChanged(nameof(RespiratoryEDFSelectedSignal));
+        PerformRespiratoryAnalysisEDF();
       }
     }
     public int? RespiratoryEDFStartRecord
@@ -3332,6 +3348,7 @@ namespace SleepApneaDiagnoser
         rm.RespiratoryEDFStartRecord = value ?? 1;
         OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
         RespiratoryView_Changed();
+        PerformRespiratoryAnalysisEDF();
       }
     }
     public int? RespiratoryEDFDuration
@@ -3345,6 +3362,7 @@ namespace SleepApneaDiagnoser
         rm.RespiratoryEDFDuration = value ?? 1;
         OnPropertyChanged(nameof(RespiratoryEDFDuration));
         RespiratoryView_Changed();
+        PerformRespiratoryAnalysisEDF();
       }
     }
     public PlotModel RespiratorySignalPlot
