@@ -149,13 +149,10 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public PlotModel PlotPSD = null;
     /// <summary>
-    /// Displays the eeg spectrogram power plot
+    /// Displays the eeg powe spectral density power plot
     /// </summary>
     public String[] EEGExportOptions = null;
-    /// <summary>
-    /// Displays the eeg spectrogram power plot
-    /// </summary>
-    public MWNumericArray[] freqRange;
+
   }
 
   /// <summary>
