@@ -3674,7 +3674,7 @@ namespace SleepApneaDiagnoser
       get
       {
         if (LoadedEDFFile != null)
-          return Utils.DateTimetoEpoch(EEGEDFStartTimeMax, LoadedEDFFile); // EEGViewStartTimeMax to Record
+          return Utils.DateTimetoEpoch(EEGEDFStartTimeMax, LoadedEDFFile) - 1; // EEGViewStartTimeMax to Record
         else
           return 0;
       }
@@ -3687,18 +3687,6 @@ namespace SleepApneaDiagnoser
           return Utils.DateTimetoEpoch(EEGEDFStartTimeMin, LoadedEDFFile); // EEGViewStartTimeMax to Record
         else
           return 0;
-      }
-    }
-    public MWNumericArray[] EEGfreqRange
-    {
-      get
-      {
-        return eegm.freqRange;
-      }
-      set
-      {
-        eegm.freqRange = value;
-        OnPropertyChanged(nameof(EEGfreqRange));
       }
     }
 
