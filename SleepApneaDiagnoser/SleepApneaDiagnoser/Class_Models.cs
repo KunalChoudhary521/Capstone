@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using OxyPlot;
+using OxyPlot.Series;
+using MathWorks.MATLAB.NET.Arrays;
 
 namespace SleepApneaDiagnoser
 {
@@ -119,13 +121,17 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public string EEGEDFSelectedSignal;
     /// <summary>
-    /// The user selected start time for the eeg analysis in 30s epochs
+    /// The user selected Number of Epochs for eeg analysis in 30s epochs
     /// </summary>
-    public int EEGEDFStartRecord;
+    public int EpochForAnalysis;
     /// <summary>
-    /// The user selected period for the eeg analysis in 30s epochs
+    /// The user selected start epoch for eeg analysis export in 30s epochs
     /// </summary>
-    public int EEGEDFDuration;
+    public int ExportEpochStart;
+    /// <summary>
+    /// The user selected end epoch for eeg analysis export in 30s epochs
+    /// </summary>
+    public int ExportEpochEnd;
     /// <summary>
     /// The eeg analysis plot to be displayed
     /// </summary>
@@ -149,6 +155,7 @@ namespace SleepApneaDiagnoser
     /// <summary>
     /// Displays the eeg spectrogram power plot
     /// </summary>
+    public MWNumericArray[] freqRange;
   }
 
   /// <summary>
