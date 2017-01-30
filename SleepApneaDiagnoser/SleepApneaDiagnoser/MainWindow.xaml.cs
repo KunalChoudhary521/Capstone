@@ -261,7 +261,7 @@ namespace SleepApneaDiagnoser
 
     // Analysis Tab Events 
     private void button_EDFRespiratoryAnalysis_Click(object sender, RoutedEventArgs e)
-    {
+    {      
       model.PerformRespiratoryAnalysisEDF();
     }
     private void button_EDFEEGAnalysis_Click(object sender, RoutedEventArgs e)
@@ -693,7 +693,7 @@ namespace SleepApneaDiagnoser
 
           if (foundInDerived) {
             DateTime startTime = Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile); // epoch start
-            DateTime endTime = Utils.EpochtoDateTime((signals_data.Epochs_From + signals_data.Epochs_Length + 1), LoadedEDFFile); // epoch end
+            DateTime endTime = Utils.EpochtoDateTime((signals_data.Epochs_From + signals_data.Epochs_Length - 1), LoadedEDFFile); // epoch end
 
             LineSeries derivedSeries = GetSeriesFromSignalName(out derivedSampleFrequency, signal, startTime, endTime);
 
@@ -707,7 +707,7 @@ namespace SleepApneaDiagnoser
             sb_hdr.AppendLine(signal) // name
                 .AppendLine(signals_data.Subject_ID.ToString()) // subject id
                 .AppendLine(Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile).ToString()) // epoch start
-                .AppendLine(Utils.EpochtoDateTime((signals_data.Epochs_Length + 1), LoadedEDFFile).ToString()) // epoch length
+                .AppendLine(Utils.EpochtoDateTime((signals_data.Epochs_From + signals_data.Epochs_Length), LoadedEDFFile).ToString()) // epoch length
                 .AppendLine(derivedSampleFrequency.ToString()); // sample_period 
 
             var bytes_to_write = Encoding.ASCII.GetBytes(sb_hdr.ToString());
@@ -760,7 +760,7 @@ namespace SleepApneaDiagnoser
           sb_hdr.AppendLine(edfsignal.Label) // name
               .AppendLine(signals_data.Subject_ID.ToString()) // subject id
               .AppendLine(Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile).ToString()) // epoch start
-              .AppendLine(Utils.EpochtoDateTime((signals_data.Epochs_Length +1), LoadedEDFFile).ToString()) // epoch length
+              .AppendLine(Utils.EpochtoDateTime((signals_data.Epochs_From + signals_data.Epochs_Length), LoadedEDFFile).ToString()) // epoch length
               .AppendLine(sample_frequency.ToString()); // sample_period 
 
           var bytes_to_write = Encoding.ASCII.GetBytes(sb_hdr.ToString());
@@ -781,7 +781,7 @@ namespace SleepApneaDiagnoser
           BinaryWriter bin_writer = new BinaryWriter(bin_file);
 
           int start_index = (int)(((signals_data.Epochs_From - 1) * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * edfsignal.NumberOfSamplesPerDataRecord; // from epoch number * 30 seconds per epoch * sample rate = start time
-          int end_index = (int)(((signals_data.Epochs_From + signals_data.Epochs_Length + 1) * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * edfsignal.NumberOfSamplesPerDataRecord; // to epoch number * 30 seconds per epoch * sample rate = end time
+          int end_index = (int)(((signals_data.Epochs_From + signals_data.Epochs_Length - 1) * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * edfsignal.NumberOfSamplesPerDataRecord; // to epoch number * 30 seconds per epoch * sample rate = end time
 
           if (start_index < 0) { start_index = 0; }
           if (end_index > signalValues.Count()) { end_index = signalValues.Count(); }
@@ -841,6 +841,8 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public void PerformRespiratoryAnalysisBinary()
     {
+      this.RespiratoryAnalysisBinaryFileLoaded = 1;
+      OnPropertyChanged(nameof(IsRespBinLoaded));
       System.Windows.Forms.OpenFileDialog dialog = new System.Windows.Forms.OpenFileDialog();
 
       dialog.Filter = "|*.bin";
@@ -853,7 +855,7 @@ namespace SleepApneaDiagnoser
 
         byte[] value = new byte[4];
         bool didReachEnd = false;
-        List<float> signal_values = new List<float>();
+        this.resp_signal_values = new List<float>();
         // read the whole binary file and build the signal values
         while (reader.BaseStream.Position != reader.BaseStream.Length)
         {
@@ -861,7 +863,7 @@ namespace SleepApneaDiagnoser
           {
             value = reader.ReadBytes(4);
             float myFloat = System.BitConverter.ToSingle(value, 0);
-            signal_values.Add(myFloat);
+            resp_signal_values.Add(myFloat);
           }
           catch (Exception ex)
           {
@@ -878,26 +880,34 @@ namespace SleepApneaDiagnoser
 
         StreamReader file_reader = new StreamReader(bin_file);
         // get the signal name
-        string signal_name = file_reader.ReadLine();
-        string subject_id = file_reader.ReadLine();
-        string date_time_from = file_reader.ReadLine();
-        string date_time_length = file_reader.ReadLine();
-        string sample_frequency_s = file_reader.ReadLine();
+        this.resp_bin_signal_name = file_reader.ReadLine();
+        this.resp_bin_subject_id = file_reader.ReadLine();
+        this.resp_bin_date_time_from = file_reader.ReadLine();
+        this.resp_bin_date_time_length = file_reader.ReadLine();        
+        this.resp_bin_sample_frequency_s = file_reader.ReadLine();
 
-        float sample_period = 1/float.Parse(sample_frequency_s);
+        this.resp_bin_sample_period = 1/float.Parse(resp_bin_sample_frequency_s);
 
-        DateTime epochs_from_datetime = DateTime.Parse(date_time_from);
-        DateTime epochs_to_datetime = DateTime.Parse(date_time_length);
+        DateTime epochs_from_datetime = DateTime.Parse(resp_bin_date_time_from);
+        DateTime epochs_to_datetime = DateTime.Parse(resp_bin_date_time_length);
+
+        this.resp_bin_new_from = epochs_from_datetime;
+        this.resp_bin_new_to = epochs_from_datetime.AddSeconds(30);
+
+        rm.RespiratoryBinaryStart = 1;
+        OnPropertyChanged(nameof(RespiratoryBinaryStart));
+        rm.RespiratoryBinaryDuration = 1;
+        OnPropertyChanged(nameof(RespiratoryBinaryDuration));
 
         // perform all of the respiratory analysis
-        RespiratoryAnalysisBinary(signal_name, signal_values, epochs_from_datetime, epochs_to_datetime, sample_period);
+        RespiratoryAnalysisBinary(resp_bin_signal_name, resp_signal_values, resp_bin_new_from, resp_bin_new_from, resp_bin_new_to, resp_bin_sample_period);
       }
       else
       {
         p_window.ShowMessageAsync("Error", "File could not be opened.");
       }
     }
-    private void RespiratoryAnalysisBinary(string Signal, List<float> values, DateTime epochs_from, DateTime epochs_length, float sample_period)
+    private void RespiratoryAnalysisBinary(string Signal, List<float> values, DateTime binary_start, DateTime epochs_from, DateTime epochs_length, float sample_period)
     {
       // Variable To Return
       LineSeries series = new LineSeries();
@@ -905,7 +915,7 @@ namespace SleepApneaDiagnoser
       //  // Add Points to Series
       for (int y = 0; y < values.Count; y++)
       {
-        series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(epochs_from + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
+        series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(binary_start + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
       }
 
       PlotModel temp_SignalPlot = new PlotModel();
@@ -1070,9 +1080,7 @@ namespace SleepApneaDiagnoser
       yAxis.MinorGridlineStyle = LineStyle.Dot;
       yAxis.Title = Signal;
       yAxis.Key = Signal;
-      //yAxis.Maximum = (max_y ?? Double.NaN) - bias;
-      //yAxis.Minimum = (min_y ?? Double.NaN) - bias;
-
+      
       series_onsets.MarkerFill = OxyColor.FromRgb(255, 0, 0);
       series_insets.MarkerFill = OxyColor.FromRgb(0, 255, 0);
       series_pos_peaks.MarkerFill = OxyColor.FromRgb(0, 0, 255);
@@ -3321,6 +3329,17 @@ namespace SleepApneaDiagnoser
         OnPropertyChanged(nameof(RespiratoryEDFSelectedSignal));
       }
     }
+    public bool IsRespBinLoaded
+    {
+      get
+      {
+        if (RespiratoryAnalysisBinaryFileLoaded == 1) {
+          return true;
+        }
+        return false;
+      }
+    }
+    public int RespiratoryAnalysisBinaryFileLoaded = 0;
     public int? RespiratoryEDFStartRecord
     {
       get
@@ -3347,6 +3366,68 @@ namespace SleepApneaDiagnoser
         RespiratoryView_Changed();
       }
     }
+
+    public int? RespiratoryBinaryStart
+    {
+      get
+      {
+        return rm.RespiratoryBinaryStart;
+      }
+      set
+      {
+        rm.RespiratoryBinaryStart = value ?? 1;
+
+        int modelStartRecord = RespiratoryBinaryStart.Value;
+
+        DateTime to = DateTime.Parse(resp_bin_date_time_length);
+        DateTime newFrom = DateTime.Parse(resp_bin_date_time_from);
+        newFrom = newFrom.AddSeconds(30 * (modelStartRecord - 1));
+
+        if (newFrom >= to)
+        {
+          newFrom = resp_bin_new_from;          
+        }
+        else
+        {
+          resp_bin_new_from = newFrom;
+          resp_bin_new_to = newFrom.AddSeconds((double)RespiratoryBinaryDuration*30);
+        }
+
+        // perform all of the respiratory analysis
+        RespiratoryAnalysisBinary(resp_bin_signal_name, resp_signal_values, DateTime.Parse(resp_bin_date_time_from), resp_bin_new_from, resp_bin_new_to, resp_bin_sample_period);
+        OnPropertyChanged(nameof(RespiratoryBinaryStart));
+      }
+    }
+    public int? RespiratoryBinaryDuration
+    {
+      get
+      {
+        return rm.RespiratoryBinaryDuration;
+      }
+      set
+      {
+        rm.RespiratoryBinaryDuration = value ?? 1;      
+        int modelLength = rm.RespiratoryBinaryDuration.Value;
+
+        DateTime from = DateTime.Parse(resp_bin_date_time_from);
+        DateTime newTo = DateTime.Parse(resp_bin_new_from.ToString());
+        newTo = newTo.AddSeconds(30 * (modelLength));
+
+        if (newTo <= from)
+        {
+          newTo = resp_bin_new_to;
+        }
+        else
+        {
+          resp_bin_new_to = newTo; 
+        }
+
+        // perform all of the respiratory analysis
+        RespiratoryAnalysisBinary(resp_bin_signal_name, resp_signal_values, DateTime.Parse(resp_bin_date_time_from), resp_bin_new_from, resp_bin_new_to, resp_bin_sample_period);
+        OnPropertyChanged(nameof(RespiratoryBinaryDuration));
+      }
+    }   
+
     public PlotModel RespiratorySignalPlot
     {
       get
@@ -4025,6 +4106,18 @@ namespace SleepApneaDiagnoser
     // Signal Y Axis Extremes
     private double percent_high = 99;
     private double percent_low = 1;
+
+    // Used For Importing From Binary For Respiratory Signals
+    private string resp_bin_sample_frequency_s;
+    private string resp_bin_date_time_length;
+    private string resp_bin_date_time_from;
+    private string resp_bin_subject_id;
+    private string resp_bin_signal_name;
+    private float resp_bin_sample_period;
+    private List<float> resp_signal_values;
+    private DateTime resp_bin_new_from;
+    private DateTime resp_bin_new_to;
+
     private void SetYBounds(string Signal)
     {
       string OrigName = Signal;
