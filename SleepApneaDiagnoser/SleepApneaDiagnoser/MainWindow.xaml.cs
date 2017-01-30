@@ -260,10 +260,6 @@ namespace SleepApneaDiagnoser
     }
 
     // Analysis Tab Events 
-    private void button_EDFRespiratoryAnalysis_Click(object sender, RoutedEventArgs e)
-    {      
-      model.PerformRespiratoryAnalysisEDF();
-    }
     private void button_EDFEEGAnalysis_Click(object sender, RoutedEventArgs e)
     {
       model.PerformEEGAnalysisEDF();
@@ -1123,6 +1119,9 @@ namespace SleepApneaDiagnoser
     /// <param name="e"></param>
     private void BW_RespiratoryAnalysisEDF(object sender, DoWorkEventArgs e)
     {
+      if (RespiratoryEDFSelectedSignal == null)
+        return; 
+
       PlotModel temp_SignalPlot = new PlotModel();
 
       temp_SignalPlot.Series.Clear();
@@ -1883,15 +1882,18 @@ namespace SleepApneaDiagnoser
       LineSeries[] signalPerEpoch = new LineSeries[(int)ExportEpochEnd - (int)ExportEpochStart + 1];
 
       //Setup data to be entered in each file
-      StreamWriter fileSetup = new StreamWriter("EEGSignal.csv");
+      String analysisDirectory = "EEGAnalysis";
+      Directory.CreateDirectory(analysisDirectory);//if directory already exist, this line will be ignored
+
+      StreamWriter fileSetup = new StreamWriter(analysisDirectory + "//EEGSignal.csv");
       fileSetup.WriteLine(String.Format("Epoch#, X(time), Y(SigVal)"));
       fileSetup.Close();
 
-      fileSetup = new StreamWriter("EEGPSD.csv");
+      fileSetup = new StreamWriter(analysisDirectory + "//EEGPSD.csv");
       fileSetup.WriteLine(String.Format("Epoch#, Power(db),Frequency(Hz)"));
       fileSetup.Close();
 
-      fileSetup = new StreamWriter("EEGAbsPwr.csv");
+      fileSetup = new StreamWriter(analysisDirectory + "//EEGAbsPwr.csv");
       fileSetup.WriteLine(String.Format("Epoch#, delta, theta, alpha, beta1, beta2, gamma1, gamma2"));
       fileSetup.Close();
 
@@ -1901,7 +1903,7 @@ namespace SleepApneaDiagnoser
         EndEpoch = Utils.EpochtoDateTime((ExportEpochStart + i) ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(1);
         signalPerEpoch[i] = GetSeriesFromSignalName(out sample_period, EEGEDFSelectedSignal,
                                                   StartEpoch, EndEpoch);
-        EDFSignalToCSV(signalPerEpoch[i], i, "EEGSignal.csv");
+        EDFSignalToCSV(signalPerEpoch[i], i, analysisDirectory + "//EEGSignal.csv");
 
         signalToAnalyze = new double[signalPerEpoch[i].Points.Count];//select length to be more than From (on GUI)
         for (int s = 0; s < signalPerEpoch[i].Points.Count; s++)
@@ -1915,14 +1917,14 @@ namespace SleepApneaDiagnoser
         //perform Absolute power calculations
         AbsPwrAnalysis(out totalPower, out absPower, out absPlotbandItems, signalToMatlab, fqRange, sample_period);
         //output Absolute power calculations to file
-        AbsPwrToCSV(absPower, i, "EEGAbsPwr.csv");
+        AbsPwrToCSV(absPower, i, analysisDirectory + "//EEGAbsPwr.csv");
 
         //No need to perform Relative power calculations, as it is not exported. It can be derived from Absolute Power.
 
         //perform PSD calculations
         PSDAnalysis(out psdValue, out frqValue, signalToMatlab, sampleFreq);
         //output PSD calculations to file
-        PSDToCSV(psdValue, frqValue, i, "EEGPSD.csv");
+        PSDToCSV(psdValue, frqValue, i, analysisDirectory + "//EEGPSD.csv");
       }      
     }
     public void ExportEEGPlot(PlotModel pModel, String fileName)
@@ -3099,9 +3101,12 @@ namespace SleepApneaDiagnoser
       {
         if (PreviewUseAbsoluteTime && IsEDFLoaded)
         {
-          pm.PreviewViewStartTime = value ?? new DateTime();
-          pm.PreviewViewStartRecord = Utils.DateTimetoEpoch(pm.PreviewViewStartTime, LoadedEDFFile);
-          PreviewView_Changed();
+          if (pm.PreviewViewStartTime != (value ?? DateTime.Parse(EDFStartTime)))
+          {
+            pm.PreviewViewStartTime = value ?? DateTime.Parse(EDFStartTime);
+            pm.PreviewViewStartRecord = Utils.DateTimetoEpoch(pm.PreviewViewStartTime, LoadedEDFFile);
+            PreviewView_Changed();
+          }
         }
       }
     }
@@ -3125,9 +3130,12 @@ namespace SleepApneaDiagnoser
       {
         if (!PreviewUseAbsoluteTime && IsEDFLoaded)
         {
-          pm.PreviewViewStartRecord = value ?? 1;
-          pm.PreviewViewStartTime = Utils.EpochtoDateTime(pm.PreviewViewStartRecord, LoadedEDFFile);
-          PreviewView_Changed();
+          if (pm.PreviewViewStartRecord != (value ?? 1))
+          {
+            pm.PreviewViewStartRecord = value ?? 1;
+            pm.PreviewViewStartTime = Utils.EpochtoDateTime(pm.PreviewViewStartRecord, LoadedEDFFile);
+            PreviewView_Changed();
+          }
         }
       }
     }
@@ -3152,12 +3160,22 @@ namespace SleepApneaDiagnoser
         if (IsEDFLoaded)
         {
           if (PreviewUseAbsoluteTime)
-            pm.PreviewViewDuration = value ?? 1;
+          {
+            if (pm.PreviewViewDuration != (value ?? 1))
+            {
+              pm.PreviewViewDuration = value ?? 1;
+              PreviewView_Changed();
+            }
+          }
           else
-            pm.PreviewViewDuration = (int)Utils.EpochPeriodtoTimeSpan((value ?? 1)).TotalSeconds;
+          {
+            if (pm.PreviewViewDuration != (int)Utils.EpochPeriodtoTimeSpan((value ?? 1)).TotalSeconds)
+            {
+              pm.PreviewViewDuration = (int)Utils.EpochPeriodtoTimeSpan((value ?? 1)).TotalSeconds;
+              PreviewView_Changed();
+            }
+          }
         }
-
-        PreviewView_Changed();
       }
     }
     public DateTime PreviewViewEndTime
@@ -3327,6 +3345,7 @@ namespace SleepApneaDiagnoser
       {
         rm.RespiratoryEDFSelectedSignal = value;
         OnPropertyChanged(nameof(RespiratoryEDFSelectedSignal));
+        PerformRespiratoryAnalysisEDF();
       }
     }
     public bool IsRespBinLoaded
@@ -3351,6 +3370,7 @@ namespace SleepApneaDiagnoser
         rm.RespiratoryEDFStartRecord = value ?? 1;
         OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
         RespiratoryView_Changed();
+        PerformRespiratoryAnalysisEDF();
       }
     }
     public int? RespiratoryEDFDuration
@@ -3364,6 +3384,7 @@ namespace SleepApneaDiagnoser
         rm.RespiratoryEDFDuration = value ?? 1;
         OnPropertyChanged(nameof(RespiratoryEDFDuration));
         RespiratoryView_Changed();
+        PerformRespiratoryAnalysisEDF();
       }
     }
 
@@ -3592,6 +3613,7 @@ namespace SleepApneaDiagnoser
       {
         rm.RespiratoryUseConstantAxis = value;
         OnPropertyChanged(nameof(RespiratoryUseConstantAxis));
+        PerformRespiratoryAnalysisEDF();
       }
     }
 
