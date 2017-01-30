@@ -3252,17 +3252,6 @@ namespace SleepApneaDiagnoser
         PerformRespiratoryAnalysisEDF();
       }
     }
-    public bool IsRespBinLoaded
-    {
-      get
-      {
-        if (RespiratoryAnalysisBinaryFileLoaded == 1) {
-          return true;
-        }
-        return false;
-      }
-    }
-    public int RespiratoryAnalysisBinaryFileLoaded = 0;
     public int? RespiratoryEDFStartRecord
     {
       get
@@ -4205,7 +4194,20 @@ namespace SleepApneaDiagnoser
       set {
       }
     }
+
+    public int RespiratoryAnalysisBinaryFileLoaded = 0;
     public int RespiratoryBinaryMaxEpochs { get { return resp_bin_max_epoch; } set { } }
+    public bool IsRespBinLoaded
+    {
+      get
+      {
+        if (RespiratoryAnalysisBinaryFileLoaded == 1)
+        {
+          return true;
+        }
+        return false;
+      }
+    }
 
     // Used For Importing From Binary For Respiratory Signals
     private string resp_bin_sample_frequency_s;
@@ -4217,6 +4219,9 @@ namespace SleepApneaDiagnoser
     private List<float> resp_signal_values;
     private DateTime resp_bin_new_from;
     private DateTime resp_bin_new_to;
+    private int resp_bin_max_epoch;
+
+    // Used For Importing From Binary For EEG Signals
     private List<float> eeg_bin_signal_values;
     private string eeg_bin_signal_name;
     private string eeg_bin_subject_id;
@@ -4225,7 +4230,6 @@ namespace SleepApneaDiagnoser
     private string eeg_bin_sample_frequency_s;
     private DateTime eeg_bind_curr_from;
     private int eeg_bin_max_epochs;
-    private int resp_bin_max_epoch;
 
     /*********************************************************************************************************************************/
 
