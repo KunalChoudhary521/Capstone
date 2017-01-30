@@ -276,12 +276,6 @@ namespace SleepApneaDiagnoser
     {
       model.PerformEEGAnalysisBinary();
     }
-   
-    // Tool Tab Events
-    private void button_PerformCoherenceAnalysis_Click(object sender, RoutedEventArgs e)
-    {
-      model.PerformCoherenceAnalysisEDF();
-    }
   }
 
   public class ModelView : INotifyPropertyChanged
@@ -321,7 +315,7 @@ namespace SleepApneaDiagnoser
 
         // Get Array
         List<float> values = Utils.retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal, StartTime, EndTime);
-        
+
         // Add Points to Series
         for (int y = 0; y < values.Count; y++)
         {
@@ -539,7 +533,7 @@ namespace SleepApneaDiagnoser
                                                           (PreviewViewStartTime ?? new DateTime()),
                                                           PreviewViewEndTime
                                                           );
-              
+
               series.YAxisKey = pm.PreviewSelectedSignals[y];
               series.XAxisKey = "DateTime";
 
@@ -602,49 +596,49 @@ namespace SleepApneaDiagnoser
       if (pm.PreviewSelectedSignals.Count > 0)
       {
         Dialog_Export_Previewed_Signals dlg = new Dialog_Export_Previewed_Signals(pm.PreviewSelectedSignals);
-        
+
         controller = await p_window.ShowProgressAsync("Export", "Exporting preview signals to binary...");
 
         controller.SetCancelable(false);
 
-                if (dlg.ShowDialog() == true)
-                {
-                    FolderBrowserDialog folder_dialog = new FolderBrowserDialog();
+        if (dlg.ShowDialog() == true)
+        {
+          FolderBrowserDialog folder_dialog = new FolderBrowserDialog();
 
-                    string location;
+          string location;
 
-                    if (folder_dialog.ShowDialog() == DialogResult.OK)
-                    {
-                        location = folder_dialog.SelectedPath;
-                    }
-                    else
-                    {
-                        await p_window.ShowMessageAsync("Cancelled", "Action was cancelled.");
+          if (folder_dialog.ShowDialog() == DialogResult.OK)
+          {
+            location = folder_dialog.SelectedPath;
+          }
+          else
+          {
+            await p_window.ShowMessageAsync("Cancelled", "Action was cancelled.");
 
-                        await controller.CloseAsync();
+            await controller.CloseAsync();
 
-                        return;
-                    }
+            return;
+          }
 
-                    ExportSignalModel signals_data = Dialog_Export_Previewed_Signals.signals_to_export;
+          ExportSignalModel signals_data = Dialog_Export_Previewed_Signals.signals_to_export;
 
-                    BackgroundWorker bw = new BackgroundWorker();
-                    bw.DoWork += BW_ExportSignals;
-                    bw.RunWorkerCompleted += BW_FinishExportSignals;
+          BackgroundWorker bw = new BackgroundWorker();
+          bw.DoWork += BW_ExportSignals;
+          bw.RunWorkerCompleted += BW_FinishExportSignals;
 
-                    List<dynamic> arguments = new List<dynamic>();
-                    arguments.Add(signals_data);
-                    arguments.Add(location);
+          List<dynamic> arguments = new List<dynamic>();
+          arguments.Add(signals_data);
+          arguments.Add(location);
 
-                    bw.RunWorkerAsync(arguments);
-                }
-                else
-                {
+          bw.RunWorkerAsync(arguments);
+        }
+        else
+        {
 
-                    await controller.CloseAsync();
+          await controller.CloseAsync();
 
-                    await p_window.ShowMessageAsync("Export Cancelled", "Export was Cancelled");
-                }
+          await p_window.ShowMessageAsync("Export Cancelled", "Export was Cancelled");
+        }
       }
       else
       {
@@ -682,7 +676,7 @@ namespace SleepApneaDiagnoser
               foundInDerived = true;
               oneDerivedEdfSignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == derivedSignal.Signal1Name);
               //derivedSamplePeriod = LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)oneDerivedEdfSignal.NumberOfSamplesPerDataRecord; ;
-              derivedSampleFrequency = (float)oneDerivedEdfSignal.NumberOfSamplesPerDataRecord/LoadedEDFFile.Header.DurationOfDataRecordInSeconds;
+              derivedSampleFrequency = (float)oneDerivedEdfSignal.NumberOfSamplesPerDataRecord / LoadedEDFFile.Header.DurationOfDataRecordInSeconds;
               break;
             }
           }
@@ -704,7 +698,7 @@ namespace SleepApneaDiagnoser
                 .AppendLine(signals_data.Subject_ID.ToString()) // subject id
                 .AppendLine(Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile).ToString()) // epoch start
                 .AppendLine(Utils.EpochtoDateTime((signals_data.Epochs_From + signals_data.Epochs_Length), LoadedEDFFile).ToString()) // epoch length
-                .AppendLine((1/derivedSampleFrequency).ToString()); // sample frequency 
+                .AppendLine((1 / derivedSampleFrequency).ToString()); // sample frequency 
 
             var bytes_to_write = Encoding.ASCII.GetBytes(sb_hdr.ToString());
             hdr_file.Write(bytes_to_write, 0, bytes_to_write.Length);
@@ -727,7 +721,7 @@ namespace SleepApneaDiagnoser
 
             for (int i = start_index; i < end_index; i++)
             {
-              float value = (float) derivedSeries.Points[i].Y;
+              float value = (float)derivedSeries.Points[i].Y;
 
               byte[] bytes = System.BitConverter.GetBytes(value);
               foreach (var b in bytes)
@@ -743,7 +737,7 @@ namespace SleepApneaDiagnoser
           }
         } else {
           //float sample_period = LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
-          float sample_frequency = (float) edfsignal.NumberOfSamplesPerDataRecord / LoadedEDFFile.Header.DurationOfDataRecordInSeconds;
+          float sample_frequency = (float)edfsignal.NumberOfSamplesPerDataRecord / LoadedEDFFile.Header.DurationOfDataRecordInSeconds;
 
           //hdr file contains metadata of the binary file
           FileStream hdr_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".hdr", FileMode.OpenOrCreate);
@@ -879,12 +873,12 @@ namespace SleepApneaDiagnoser
         this.resp_bin_signal_name = file_reader.ReadLine();
         this.resp_bin_subject_id = file_reader.ReadLine();
         this.resp_bin_date_time_from = file_reader.ReadLine();
-        this.resp_bin_date_time_length = file_reader.ReadLine();        
+        this.resp_bin_date_time_length = file_reader.ReadLine();
         this.resp_bin_sample_frequency_s = file_reader.ReadLine();
 
         bin_file.Close();
 
-        this.resp_bin_sample_period = 1/float.Parse(resp_bin_sample_frequency_s);
+        this.resp_bin_sample_period = 1 / float.Parse(resp_bin_sample_frequency_s);
 
         DateTime epochs_from_datetime = DateTime.Parse(resp_bin_date_time_from);
         DateTime epochs_to_datetime = DateTime.Parse(resp_bin_date_time_length);
@@ -912,7 +906,7 @@ namespace SleepApneaDiagnoser
     {
       // Variable To Return
       LineSeries series = new LineSeries();
-      
+
       //  // Add Points to Series
       for (int y = 0; y < values.Count; y++)
       {
@@ -1081,7 +1075,7 @@ namespace SleepApneaDiagnoser
       yAxis.MinorGridlineStyle = LineStyle.Dot;
       yAxis.Title = Signal;
       yAxis.Key = Signal;
-      
+
       series_onsets.MarkerFill = OxyColor.FromRgb(255, 0, 0);
       series_insets.MarkerFill = OxyColor.FromRgb(0, 255, 0);
       series_pos_peaks.MarkerFill = OxyColor.FromRgb(0, 0, 255);
@@ -1125,20 +1119,20 @@ namespace SleepApneaDiagnoser
     private void BW_RespiratoryAnalysisEDF(object sender, DoWorkEventArgs e)
     {
       if (RespiratoryEDFSelectedSignal == null)
-        return; 
+        return;
 
       PlotModel temp_SignalPlot = new PlotModel();
 
       temp_SignalPlot.Series.Clear();
       temp_SignalPlot.Axes.Clear();
-      
+
       float sample_period;
       LineSeries series = GetSeriesFromSignalName(out sample_period,
                                                   RespiratoryEDFSelectedSignal,
                                                   Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile),
                                                   Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 1)
                                                   );
-      
+
       // Plot Insets of Respiration Expiration
 
       // Calculate Bias
@@ -1354,7 +1348,7 @@ namespace SleepApneaDiagnoser
     //EEG Analysis From Binary File
     public void PerformEEGAnalysisBinary()
     {
-      this.EEGAnalysisBinaryFileLoaded = 1;      
+      this.EEGAnalysisBinaryFileLoaded = 1;
       OnPropertyChanged(nameof(IsEEGBinaryLoaded));
       System.Windows.Forms.OpenFileDialog dialog = new System.Windows.Forms.OpenFileDialog();
 
@@ -1399,12 +1393,12 @@ namespace SleepApneaDiagnoser
         eeg_bin_date_time_to = file_reader.ReadLine();
         eeg_bin_sample_frequency_s = file_reader.ReadLine();
 
-        eeg_bin_max_epochs = (int)(DateTime.Parse(eeg_bin_date_time_to).Subtract(DateTime.Parse(eeg_bin_date_time_from)).TotalSeconds)/30;
+        eeg_bin_max_epochs = (int)(DateTime.Parse(eeg_bin_date_time_to).Subtract(DateTime.Parse(eeg_bin_date_time_from)).TotalSeconds) / 30;
         OnPropertyChanged(nameof(EEGBinaryMaxEpoch));
 
         bin_file.Close();
 
-        float sample_period = 1/float.Parse(eeg_bin_sample_frequency_s);
+        float sample_period = 1 / float.Parse(eeg_bin_sample_frequency_s);
 
         DateTime epochs_from_datetime = DateTime.Parse(eeg_bin_date_time_from);
         DateTime epochs_to_datetime = DateTime.Parse(eeg_bin_date_time_to);
@@ -1417,12 +1411,12 @@ namespace SleepApneaDiagnoser
         p_window.ShowMessageAsync("Error", "File could not be opened.");
       }
     }
-    private void BW_EEGAnalysisBin(string Signal, List<float> values, DateTime binary_start,  DateTime epochs_from, DateTime epochs_to, float sample_period)
+    private void BW_EEGAnalysisBin(string Signal, List<float> values, DateTime binary_start, DateTime epochs_from, DateTime epochs_to, float sample_period)
     {
       // Variable To Return
       LineSeries series = new LineSeries();
 
-      float startIndex = (epochs_from - binary_start).Seconds*(1/sample_period);
+      float startIndex = (epochs_from - binary_start).Seconds * (1 / sample_period);
       float endIndex = startIndex + 30 * (1 / sample_period);
 
       //  // Add Points to Series
@@ -1456,7 +1450,7 @@ namespace SleepApneaDiagnoser
 
       /*******************************Relative & Total Power************************************/
       ColumnItem[] plotbandItems;
-      RelPwrAnalysis(out plotbandItems, totalPower, absPower, freqbands);      
+      RelPwrAnalysis(out plotbandItems, totalPower, absPower, freqbands);
 
       /*************Computing Power spectral Density (line 841 - PSG_viewer_v7.m)****************/
       double[] psdValues;
@@ -1523,7 +1517,7 @@ namespace SleepApneaDiagnoser
       ExportEEGPlot(PlotAbsPwr, plotsDirectory + "//AbsolutePower.png");
       ExportEEGPlot(PlotRelPwr, plotsDirectory + "//RelativePower.png");
       ExportEEGPlot(PlotPSD, plotsDirectory + "//PowerSpecDensity.png");
-            
+
       //GenericExportImage(PlotSpecGram, "Spectrogram.png");//Need to review implementation
 
       return;//for debugging only
@@ -1564,7 +1558,7 @@ namespace SleepApneaDiagnoser
 
       /*******************************Relative & Total Power************************************/
       ColumnItem[] plotbandItems;
-      RelPwrAnalysis(out plotbandItems, totalPower, absPower, freqbands);      
+      RelPwrAnalysis(out plotbandItems, totalPower, absPower, freqbands);
 
       /*************Computing Power spectral Density (line 841 - PSG_viewer_v7.m)****************/
       double[] psdValues;
@@ -1631,7 +1625,7 @@ namespace SleepApneaDiagnoser
       ExportEEGPlot(PlotAbsPwr, plotsDirectory + "//AbsolutePower.png");
       ExportEEGPlot(PlotRelPwr, plotsDirectory + "//RelativePower.png");
       ExportEEGPlot(PlotPSD, plotsDirectory + "//PowerSpecDensity.png");
-            
+
       //GenericExportImage(PlotSpecGram, "Spectrogram.png");//Need to review implementation
 
       return;//for debugging only
@@ -1650,8 +1644,8 @@ namespace SleepApneaDiagnoser
     }
 
     public void AbsPwrAnalysis(out double totalPower, out MWNumericArray[] absPower, out ColumnItem[] absPlotbandItems,
-                            MWNumericArray signalArray,  MWNumericArray[] freqRange, float sample_period)
-    {      
+                            MWNumericArray signalArray, MWNumericArray[] freqRange, float sample_period)
+    {
       EEGPower pwr = new EEGPower();
       totalPower = 0.0;
       absPower = new MWNumericArray[freqRange.Length];
@@ -1763,8 +1757,8 @@ namespace SleepApneaDiagnoser
     }
 
     public void ExportEEGCalculations()
-    { 
-      if(ExportEpochEnd < ExportEpochStart)//restrict ExportEpochEnd to the max size of signal
+    {
+      if (ExportEpochEnd < ExportEpochStart)//restrict ExportEpochEnd to the max size of signal
       {
         return;
       }
@@ -1776,7 +1770,7 @@ namespace SleepApneaDiagnoser
 
       DateTime StartEpoch, EndEpoch;
       double[] psdValue;
-      double[] frqValue;      
+      double[] frqValue;
 
       double totalPower;
       MWNumericArray[] absPower;
@@ -1832,7 +1826,7 @@ namespace SleepApneaDiagnoser
         PSDAnalysis(out psdValue, out frqValue, signalToMatlab, sampleFreq);
         //output PSD calculations to file
         PSDToCSV(psdValue, frqValue, i, analysisDirectory + "//EEGPSD.csv");
-      }      
+      }
     }
     public void ExportEEGPlot(PlotModel pModel, String fileName)
     {
@@ -1858,7 +1852,7 @@ namespace SleepApneaDiagnoser
     public void PSDToCSV(double[] psdVal, double[] frqVal, int epoch, String fileName)
     {
       StreamWriter psdStream = File.AppendText(fileName);
-      psdStream.Write((epoch+1).ToString());
+      psdStream.Write((epoch + 1).ToString());
 
       for (int j = 1; j < psdVal.Length; j++)
       {
@@ -1870,8 +1864,8 @@ namespace SleepApneaDiagnoser
     /**************************Exporting EEG Signal to .csv*************************/
     public void EDFSignalToCSV(LineSeries dataToExport, int epoch, String fileName)
     {
-      StreamWriter fileStream = File.AppendText(fileName);     
-      fileStream.WriteLine((epoch + 1).ToString() + String.Format(",{0:0.00},{1:0.000}", dataToExport.Points[0].X, 
+      StreamWriter fileStream = File.AppendText(fileName);
+      fileStream.WriteLine((epoch + 1).ToString() + String.Format(",{0:0.00},{1:0.000}", dataToExport.Points[0].X,
                       dataToExport.Points[0].Y));
       for (int i = 1; i < dataToExport.Points.Count; i++)
       {
@@ -1953,7 +1947,7 @@ namespace SleepApneaDiagnoser
                                                   Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 1, LoadedEDFFile),
                                                   Utils.EpochtoDateTime(CoherenceEDFStartRecord ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(CoherenceEDFDuration ?? 1)
                                                   );
-      
+
       // Plot Series 2
       {
         PlotModel temp_SignalPlot = new PlotModel();
@@ -2050,6 +2044,9 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public void PerformCoherenceAnalysisEDF()
     {
+      if (CoherenceEDFSelectedSignal1 == null || CoherenceEDFSelectedSignal2 == null)
+        return;
+
       CoherenceProgressRingEnabled = true;
 
       BackgroundWorker bw = new BackgroundWorker();
@@ -3745,6 +3742,7 @@ namespace SleepApneaDiagnoser
       {
         cm.CoherenceEDFSelectedSignal1 = value;
         OnPropertyChanged(nameof(CoherenceEDFSelectedSignal1));
+        PerformCoherenceAnalysisEDF();
       }
     }
     public string CoherenceEDFSelectedSignal2
@@ -3757,6 +3755,7 @@ namespace SleepApneaDiagnoser
       {
         cm.CoherenceEDFSelectedSignal2 = value;
         OnPropertyChanged(nameof(CoherenceEDFSelectedSignal2));
+        PerformCoherenceAnalysisEDF();
       }
     }
     public int? CoherenceEDFStartRecord
@@ -3770,6 +3769,7 @@ namespace SleepApneaDiagnoser
         cm.CoherenceEDFStartRecord = value ?? 1;
         OnPropertyChanged(nameof(CoherenceEDFStartRecord));
         CoherenceView_Changed();
+        PerformCoherenceAnalysisEDF();
       }
     }
     public int? CoherenceEDFDuration
@@ -3783,6 +3783,7 @@ namespace SleepApneaDiagnoser
         cm.CoherenceEDFDuration = value ?? 1;
         OnPropertyChanged(nameof(CoherenceEDFDuration));
         CoherenceView_Changed();
+        PerformCoherenceAnalysisEDF();
       }
     }
     public PlotModel CoherenceSignalPlot1
@@ -3943,6 +3944,7 @@ namespace SleepApneaDiagnoser
       {
         cm.CoherenceUseConstantAxis = value;
         OnPropertyChanged(nameof(CoherenceUseConstantAxis));
+        PerformCoherenceAnalysisEDF();
       }
     }
 
