@@ -682,7 +682,7 @@ namespace SleepApneaDiagnoser
               foundInDerived = true;
               oneDerivedEdfSignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == derivedSignal.Signal1Name);
               //derivedSamplePeriod = LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)oneDerivedEdfSignal.NumberOfSamplesPerDataRecord; ;
-              derivedSampleFrequency = (float)oneDerivedEdfSignal.NumberOfSamplesPerDataRecord / LoadedEDFFile.Header.DurationOfDataRecordInSeconds ;
+              derivedSampleFrequency = (float)oneDerivedEdfSignal.NumberOfSamplesPerDataRecord/LoadedEDFFile.Header.DurationOfDataRecordInSeconds;
               break;
             }
           }
@@ -704,7 +704,7 @@ namespace SleepApneaDiagnoser
                 .AppendLine(signals_data.Subject_ID.ToString()) // subject id
                 .AppendLine(Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile).ToString()) // epoch start
                 .AppendLine(Utils.EpochtoDateTime((signals_data.Epochs_From + signals_data.Epochs_Length), LoadedEDFFile).ToString()) // epoch length
-                .AppendLine(derivedSampleFrequency.ToString()); // sample_period 
+                .AppendLine((1/derivedSampleFrequency).ToString()); // sample frequency 
 
             var bytes_to_write = Encoding.ASCII.GetBytes(sb_hdr.ToString());
             hdr_file.Write(bytes_to_write, 0, bytes_to_write.Length);
@@ -882,10 +882,15 @@ namespace SleepApneaDiagnoser
         this.resp_bin_date_time_length = file_reader.ReadLine();        
         this.resp_bin_sample_frequency_s = file_reader.ReadLine();
 
+        bin_file.Close();
+
         this.resp_bin_sample_period = 1/float.Parse(resp_bin_sample_frequency_s);
 
         DateTime epochs_from_datetime = DateTime.Parse(resp_bin_date_time_from);
         DateTime epochs_to_datetime = DateTime.Parse(resp_bin_date_time_length);
+
+        resp_bin_max_epoch = (int)epochs_to_datetime.Subtract(epochs_from_datetime).TotalSeconds / 30;
+        OnPropertyChanged(nameof(RespiratoryBinaryMaxEpochs));
 
         this.resp_bin_new_from = epochs_from_datetime;
         this.resp_bin_new_to = epochs_from_datetime.AddSeconds(30);
@@ -1349,6 +1354,8 @@ namespace SleepApneaDiagnoser
     //EEG Analysis From Binary File
     public void PerformEEGAnalysisBinary()
     {
+      this.EEGAnalysisBinaryFileLoaded = 1;      
+      OnPropertyChanged(nameof(IsEEGBinaryLoaded));
       System.Windows.Forms.OpenFileDialog dialog = new System.Windows.Forms.OpenFileDialog();
 
       dialog.Filter = "|*.bin";
@@ -1361,7 +1368,7 @@ namespace SleepApneaDiagnoser
 
         byte[] value = new byte[4];
         bool didReachEnd = false;
-        List<float> signal_values = new List<float>();
+        eeg_bin_signal_values = new List<float>();
         // read the whole binary file and build the signal values
         while (reader.BaseStream.Position != reader.BaseStream.Length)
         {
@@ -1369,7 +1376,7 @@ namespace SleepApneaDiagnoser
           {
             value = reader.ReadBytes(4);
             float myFloat = System.BitConverter.ToSingle(value, 0);
-            signal_values.Add(myFloat);
+            eeg_bin_signal_values.Add(myFloat);
           }
           catch (Exception ex)
           {
@@ -1386,101 +1393,87 @@ namespace SleepApneaDiagnoser
 
         StreamReader file_reader = new StreamReader(bin_file);
         // get the signal name
-        string signal_name = file_reader.ReadLine();
-        string subject_id = file_reader.ReadLine();
-        string date_time_from = file_reader.ReadLine();
-        string date_time_to = file_reader.ReadLine();
-        string sample_frequency_s = file_reader.ReadLine();
+        eeg_bin_signal_name = file_reader.ReadLine();
+        eeg_bin_subject_id = file_reader.ReadLine();
+        eeg_bin_date_time_from = file_reader.ReadLine();
+        eeg_bin_date_time_to = file_reader.ReadLine();
+        eeg_bin_sample_frequency_s = file_reader.ReadLine();
 
-        float sample_period = 1/float.Parse(sample_frequency_s);
+        eeg_bin_max_epochs = (int)(DateTime.Parse(eeg_bin_date_time_to).Subtract(DateTime.Parse(eeg_bin_date_time_from)).TotalSeconds)/30;
+        OnPropertyChanged(nameof(EEGBinaryMaxEpoch));
 
-        DateTime epochs_from_datetime = DateTime.Parse(date_time_from);
-        DateTime epochs_to_datetime = DateTime.Parse(date_time_to);
+        bin_file.Close();
+
+        float sample_period = 1/float.Parse(eeg_bin_sample_frequency_s);
+
+        DateTime epochs_from_datetime = DateTime.Parse(eeg_bin_date_time_from);
+        DateTime epochs_to_datetime = DateTime.Parse(eeg_bin_date_time_to);
 
         // perform all of the respiratory analysis
-        BW_EEGAnalysisBin(signal_name, signal_values, epochs_from_datetime, epochs_to_datetime, sample_period);
+        BW_EEGAnalysisBin(eeg_bin_signal_name, eeg_bin_signal_values, epochs_from_datetime, epochs_from_datetime, epochs_from_datetime.AddSeconds(30), sample_period);
       }
       else
       {
         p_window.ShowMessageAsync("Error", "File could not be opened.");
       }
     }
-    private void BW_EEGAnalysisBin(string Signal, List<float> values, DateTime epochs_from, DateTime epochs_to, float sample_period)
+    private void BW_EEGAnalysisBin(string Signal, List<float> values, DateTime binary_start,  DateTime epochs_from, DateTime epochs_to, float sample_period)
     {
       // Variable To Return
       LineSeries series = new LineSeries();
 
+      float startIndex = (epochs_from - binary_start).Seconds*(1/sample_period);
+      float endIndex = startIndex + 30 * (1 / sample_period);
+
       //  // Add Points to Series
-      for (int y = 0; y < values.Count; y++)
+      for (var y = startIndex; y < endIndex; y++)
       {
-        series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(epochs_from + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
+        series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(epochs_from + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[(int)y]));
       }
 
-      if (series.Points.Count == 0)//select length to be more than From (on GUI)
-      {
+      if (series.Points.Count == 0) {
         //need to type error message for User
         return;
       }
 
       const int freqbands = 7;
-      MWNumericArray[] freqRange;
-      setFreqBands(out freqRange, freqbands);
+      MWNumericArray[] fqRange;
+      setFreqBands(out fqRange, freqbands);
 
-      double[] signal = new double[series.Points.Count];//select length to be more than From (on GUI)
+      double[] signal = new double[series.Points.Count];
       for (int i = 0; i < series.Points.Count; i++)
       {
         signal[i] = series.Points[i].Y;
       }
-
-      /********************Computing Absolute, Relative & TotalPower*************************/
-      MWNumericArray mlabArraySignal = new MWNumericArray(signal);
-      EEGPower pwr = new EEGPower();
-      double totalPower = 0.0;
-      MWNumericArray[] absPower = new MWNumericArray[freqbands];
+      MWNumericArray mLabsignalSeries = new MWNumericArray(signal);
       MWNumericArray sampleFreq = new MWNumericArray(1 / sample_period);
-      ColumnItem[] absPlotbandItems = new ColumnItem[freqbands];
-      for (int i = 0; i < freqRange.Length; i++)
-      {
-        absPower[i] = (MWNumericArray)pwr.eeg_bandpower(mlabArraySignal, sampleFreq, freqRange[i]);
-        totalPower += (double)absPower[i];
-        absPlotbandItems[i] = new ColumnItem { Value = 10 * Math.Log10((double)absPower[i]) };//bars for abs pwr plot
-      }
 
-      ColumnItem[] relPlotbandItems = new ColumnItem[freqbands];
-      double[] relPower = new double[freqbands];
-      for (int i = 0; i < relPower.Length; i++)
-      {
-        relPower[i] = 100 * ((double)absPower[i]) / totalPower;
-        relPlotbandItems[i] = new ColumnItem { Value = relPower[i] };//bars for rel pwr plot
-      }
+      /********************************Computing Absolute Power**************************************/
+      double totalPower;
+      MWNumericArray[] absPower;
+      ColumnItem[] absPlotbandItems;
+      AbsPwrAnalysis(out totalPower, out absPower, out absPlotbandItems, mLabsignalSeries, fqRange, sample_period);
+
+      /*******************************Relative & Total Power************************************/
+      ColumnItem[] plotbandItems;
+      RelPwrAnalysis(out plotbandItems, totalPower, absPower, freqbands);      
 
       /*************Computing Power spectral Density (line 841 - PSG_viewer_v7.m)****************/
-      EEG_PSD computePSD = new EEG_PSD();
-      MWArray[] mLabPSD = null;
-
-      mLabPSD = computePSD.eeg_psd(2, mlabArraySignal, sampleFreq);
-      MWNumericArray tempPsd = (MWNumericArray)mLabPSD[0];
-      MWNumericArray tempFrq = (MWNumericArray)mLabPSD[1];
-
-      double[] psdValues = new double[tempPsd.NumberOfElements];
-      double[] frqValues = new double[tempFrq.NumberOfElements];
-      for (int i = 1; i < tempPsd.NumberOfElements; i++)
-      {
-        psdValues[i] = 10 * Math.Log10((double)tempPsd[i]);//psd in (dB) after taking a log10
-        frqValues[i] = (double)tempFrq[i];
-      }
+      double[] psdValues;
+      double[] frqValues;
+      PSDAnalysis(out psdValues, out frqValues, mLabsignalSeries, sampleFreq);
 
       /****************************Computation for Spectrogram**************************/
-      Spectrogram computeForspec = new Spectrogram();
+      /*Spectrogram computeForspec = new Spectrogram();
       MWArray[] mLabSpec = null;
-      mLabSpec = computeForspec.eeg_specgram(2, mlabArraySignal, sampleFreq);
+      mLabSpec = computeForspec.eeg_specgram(2, MLabsignalSeries, SampleFreq);
       MWNumericArray tempspec = (MWNumericArray)mLabSpec[0];
       MWNumericArray tempTime = (MWNumericArray)mLabSpec[1];
 
       //MATLAB stores matrix in column-major order
       double[,] specMatrix = new double[mLabSpec[0].Dimensions[0], mLabSpec[0].Dimensions[1]];//rows by columns
       double[] specTime = new double[tempTime.NumberOfElements];
-      /*for (int row = 1; row < mLabSpec[0].Dimensions[0]; row++) 
+      for (int row = 1; row < mLabSpec[0].Dimensions[0]; row++) 
       {
         for (int col = 0; col < mLabSpec[0].Dimensions[1]; col++)
         {
@@ -1491,63 +1484,21 @@ namespace SleepApneaDiagnoser
       {
         specTime[i] = (double)tempTime[i];
       }*/
-      /*****************************Plotting absolute power graph***************************/
-      //order of bands MUST match the order of bands in freqRange array (see above)
+
+      //order of bands MUST match the order of bands in fqRange array (see above)
       String[] freqBandName = new String[] { "delta", "theta", "alpha", "beta1", "beta2", "gamma1", "gamma2" };
 
-
-      PlotModel tempAbsPwr = new PlotModel()
-      {
-        Title = "Absolute Power"
-      };
-
-      ColumnSeries absPlotbars = new ColumnSeries
-      {
-        //Title = "Abs_Pwr",
-        StrokeColor = OxyColors.Black,
-        StrokeThickness = 1,
-        FillColor = OxyColors.Blue//changes color of bars
-      };
-      absPlotbars.Items.AddRange(absPlotbandItems);
-
-      CategoryAxis absbandLabels = new CategoryAxis { Position = AxisPosition.Bottom };
-
-      absbandLabels.Labels.AddRange(freqBandName);
-
-      LinearAxis absYAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Power (db)", MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0, TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8 };
-      tempAbsPwr.Series.Add(absPlotbars);
-      tempAbsPwr.Axes.Add(absbandLabels);
-      tempAbsPwr.Axes.Add(absYAxis);
-
-      PlotAbsPwr = tempAbsPwr;
-
+      /*****************************Plotting absolute power graph***************************/
+      PlotAbsolutePower(absPlotbandItems, freqBandName);
 
       /*************************************Plotting relative power graph****************************/
-      PlotModel tempRelPwr = new PlotModel()
-      {
-        Title = "Relative Power"
-      };
-      ColumnSeries relPlotbars = new ColumnSeries
-      {
-        StrokeColor = OxyColors.Black,
-        StrokeThickness = 1,
-        FillColor = OxyColors.Red//changes color of bars
-      };
-      relPlotbars.Items.AddRange(relPlotbandItems);
+      PlotRelativePower(plotbandItems, freqBandName);
 
-      CategoryAxis relbandLabels = new CategoryAxis { Position = AxisPosition.Bottom };
-
-      relbandLabels.Labels.AddRange(freqBandName);
-
-      LinearAxis relYAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Power (%)", MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0, TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8 };
-      tempRelPwr.Series.Add(relPlotbars);
-      tempRelPwr.Axes.Add(relbandLabels);
-      tempRelPwr.Axes.Add(relYAxis);
-
-      PlotRelPwr = tempRelPwr;
+      /*************************Plotting Power Spectral Density *********************/
+      PlotPowerSpectralDensity(psdValues, frqValues);
 
       /********************Plotting a heatmap for spectrogram (line 820, 2133 - PSG_viewer_v7.m)*********************/
-      PlotModel tempSpectGram = new PlotModel()
+      /*PlotModel tempSpectGram = new PlotModel()
       {
         Title = "Spectrogram",
       };
@@ -1561,63 +1512,19 @@ namespace SleepApneaDiagnoser
 
       double minTime = specMatrix.Min2D(), maxTime = specMatrix.Max2D(), minFreq = specMatrix.Min2D(), maxFreq = specMatrix.Max2D();
       HeatMapSeries specGram = new HeatMapSeries() { X0 = minTime, X1 = maxTime, Y0 = minFreq, Y1 = maxFreq, Data = specMatrix };
-      tempSpectGram.Series.Add(specGram);
+      tempSpectGram.Series.Add(specGram);*/
 
       //PlotSpecGram = tempSpectGram;
 
-      /*************************Plotting Power Spectral Density *********************/
-      PlotModel tempPSD = new PlotModel()
-      {
-        Title = "Power Spectral Density"
-      };
-      LineSeries psdSeries = new LineSeries() { Color = OxyColors.Green };
-      for (int i = 0; i < psdValues.Length; i++)
-      {
-        psdSeries.Points.Add(new DataPoint(frqValues[i], psdValues[i]));
-      }
-      tempPSD.Series.Add(psdSeries);
-      tempPSD.Axes.Add(new LinearAxis() { Position = AxisPosition.Left, Title = "Power (dB)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold });
-      tempPSD.Axes.Add(new LinearAxis() { Position = AxisPosition.Bottom, Title = "Frequency (Hz)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8 });
 
-      PlotPSD = tempPSD;
-
-      /**************************Exporting Abs Power to .csv*************************/
-      StreamWriter absPwrStream = new StreamWriter("EEGAbsPwr.csv");
-      String dataLine = null;
-
-      dataLine = String.Format("delta, theta, alpha, beta1, beta2, gamma1, gamma2");
-      absPwrStream.WriteLine(dataLine);
-      dataLine = String.Format("{0:0.00},{1:0.00},{2:0.00},{3:0.00},{4:0.00},{5:0.00},{6:0.00}", absPower[0], absPower[1], absPower[2], absPower[3], absPower[4], absPower[5], absPower[6]);
-      absPwrStream.WriteLine(dataLine);
-
-      absPwrStream.Close();
-
-      /**********************Exporting Power Spectral Density to .csv***************/
-      StreamWriter psdStream = new StreamWriter("EEGData.csv");
-
-
-      dataLine = String.Format("Epoch#, Power(db), Frequency(Hz)");
-      psdStream.WriteLine(dataLine);
-
-      for (int i = 1; i < psdValues.Length; i++)
-      {
-        dataLine = String.Format("{0},{1:0.00},{2:0.00}", " ", psdValues[i], frqValues[i]);
-        psdStream.WriteLine(dataLine.ToString());
-      }
-      psdStream.Close();
-
-
-      /**************************Exporting EEG Signal to .csv*************************/
-      StreamWriter eegSignalStream = new StreamWriter("EEGSignal.csv");
-      dataLine = null;
-      dataLine = String.Format("X(time), Y(SigVal)");
-      eegSignalStream.WriteLine(dataLine);
-      for (int i = 0; i < series.Points.Count; i++)
-      {
-        dataLine = String.Format("{0},{1:0.00}", series.Points[i].X, series.Points[i].Y);
-        eegSignalStream.WriteLine(dataLine.ToString());
-      }
-      eegSignalStream.Close();      
+      /*************************Exporting to .tiff format**************************/
+      String plotsDirectory = "EEGPlots";
+      Directory.CreateDirectory(plotsDirectory);//if directory already exist, this line will be ignored
+      ExportEEGPlot(PlotAbsPwr, plotsDirectory + "//AbsolutePower.png");
+      ExportEEGPlot(PlotRelPwr, plotsDirectory + "//RelativePower.png");
+      ExportEEGPlot(PlotPSD, plotsDirectory + "//PowerSpecDensity.png");
+            
+      //GenericExportImage(PlotSpecGram, "Spectrogram.png");//Need to review implementation
 
       return;//for debugging only
     }
@@ -3427,24 +3334,30 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        rm.RespiratoryBinaryDuration = value ?? 1;      
-        int modelLength = rm.RespiratoryBinaryDuration.Value;
+        rm.RespiratoryBinaryDuration = value ?? 1;
 
-        DateTime from = DateTime.Parse(resp_bin_date_time_from);
-        DateTime newTo = DateTime.Parse(resp_bin_new_from.ToString());
-        newTo = newTo.AddSeconds(30 * (modelLength));
-
-        if (newTo <= from)
+        if (IsRespBinLoaded)
         {
-          newTo = resp_bin_new_to;
-        }
-        else
-        {
-          resp_bin_new_to = newTo; 
+
+          int modelLength = rm.RespiratoryBinaryDuration.Value;
+
+          DateTime from = DateTime.Parse(resp_bin_date_time_from);
+          DateTime newTo = DateTime.Parse(resp_bin_new_from.ToString());
+          newTo = newTo.AddSeconds(30 * (modelLength));
+
+          if (newTo <= from)
+          {
+            newTo = resp_bin_new_to;
+          }
+          else
+          {
+            resp_bin_new_to = newTo;
+          }
+
+          // perform all of the respiratory analysis
+          RespiratoryAnalysisBinary(resp_bin_signal_name, resp_signal_values, DateTime.Parse(resp_bin_date_time_from), resp_bin_new_from, resp_bin_new_to, resp_bin_sample_period);
         }
 
-        // perform all of the respiratory analysis
-        RespiratoryAnalysisBinary(resp_bin_signal_name, resp_signal_values, DateTime.Parse(resp_bin_date_time_from), resp_bin_new_from, resp_bin_new_to, resp_bin_sample_period);
         OnPropertyChanged(nameof(RespiratoryBinaryDuration));
       }
     }   
@@ -3644,6 +3557,33 @@ namespace SleepApneaDiagnoser
         OnPropertyChanged(nameof(EpochForAnalysis));
       }
     }
+
+    public int? EEGEpochForAnalysisBinary {
+      get {
+        return eegm.EEGBinaryEpochForAnalysis;
+      }
+      set {
+        eegm.EEGBinaryEpochForAnalysis = value ?? 1;
+
+        if (IsEEGBinaryLoaded == true) {
+          DateTime bin_start_time = DateTime.Parse(eeg_bin_date_time_from);
+          DateTime curr_date_time = bin_start_time.AddSeconds(30 * (eegm.EEGBinaryEpochForAnalysis-1));
+
+          float sample_period = 1 / float.Parse(eeg_bin_sample_frequency_s);
+
+          if (curr_date_time < DateTime.Parse(eeg_bin_date_time_to))
+          {
+            BW_EEGAnalysisBin(eeg_bin_signal_name, eeg_bin_signal_values, bin_start_time, curr_date_time, curr_date_time.AddSeconds(30), sample_period);
+          }
+          else {
+            int seconds_diff = (int) (DateTime.Parse(eeg_bin_date_time_to).Subtract(DateTime.Parse(eeg_bin_date_time_from)).TotalSeconds);
+            eegm.EEGBinaryEpochForAnalysis = seconds_diff / 30;
+          }
+        }
+        OnPropertyChanged(nameof(EEGEpochForAnalysisBinary));
+      }
+    }
+
     public int? ExportEpochStart
     {
       get
@@ -4088,6 +4028,30 @@ namespace SleepApneaDiagnoser
         return Array.AsReadOnly(value);
       }
     }
+
+    public int EEGAnalysisBinaryFileLoaded = 0;
+
+    public bool IsEEGBinaryLoaded
+    {
+      get {
+        if (EEGAnalysisBinaryFileLoaded == 0)
+        {
+          return false;
+        }
+        return true;
+      }
+    }
+
+    public object EEGBinaryMaxEpoch {
+      get {
+        return eeg_bin_max_epochs.ToString();
+      }
+      set {
+      }
+    }
+
+    public int RespiratoryBinaryMaxEpochs { get { return resp_bin_max_epoch; } set { } }
+
     public void RecentFiles_Add(string path)
     {
       if (!Directory.Exists("Settings"))
@@ -4139,6 +4103,15 @@ namespace SleepApneaDiagnoser
     private List<float> resp_signal_values;
     private DateTime resp_bin_new_from;
     private DateTime resp_bin_new_to;
+    private List<float> eeg_bin_signal_values;
+    private string eeg_bin_signal_name;
+    private string eeg_bin_subject_id;
+    private string eeg_bin_date_time_from;
+    private string eeg_bin_date_time_to;
+    private string eeg_bin_sample_frequency_s;
+    private DateTime eeg_bind_curr_from;
+    private int eeg_bin_max_epochs;
+    private int resp_bin_max_epoch;
 
     private void SetYBounds(string Signal)
     {

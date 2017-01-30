@@ -127,6 +127,10 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public int EpochForAnalysis;
     /// <summary>
+    /// The user selected Number of Epochs for eeg analysis in 30s epochs for binary files
+    /// </summary>
+    public int EEGBinaryEpochForAnalysis;
+    /// <summary>
     /// The user selected start epoch for eeg analysis export in 30s epochs
     /// </summary>
     public int ExportEpochStart;

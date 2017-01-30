@@ -201,23 +201,25 @@
                 </Grid.ColumnDefinitions>
                 <!-- Section Headers -->
                 <Label Content="Signal Selection" FontSize="18" Width="200" Height="34" VerticalAlignment="Top" HorizontalAlignment="Left"  Grid.ColumnSpan="2"/>
-                <Label Content="Plot Options" FontSize="18" Width="200" Height="34" VerticalAlignment="Top" HorizontalAlignment="Left" Grid.Column="2"/>
+                <Label Content="Plot Options" FontSize="18" Width="200" Height="34" VerticalAlignment="Top" HorizontalAlignment="Left" Grid.Column="2" Grid.ColumnSpan="2" Margin="53,0,0,0"/>
                 <!-- From Binary -->
                 <Label Content="Binary" FontSize="14" Margin="0,5,20,5" Grid.Row="1"/>
                 <Button Content="Open" Width="100" HorizontalAlignment="Left" Margin="10,8,0,8" Grid.Column="1" Grid.Row="1" Click="button_BINRespiratoryAnalysis_Click" />
-                <ToggleButton Content="CONSTANT AXIS" Margin="10,6,11,6" Grid.Column="4" Grid.Row="2" IsEnabled="{Binding IsEDFLoaded}" IsChecked="{Binding RespiratoryUseConstantAxis}"/>
+                <ToggleButton Content="CONSTANT AXIS" Margin="84,2,-63,10" Grid.Column="4" Grid.Row="2" IsEnabled="{Binding IsEDFLoaded}" IsChecked="{Binding RespiratoryUseConstantAxis}"/>
                 <!-- From EDF -->
                 <Label Content="EDF" FontSize="14" Margin="0,5,20,5" Grid.Row="2"/>
                 <Label Content="Signal" FontSize="14" Width="50" HorizontalAlignment="Left" Margin="10,5,0,5" HorizontalContentAlignment="Left" Grid.Column="1" Grid.Row="2"/>
-                <ComboBox Margin="60,5,10,5" IsEnabled="{Binding IsEDFLoaded}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding RespiratoryEDFSelectedSignal}" Grid.Column="1" Grid.Row="2"/>
-                <Label Content="From" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="0,5,0,5" HorizontalContentAlignment="Left" Grid.Column="2" Grid.Row="2"/>
-                <mtr:NumericUpDown FontSize="14"  Margin="65,5,10,5" TextAlignment="Center" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding RespiratoryEDFStartRecord}" Minimum="{Binding RespiratoryEDFStartRecordMin}" Maximum="{Binding RespiratoryEDFStartRecordMax}" Grid.Column="2" Grid.Row="2"/>
-                <Label Content="Duration" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="0,5,0,5" HorizontalContentAlignment="Left" Grid.Column="3" Grid.Row="2"/>
-                <mtr:NumericUpDown FontSize="14" Margin="65,5,10,5" TextAlignment="Center" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding RespiratoryEDFDuration}" Minimum="{Binding RespiratoryEDFDurationMin}" Maximum="{Binding RespiratoryEDFDurationMax}" Grid.Column="3" Grid.Row="2"/>
-                <Label Content="From" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="0,5" HorizontalContentAlignment="Left" Grid.Column="2" Grid.Row="1"/>
-                <mtr:NumericUpDown FontSize="14"  Margin="65,5,10,5" TextAlignment="Center" IsEnabled="{Binding IsRespBinLoaded}" Value="{Binding RespiratoryBinaryStart}" Minimum="1" Grid.Column="2" Grid.Row="1"/>
-                <Label Content="Duration" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="0,5" HorizontalContentAlignment="Left" Grid.Column="3" Grid.Row="1"/>
-                <mtr:NumericUpDown FontSize="14" Margin="65,5,10,5" TextAlignment="Center" IsEnabled="{Binding IsRespBinLoaded}" Value="{Binding RespiratoryBinaryDuration}" Minimum="1" Grid.Column="3" Grid.Row="1"/>
+                <ComboBox Margin="60,5,196,5" IsEnabled="{Binding IsEDFLoaded}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding RespiratoryEDFSelectedSignal}" Grid.Column="1" Grid.Row="2" Grid.ColumnSpan="2"/>
+                <Label Content="From" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="53,6,0,4" HorizontalContentAlignment="Left" Grid.Column="2" Grid.Row="2"/>
+                <mtr:NumericUpDown FontSize="14"  Margin="105,5,191,5" TextAlignment="Center" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding RespiratoryEDFStartRecord}" Minimum="{Binding RespiratoryEDFStartRecordMin}" Maximum="{Binding RespiratoryEDFStartRecordMax}" Grid.Column="2" Grid.Row="2" Grid.ColumnSpan="2"/>
+                <Label Content="Duration" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="63,5,0,5" HorizontalContentAlignment="Left" Grid.Column="3" Grid.Row="2"/>
+                <mtr:NumericUpDown FontSize="14" Margin="138,3,58,7" TextAlignment="Center" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding RespiratoryEDFDuration}" Minimum="{Binding RespiratoryEDFDurationMin}" Maximum="{Binding RespiratoryEDFDurationMax}" Grid.Column="3" Grid.Row="2" Grid.ColumnSpan="2"/>
+                <Label Content="From" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="53,4,0,6" HorizontalContentAlignment="Left" Grid.Column="2" Grid.Row="1"/>
+                <mtr:NumericUpDown FontSize="14"  Margin="105,2,191,8" TextAlignment="Center" IsEnabled="{Binding IsRespBinLoaded}" Value="{Binding RespiratoryBinaryStart}" Minimum="1" Grid.Column="2" Grid.Row="1" Grid.ColumnSpan="2"/>
+                <Label Content="Duration" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="63,2,0,8" HorizontalContentAlignment="Left" Grid.Column="3" Grid.Row="1"/>
+                <mtr:NumericUpDown FontSize="14" Margin="138,4,58,6" TextAlignment="Center" IsEnabled="{Binding IsRespBinLoaded}" Value="{Binding RespiratoryBinaryDuration}" Minimum="1" Grid.Column="3" Grid.Row="1" Grid.ColumnSpan="2" RenderTransformOrigin="0.705,0.543"/>
+                <TextBox x:Name="textBox_Copy" Grid.Column="1" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" Height="35" Margin="226,2,0,0" Grid.Row="1" TextWrapping="Wrap" Text="{Binding RespiratoryBinaryMaxEpochs}" VerticalAlignment="Top" Width="100" Grid.ColumnSpan="2" IsEnabled="{Binding IsRespBinaryLoaded}" IsReadOnly="true"/>
+                <Label Content="Max Epoch #" FontSize="14" Margin="127,5,0,5" HorizontalContentAlignment="Left" Grid.Column="1" Grid.Row="1" HorizontalAlignment="Left" Width="94"/>
               </Grid>
 
               <Label Content="Plot" FontSize="18" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="10,130,0,0"/>
@@ -249,25 +251,29 @@
                 </Grid.ColumnDefinitions>
                 <!-- Section Headers -->
                 <Label Content="Signal Selection" FontSize="18" Width="200" Height="34" VerticalAlignment="Top" HorizontalAlignment="Left"  Grid.ColumnSpan="2"/>
-                <Label Content="Plot Options" FontSize="18" Width="200" Height="34" VerticalAlignment="Top" HorizontalAlignment="Left" Grid.Column="2"/>
+                <Label Content="Plot Options" FontSize="18" Width="200" Height="34" VerticalAlignment="Top" HorizontalAlignment="Left" Grid.Column="2" Grid.ColumnSpan="2" Margin="53,0,0,0"/>
                 <!-- From Binary -->
                 <Label Content="Binary" FontSize="14" Margin="0,5,20,5" Grid.Row="1"/>
                 <Button Content="Open" Width="100" HorizontalAlignment="Left" Margin="10,8,0,8" Grid.Column="1" Grid.Row="1" Click="button_BINEEGAnalysis_Click" />
                 <!-- From EDF -->
                 <Label Content="EDF" FontSize="14" Margin="0,5,20,5" Grid.Row="2"/>
                 <Label Content="Signal" FontSize="14" Width="50" HorizontalAlignment="Left" Margin="10,5,0,5" HorizontalContentAlignment="Left" Grid.Column="1" Grid.Row="2"/>
-                <ComboBox Margin="60,5,65,5" IsEnabled="{Binding IsEDFLoaded}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding EEGEDFSelectedSignal}" Grid.Column="1" Grid.Row="2"/>
-                <Label Content="Epoch #" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="0,5,0,5" HorizontalContentAlignment="Left" Grid.Column="2" Grid.Row="2"/>
-                <mtr:NumericUpDown FontSize="14"  Margin="65,5,10,5" TextAlignment="Center" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding EpochForAnalysis}" Minimum="{Binding EEGEDFStartRecordMin}" Maximum="{Binding EEGEDFStartRecordMax}" Grid.Column="2" Grid.Row="2"/>
-                <Button Content="Go" Margin="0,6,10,6" IsEnabled="{Binding IsEDFLoaded}" Click="button_EDFEEGAnalysis_Click" Grid.Column="1" Grid.Row="2" HorizontalAlignment="Right" Width="50" />
+                <ComboBox Margin="60,5,30,5" IsEnabled="{Binding IsEDFLoaded}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding EEGEDFSelectedSignal}" Grid.Column="1" Grid.Row="2"/>
+                <Label Content="Epoch #" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="53,5,0,5" HorizontalContentAlignment="Left" Grid.Column="2" Grid.Row="2"/>
+                <mtr:NumericUpDown FontSize="14"  Margin="118,5,178,5" TextAlignment="Center" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding EpochForAnalysis}" Minimum="{Binding EEGEDFStartRecordMin}" Maximum="{Binding EEGEDFStartRecordMax}" Grid.Column="2" Grid.Row="2" Grid.ColumnSpan="2"/>
+                <Button Content="Go" Margin="0,5,196,7" IsEnabled="{Binding IsEDFLoaded}" Click="button_EDFEEGAnalysis_Click" Grid.Column="1" Grid.Row="2" HorizontalAlignment="Right" Width="50" Grid.ColumnSpan="2" />
 
-                <Label Content="From" FontSize="14" Margin="0,5,0,5" HorizontalContentAlignment="Left" Grid.Column="3" Grid.Row="1" HorizontalAlignment="Left" Width="70"/>
-                <mtr:NumericUpDown FontSize="14" Margin="65,5,10,5" TextAlignment="Center" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding ExportEpochStart}" Minimum="{Binding EEGEDFStartRecordMin}" Maximum="{Binding EEGEDFStartRecordMax}" Grid.Column="3" Grid.Row="1" RenderTransformOrigin="0.056,0.364"/>
+                <Label Content="From" FontSize="14" Margin="53,5,0,5" HorizontalContentAlignment="Left" Grid.Column="3" Grid.Row="1" HorizontalAlignment="Left" Width="70"/>
+                <mtr:NumericUpDown FontSize="14" Margin="118,5,78,5" TextAlignment="Center" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding ExportEpochStart}" Minimum="{Binding EEGEDFStartRecordMin}" Maximum="{Binding EEGEDFStartRecordMax}" Grid.Column="3" Grid.Row="1" RenderTransformOrigin="0.056,0.364" Grid.ColumnSpan="2"/>
 
-                <Label Content="To" FontSize="14" Margin="0,5,0,5" HorizontalContentAlignment="Left" Grid.Column="3" Grid.Row="2" HorizontalAlignment="Left" Width="70" RenderTransformOrigin="0.057,0.414"/>
-                <mtr:NumericUpDown FontSize="14" Margin="65,5,10,5" TextAlignment="Center" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding ExportEpochEnd}" Minimum="{Binding ExportEpochStart}" Maximum="{Binding EEGEDFStartRecordMax}" Grid.Column="3" Grid.Row="2" RenderTransformOrigin="0.056,0.364"/>
-                <Button Content="Export" IsEnabled="{Binding IsEDFLoaded}" Click="button_ExportEEGCalculations_Click" Grid.Column="4" Margin="10,6,11,6" Grid.Row="2"/>
-                <Label Content="Export" FontSize="18" Width="80" Height="34" VerticalAlignment="Top" HorizontalAlignment="Left" Grid.Column="3"/>
+                <Label Content="To" FontSize="14" Margin="53,5,0,5" HorizontalContentAlignment="Left" Grid.Column="3" Grid.Row="2" HorizontalAlignment="Left" Width="70" RenderTransformOrigin="0.057,0.414"/>
+                <mtr:NumericUpDown FontSize="14" Margin="118,5,78,5" TextAlignment="Center" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding ExportEpochEnd}" Minimum="{Binding ExportEpochStart}" Maximum="{Binding EEGEDFStartRecordMax}" Grid.Column="3" Grid.Row="2" RenderTransformOrigin="0.056,0.364" Grid.ColumnSpan="2"/>
+                <Button Content="Export" IsEnabled="{Binding IsEDFLoaded}" Click="button_ExportEEGCalculations_Click" Grid.Column="4" Margin="63,6,-42,6" Grid.Row="2"/>
+                <Label Content="Export" FontSize="18" Width="80" Height="34" VerticalAlignment="Top" HorizontalAlignment="Left" Grid.Column="3" Margin="53,0,0,0"/>
+                <Label Content="Epoch #" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="53,4,0,6" HorizontalContentAlignment="Left" Grid.Column="2" Grid.Row="1"/>
+                <mtr:NumericUpDown FontSize="14"  Margin="118,4,178,6" TextAlignment="Center" IsEnabled="{Binding IsEEGBinaryLoaded}" Value="{Binding EEGEpochForAnalysisBinary}" Minimum="1" Grid.Column="2" Grid.Row="1" Grid.ColumnSpan="2"/>
+                <TextBox x:Name="textBox" Grid.Column="1" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Left" Height="35" Margin="226,2,0,0" Grid.Row="1" TextWrapping="Wrap" Text="{Binding EEGBinaryMaxEpoch}" VerticalAlignment="Top" Width="100" Grid.ColumnSpan="2" IsEnabled="{Binding IsEEGBinaryLoaded}" IsReadOnly="true"/>
+                <Label Content="Max Epoch #" FontSize="14" Margin="127,5,0,5" HorizontalContentAlignment="Left" Grid.Column="1" Grid.Row="1" HorizontalAlignment="Left" Width="94"/>
               </Grid>
 
               <Label Content="Plot" FontSize="18" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="10,130,0,0"/>
