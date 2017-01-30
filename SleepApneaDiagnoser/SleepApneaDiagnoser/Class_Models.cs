@@ -109,6 +109,8 @@ namespace SleepApneaDiagnoser
     /// If false, auto adjust to plot
     /// </summary>
     public bool RespiratoryUseConstantAxis = false;
+    internal int? RespiratoryBinaryStart;
+    internal int? RespiratoryBinaryDuration;
   }
 
   /// <summary>
