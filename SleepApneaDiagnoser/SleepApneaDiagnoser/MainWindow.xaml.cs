@@ -4031,29 +4031,6 @@ namespace SleepApneaDiagnoser
       }
     }
 
-    public int EEGAnalysisBinaryFileLoaded = 0;
-
-    public bool IsEEGBinaryLoaded
-    {
-      get {
-        if (EEGAnalysisBinaryFileLoaded == 0)
-        {
-          return false;
-        }
-        return true;
-      }
-    }
-
-    public object EEGBinaryMaxEpoch {
-      get {
-        return eeg_bin_max_epochs.ToString();
-      }
-      set {
-      }
-    }
-
-    public int RespiratoryBinaryMaxEpochs { get { return resp_bin_max_epoch; } set { } }
-
     public void RecentFiles_Add(string path)
     {
       if (!Directory.Exists("Settings"))
@@ -4094,27 +4071,6 @@ namespace SleepApneaDiagnoser
     // Signal Y Axis Extremes
     private double percent_high = 99;
     private double percent_low = 1;
-
-    // Used For Importing From Binary For Respiratory Signals
-    private string resp_bin_sample_frequency_s;
-    private string resp_bin_date_time_length;
-    private string resp_bin_date_time_from;
-    private string resp_bin_subject_id;
-    private string resp_bin_signal_name;
-    private float resp_bin_sample_period;
-    private List<float> resp_signal_values;
-    private DateTime resp_bin_new_from;
-    private DateTime resp_bin_new_to;
-    private List<float> eeg_bin_signal_values;
-    private string eeg_bin_signal_name;
-    private string eeg_bin_subject_id;
-    private string eeg_bin_date_time_from;
-    private string eeg_bin_date_time_to;
-    private string eeg_bin_sample_frequency_s;
-    private DateTime eeg_bind_curr_from;
-    private int eeg_bin_max_epochs;
-    private int resp_bin_max_epoch;
-
     private void SetYBounds(string Signal)
     {
       string OrigName = Signal;
@@ -4161,7 +4117,7 @@ namespace SleepApneaDiagnoser
             values1 = Utils.MATLAB_Resample(values1.ToArray(), edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord);
           }
 
-          for (int x = 0; x < Math.Min(values1.Count, values2.Count); x+=1)
+          for (int x = 0; x < Math.Min(values1.Count, values2.Count); x += 1)
           {
             values.Add(values1[x] - values2[x]);
           }
@@ -4181,7 +4137,7 @@ namespace SleepApneaDiagnoser
         float range = values[high_index] - values[low_index];
         float high_value = values[high_index] + range * (100 - (float)percent_high) / 100;
         float low_value = values[low_index] - range * ((float)percent_low) / 100;
-        sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(OrigName) { yMax = high_value , yMin = low_value });
+        sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(OrigName) { yMax = high_value, yMin = low_value });
       }
     }
     private double GetMaxSignalValue(string Signal)
@@ -4228,7 +4184,49 @@ namespace SleepApneaDiagnoser
         return GetMinSignalValue(Signal);
       }
     }
-    
+
+    /********************************************************** ZABEEH'S BINARY STUFF ****************************************************/
+
+    public int EEGAnalysisBinaryFileLoaded = 0;
+    public bool IsEEGBinaryLoaded
+    {
+      get {
+        if (EEGAnalysisBinaryFileLoaded == 0)
+        {
+          return false;
+        }
+        return true;
+      }
+    }
+    public object EEGBinaryMaxEpoch {
+      get {
+        return eeg_bin_max_epochs.ToString();
+      }
+      set {
+      }
+    }
+    public int RespiratoryBinaryMaxEpochs { get { return resp_bin_max_epoch; } set { } }
+
+    // Used For Importing From Binary For Respiratory Signals
+    private string resp_bin_sample_frequency_s;
+    private string resp_bin_date_time_length;
+    private string resp_bin_date_time_from;
+    private string resp_bin_subject_id;
+    private string resp_bin_signal_name;
+    private float resp_bin_sample_period;
+    private List<float> resp_signal_values;
+    private DateTime resp_bin_new_from;
+    private DateTime resp_bin_new_to;
+    private List<float> eeg_bin_signal_values;
+    private string eeg_bin_signal_name;
+    private string eeg_bin_subject_id;
+    private string eeg_bin_date_time_from;
+    private string eeg_bin_date_time_to;
+    private string eeg_bin_sample_frequency_s;
+    private DateTime eeg_bind_curr_from;
+    private int eeg_bin_max_epochs;
+    private int resp_bin_max_epoch;
+
     /*********************************************************************************************************************************/
 
     #endregion
