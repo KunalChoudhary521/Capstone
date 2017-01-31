@@ -111,6 +111,8 @@ namespace SleepApneaDiagnoser
     public bool RespiratoryUseConstantAxis = false;
     internal int? RespiratoryBinaryStart;
     internal int? RespiratoryBinaryDuration;
+
+    public bool RespiratoryProgressRingEnabled = false;
   }
 
   /// <summary>

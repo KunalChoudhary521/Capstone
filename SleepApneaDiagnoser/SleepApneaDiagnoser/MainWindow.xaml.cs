@@ -1100,10 +1100,6 @@ namespace SleepApneaDiagnoser
 
         resp_bin_max_epoch = (int)epochs_to_datetime.Subtract(epochs_from_datetime).TotalSeconds / 30;
         OnPropertyChanged(nameof(RespiratoryBinaryMaxEpochs));
-
-        this.resp_bin_new_from = epochs_from_datetime;
-        this.resp_bin_new_to = epochs_from_datetime.AddSeconds(30);
-
         rm.RespiratoryBinaryStart = 1;
         OnPropertyChanged(nameof(RespiratoryBinaryStart));
         rm.RespiratoryBinaryDuration = 1;
@@ -1118,8 +1114,34 @@ namespace SleepApneaDiagnoser
     }
     public void PerformRespiratoryAnalysisBinary()
     {
+      RespiratoryProgressRingEnabled = true;
+
+      // Finding From 
+      int modelStartRecord = RespiratoryBinaryStart.Value;
+      DateTime newFrom = DateTime.Parse(resp_bin_date_time_from);
+      newFrom = newFrom.AddSeconds(30 * (modelStartRecord - 1));
+      
+      // Finding To 
+      int modelLength = rm.RespiratoryBinaryDuration.Value;
+      DateTime newTo = newFrom;
+      newTo = newTo.AddSeconds(30 * (modelLength));
+
+      if (newFrom < DateTime.Parse(resp_bin_date_time_from))
+        newFrom = DateTime.Parse(resp_bin_date_time_from);
+      if (newTo < newFrom)
+        newTo = newFrom;
+
       PlotModel tempPlotModel = new PlotModel();
-      Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> resp_plots = GetRespiratoryAnalysisPlot(resp_bin_signal_name, resp_signal_values, resp_bin_sample_period, RespiratoryRemoveMultiplePeaks, RespiratoryMinimumPeakWidth, DateTime.Parse(resp_bin_date_time_from), resp_bin_new_from, resp_bin_new_to);
+      Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> resp_plots = GetRespiratoryAnalysisPlot(
+        resp_bin_signal_name, 
+        resp_signal_values, 
+        resp_bin_sample_period, 
+        RespiratoryRemoveMultiplePeaks, 
+        RespiratoryMinimumPeakWidth, 
+        DateTime.Parse(resp_bin_date_time_from), 
+        newFrom, 
+        newTo
+      );
       tempPlotModel.Series.Add(resp_plots.Item1);
       tempPlotModel.Series.Add(resp_plots.Item2);
       tempPlotModel.Series.Add(resp_plots.Item3);
@@ -1142,9 +1164,6 @@ namespace SleepApneaDiagnoser
     /// <param name="e"></param>
     private void BW_RespiratoryAnalysisEDF(object sender, DoWorkEventArgs e)
     {
-      if (RespiratoryEDFSelectedSignal == null)
-        return;
-
       PlotModel temp_SignalPlot = new PlotModel();
 
       temp_SignalPlot.Series.Clear();
@@ -1194,6 +1213,11 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public void PerformRespiratoryAnalysisEDF()
     {
+      if (RespiratoryEDFSelectedSignal == null)
+        return;
+      
+      RespiratoryProgressRingEnabled = true;
+
       BackgroundWorker bw = new BackgroundWorker();
       bw.DoWork += BW_RespiratoryAnalysisEDF;
       bw.RunWorkerAsync();
@@ -2283,8 +2307,9 @@ namespace SleepApneaDiagnoser
       // Misc
       OnPropertyChanged(nameof(IsEDFLoaded));
 
-      // Coherence
+      // Analysis 
       OnPropertyChanged(nameof(CoherenceEDFNavigationEnabled));
+      OnPropertyChanged(nameof(RespiratoryEDFNavigationEnabled));
 
       EEGView_Changed();
       RespiratoryView_Changed();
@@ -2362,7 +2387,11 @@ namespace SleepApneaDiagnoser
         all_plotmodels[x].SetValue(this, model);
       }
     }
-
+    private void RepiratoryPlotChanged()
+    {
+      p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
+      RespiratoryProgressRingEnabled = false;
+    }
     private void RespiratoryView_Changed()
     {
       OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
@@ -3116,10 +3145,13 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        rm.RespiratoryEDFStartRecord = value ?? 1;
-        OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
-        RespiratoryView_Changed();
-        PerformRespiratoryAnalysisEDF();
+        if (IsEDFLoaded && rm.RespiratoryEDFStartRecord != (value ?? 1))
+        {
+          rm.RespiratoryEDFStartRecord = value ?? 1;
+          OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
+          RespiratoryView_Changed();
+          PerformRespiratoryAnalysisEDF();
+        }
       }
     }
     public int? RespiratoryEDFDuration
@@ -3130,10 +3162,13 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        rm.RespiratoryEDFDuration = value ?? 1;
-        OnPropertyChanged(nameof(RespiratoryEDFDuration));
-        RespiratoryView_Changed();
-        PerformRespiratoryAnalysisEDF();
+        if (IsEDFLoaded && rm.RespiratoryEDFDuration != (value ?? 1))
+        {
+          rm.RespiratoryEDFDuration = value ?? 1;
+          OnPropertyChanged(nameof(RespiratoryEDFDuration));
+          RespiratoryView_Changed();
+          PerformRespiratoryAnalysisEDF();
+        }
       }
     }
 
@@ -3145,26 +3180,12 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        rm.RespiratoryBinaryStart = value ?? 1;
-
-        int modelStartRecord = RespiratoryBinaryStart.Value;
-
-        DateTime to = DateTime.Parse(resp_bin_date_time_length);
-        DateTime newFrom = DateTime.Parse(resp_bin_date_time_from);
-        newFrom = newFrom.AddSeconds(30 * (modelStartRecord - 1));
-
-        if (newFrom >= to)
+        if (IsRespBinLoaded && rm.RespiratoryBinaryStart != (value ?? 1))
         {
-          newFrom = resp_bin_new_from;          
+          rm.RespiratoryBinaryStart = value ?? 1;
+          OnPropertyChanged(nameof(RespiratoryBinaryStart));
+          PerformRespiratoryAnalysisBinary();
         }
-        else
-        {
-          resp_bin_new_from = newFrom;
-          resp_bin_new_to = newFrom.AddSeconds((double)RespiratoryBinaryDuration*30);
-        }
-        
-        PerformRespiratoryAnalysisBinary();
-        OnPropertyChanged(nameof(RespiratoryBinaryStart));
       }
     }
     public int? RespiratoryBinaryDuration
@@ -3175,30 +3196,12 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        rm.RespiratoryBinaryDuration = value ?? 1;
-
-        if (IsRespBinLoaded)
+        if (IsRespBinLoaded && rm.RespiratoryBinaryDuration != (value ?? 1))
         {
-
-          int modelLength = rm.RespiratoryBinaryDuration.Value;
-
-          DateTime from = DateTime.Parse(resp_bin_date_time_from);
-          DateTime newTo = DateTime.Parse(resp_bin_new_from.ToString());
-          newTo = newTo.AddSeconds(30 * (modelLength));
-
-          if (newTo <= from)
-          {
-            newTo = resp_bin_new_to;
-          }
-          else
-          {
-            resp_bin_new_to = newTo;
-          }
-
+          rm.RespiratoryBinaryDuration = value ?? 1;
+          OnPropertyChanged(nameof(RespiratoryBinaryDuration));
           PerformRespiratoryAnalysisBinary();
         }
-
-        OnPropertyChanged(nameof(RespiratoryBinaryDuration));
       }
     }   
 
@@ -3213,7 +3216,7 @@ namespace SleepApneaDiagnoser
         ApplyThemeToPlot(value);
         rm.RespiratorySignalPlot = value;
         OnPropertyChanged(nameof(RespiratorySignalPlot));
-        p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
+        RepiratoryPlotChanged();
       }
     }
     public string RespiratoryBreathingPeriodMean
@@ -3367,6 +3370,30 @@ namespace SleepApneaDiagnoser
         rm.RespiratoryUseConstantAxis = value;
         OnPropertyChanged(nameof(RespiratoryUseConstantAxis));
         PerformRespiratoryAnalysisEDF();
+      }
+    }
+
+    public bool RespiratoryProgressRingEnabled
+    {
+      get
+      {
+        return rm.RespiratoryProgressRingEnabled;
+      }
+      set
+      {
+        rm.RespiratoryProgressRingEnabled = value;
+        OnPropertyChanged(nameof(RespiratoryProgressRingEnabled));
+        OnPropertyChanged(nameof(RespiratoryEDFNavigationEnabled));
+      }
+    }
+    public bool RespiratoryEDFNavigationEnabled
+    {
+      get
+      {
+        if (!IsEDFLoaded)
+          return false;
+        else
+          return !RespiratoryProgressRingEnabled;
       }
     }
 
@@ -4071,8 +4098,6 @@ namespace SleepApneaDiagnoser
     private string resp_bin_signal_name;
     private float resp_bin_sample_period;
     private List<float> resp_signal_values;
-    private DateTime resp_bin_new_from;
-    private DateTime resp_bin_new_to;
     private int resp_bin_max_epoch;
 
     // Used For Importing From Binary For EEG Signals
