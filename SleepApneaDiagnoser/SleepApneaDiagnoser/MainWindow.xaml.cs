@@ -270,7 +270,7 @@ namespace SleepApneaDiagnoser
     }
     private void button_BINRespiratoryAnalysis_Click(object sender, RoutedEventArgs e)
     {
-      model.PerformRespiratoryAnalysisBinary();
+      model.LoadRespiratoryAnalysisBinary();
     }
     private void button_BINEEGAnalysis_Click(object sender, RoutedEventArgs e)
     {
@@ -377,6 +377,221 @@ namespace SleepApneaDiagnoser
 
       return series;
     }
+    private static double FindSignalDCBias(LineSeries series)
+    {
+      double bias = 0;
+      for (int x = 0; x < series.Points.Count; x++)
+      {
+        double point_1 = series.Points[x].Y;
+        double point_2 = x + 1 < series.Points.Count ? series.Points[x + 1].Y : series.Points[x].Y;
+        double average = (point_1 + point_2) / 2;
+        bias += average / (double)series.Points.Count;
+      }
+      return bias;
+    }
+    private static LineSeries RemoveBiasFromSignal(LineSeries series, double bias)
+    {
+      // Normalization
+      LineSeries series_norm = new LineSeries();
+      for (int x = 0; x < series.Points.Count; x++)
+      {
+        series_norm.Points.Add(new DataPoint(series.Points[x].X, series.Points[x].Y - bias));
+      }
+
+      return series_norm;
+    }
+    private static Tuple<ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries>  GetPeaksAndOnsets(LineSeries series, bool RemoveMultiplePeaks, int min_spike_length)
+    {
+      int spike_length = 0;
+      int maxima = 0;
+      int start = 0;
+      bool? positive = null;
+      ScatterSeries series_pos_peaks = new ScatterSeries();
+      ScatterSeries series_neg_peaks = new ScatterSeries();
+      ScatterSeries series_insets = new ScatterSeries();
+      ScatterSeries series_onsets = new ScatterSeries();
+      for (int x = 0; x < series.Points.Count; x++)
+      {
+        // If positive spike
+        if (positive != false)
+        {
+          // If end of positive spike
+          if (series.Points[x].Y < 0 || x == series.Points.Count - 1)
+          {
+            // If spike is appropriate length
+            if (spike_length > min_spike_length)
+            {
+              if (
+                  // If user does not mind consequent peaks of same sign
+                  !RemoveMultiplePeaks ||
+                  // If first positive peak
+                  series_pos_peaks.Points.Count == 0 ||
+                  // If last peak was negative
+                  (series_neg_peaks.Points.Count != 0 &&
+                  DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) >
+                  DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))
+                 )
+              {
+                // Add new positive peak and onset 
+                series_pos_peaks.Points.Add(new ScatterPoint(series.Points[maxima].X, series.Points[maxima].Y));
+                series_onsets.Points.Add(new ScatterPoint(series.Points[start].X, series.Points[start].Y));
+              }
+              else
+              {
+                // If this peak is greater than the previous
+                if (series.Points[maxima].Y > series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].Y)
+                {
+                  // Replace previous spike maxima with latest spike maxima
+                  series_pos_peaks.Points.Remove(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1]);
+                  series_onsets.Points.Remove(series_onsets.Points[series_onsets.Points.Count - 1]);
+                  series_pos_peaks.Points.Add(new ScatterPoint(series.Points[maxima].X, series.Points[maxima].Y));
+                  series_onsets.Points.Add(new ScatterPoint(series.Points[start].X, series.Points[start].Y));
+                }
+              }
+            }
+
+            // Initialization for analyzing negative peak
+            positive = false;
+            spike_length = 1;
+            maxima = x;
+            start = x;
+          }
+          // If middle of positive spike
+          else
+          {
+            if (Math.Abs(series.Points[x].Y) > Math.Abs(series.Points[maxima].Y))
+              maxima = x;
+            spike_length++;
+          }
+        }
+        // If negative spike
+        else
+        {
+          // If end of negative spike
+          if (series.Points[x].Y > 0 || x == series.Points.Count - 1)
+          {
+            // If spike is appropriate length
+            if (spike_length > min_spike_length)
+            {
+              if (
+                  // If user does not mind consequent peaks of same sign
+                  !RemoveMultiplePeaks ||
+                  // If first negative peak
+                  series_neg_peaks.Points.Count == 0 ||
+                  // If last peak was positive 
+                  (series_pos_peaks.Points.Count != 0 &&
+                  DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) <
+                  DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))
+                )
+              {
+                // Add new negative peak and onset 
+                series_neg_peaks.Points.Add(new ScatterPoint(series.Points[maxima].X, series.Points[maxima].Y));
+                series_insets.Points.Add(new ScatterPoint(series.Points[start].X, series.Points[start].Y));
+              }
+              else
+              {
+                // If this peak is less than the previous
+                if (series.Points[maxima].Y < series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].Y)
+                {
+                  // Replace previous spike maxima with latest spike maxima
+                  series_neg_peaks.Points.Remove(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1]);
+                  series_insets.Points.Remove(series_insets.Points[series_insets.Points.Count - 1]);
+                  series_neg_peaks.Points.Add(new ScatterPoint(series.Points[maxima].X, series.Points[maxima].Y));
+                  series_insets.Points.Add(new ScatterPoint(series.Points[start].X, series.Points[start].Y));
+                }
+              }
+            }
+
+            // Initialization for analyzing positive peak
+            positive = true;
+            spike_length = 1;
+            maxima = x;
+            start = x;
+          }
+          // If middle of negative spike
+          else
+          {
+            if (Math.Abs(series.Points[x].Y) > Math.Abs(series.Points[maxima].Y))
+              maxima = x;
+            spike_length++;
+          }
+        }
+      }
+
+      return new Tuple<ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries>(series_insets, series_onsets, series_neg_peaks, series_pos_peaks);
+    }
+
+    private static Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> GetRespiratoryAnalysisPlot(string SignalName, List<float> yValues, float sample_period, bool RemoveMultiplePeaks, float MinimumPeakWidth, DateTime AbsStartTime, DateTime ViewStartTime, DateTime ViewEndTime)
+    {
+      // Variable To Return
+      LineSeries series = new LineSeries();
+
+      //  // Add Points to Series
+      for (int y = 0; y < yValues.Count; y++)
+      {
+        series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(AbsStartTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), yValues[y]));
+      }
+      
+      double bias = FindSignalDCBias(series);
+      LineSeries series_norm = RemoveBiasFromSignal(series, bias);
+
+      // Find Peaks and Zero Crossings
+      int min_spike_length = (int)((double)((double)MinimumPeakWidth / (double)1000) / (double)sample_period);
+      Tuple<ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries> output = GetPeaksAndOnsets(series_norm, RemoveMultiplePeaks, min_spike_length);
+      ScatterSeries series_insets = output.Item1;
+      ScatterSeries series_onsets = output.Item2;
+      ScatterSeries series_neg_peaks = output.Item3;
+      ScatterSeries series_pos_peaks = output.Item4;
+
+      // Modify Series colors
+      series_onsets.MarkerFill = OxyColor.FromRgb(255, 0, 0);
+      series_insets.MarkerFill = OxyColor.FromRgb(0, 255, 0);
+      series_pos_peaks.MarkerFill = OxyColor.FromRgb(0, 0, 255);
+      series_neg_peaks.MarkerFill = OxyColor.FromRgb(255, 255, 0);
+
+      // Bind to Axes
+      series_norm.YAxisKey = SignalName;
+      series_norm.XAxisKey = "DateTime";
+      series_onsets.YAxisKey = SignalName;
+      series_onsets.XAxisKey = "DateTime";
+      series_insets.YAxisKey = SignalName;
+      series_insets.XAxisKey = "DateTime";
+      series_pos_peaks.YAxisKey = SignalName;
+      series_pos_peaks.XAxisKey = "DateTime";
+      series_neg_peaks.YAxisKey = SignalName;
+      series_neg_peaks.XAxisKey = "DateTime";
+
+      // Configure Axes
+      DateTimeAxis xAxis = new DateTimeAxis();
+      xAxis.Key = "DateTime";
+      xAxis.Minimum = DateTimeAxis.ToDouble(ViewStartTime);
+      xAxis.Maximum = DateTimeAxis.ToDouble(ViewEndTime);
+
+      LinearAxis yAxis = new LinearAxis();
+      yAxis.MajorGridlineStyle = LineStyle.Solid;
+      yAxis.MinorGridlineStyle = LineStyle.Dot;
+      yAxis.Title = SignalName;
+      yAxis.Key = SignalName;
+      
+      return new Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis>(series_norm, series_insets, series_onsets, series_neg_peaks, series_pos_peaks, xAxis, yAxis);
+    }
+    private static Tuple<double, double> GetRespiratorySignalBreathingPeriod(ScatterSeries[] series)
+    {
+      // Find Breathing Rate
+      List<double> breathing_periods = new List<double>();
+      for (int x = 0; x < series.Length; x++)
+      {
+        for (int y = 1; y < series[x].Points.Count; y++)
+          breathing_periods.Add((DateTimeAxis.ToDateTime(series[x].Points[y].X) - DateTimeAxis.ToDateTime(series[x].Points[y - 1].X)).TotalSeconds);
+      }
+      breathing_periods.Sort();
+
+      if (breathing_periods.Count != 0)
+        return new Tuple<double, double>(breathing_periods.Average(), breathing_periods[breathing_periods.Count / 2 - 1]);
+      else
+        return new Tuple<double, double>(0, 0);
+    }
+
     #endregion;
 
     #region Actions
@@ -829,7 +1044,7 @@ namespace SleepApneaDiagnoser
     /// <summary>
     /// Respiratory Analysis From Binary FIle
     /// </summary>
-    public void PerformRespiratoryAnalysisBinary()
+    public void LoadRespiratoryAnalysisBinary()
     {
       this.RespiratoryAnalysisBinaryFileLoaded = 1;
       OnPropertyChanged(nameof(IsRespBinLoaded));
@@ -894,220 +1109,29 @@ namespace SleepApneaDiagnoser
         rm.RespiratoryBinaryDuration = 1;
         OnPropertyChanged(nameof(RespiratoryBinaryDuration));
 
-        // perform all of the respiratory analysis
-        RespiratoryAnalysisBinary(resp_bin_signal_name, resp_signal_values, resp_bin_new_from, resp_bin_new_from, resp_bin_new_to, resp_bin_sample_period);
+        PerformRespiratoryAnalysisBinary();
       }
       else
       {
         p_window.ShowMessageAsync("Error", "File could not be opened.");
       }
     }
-    private void RespiratoryAnalysisBinary(string Signal, List<float> values, DateTime binary_start, DateTime epochs_from, DateTime epochs_length, float sample_period)
+    public void PerformRespiratoryAnalysisBinary()
     {
-      // Variable To Return
-      LineSeries series = new LineSeries();
+      PlotModel tempPlotModel = new PlotModel();
+      Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> resp_plots = GetRespiratoryAnalysisPlot(resp_bin_signal_name, resp_signal_values, resp_bin_sample_period, RespiratoryRemoveMultiplePeaks, RespiratoryMinimumPeakWidth, DateTime.Parse(resp_bin_date_time_from), resp_bin_new_from, resp_bin_new_to);
+      tempPlotModel.Series.Add(resp_plots.Item1);
+      tempPlotModel.Series.Add(resp_plots.Item2);
+      tempPlotModel.Series.Add(resp_plots.Item3);
+      tempPlotModel.Series.Add(resp_plots.Item4);
+      tempPlotModel.Series.Add(resp_plots.Item5);
+      tempPlotModel.Axes.Add(resp_plots.Item6);
+      tempPlotModel.Axes.Add(resp_plots.Item7);
+      RespiratorySignalPlot = tempPlotModel;
 
-      //  // Add Points to Series
-      for (int y = 0; y < values.Count; y++)
-      {
-        series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(binary_start + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
-      }
-
-      PlotModel temp_SignalPlot = new PlotModel();
-
-      temp_SignalPlot.Series.Clear();
-      temp_SignalPlot.Axes.Clear();
-
-      // Calculate Bias
-      double bias = 0;
-      for (int x = 0; x < series.Points.Count; x++)
-      {
-        double point_1 = series.Points[x].Y;
-        double point_2 = x + 1 < series.Points.Count ? series.Points[x + 1].Y : series.Points[x].Y;
-        double average = (point_1 + point_2) / 2;
-        bias += average / (double)series.Points.Count;
-      }
-
-      // Normalization
-      LineSeries series_norm = new LineSeries();
-      for (int x = 0; x < series.Points.Count; x++)
-      {
-        series_norm.Points.Add(new DataPoint(series.Points[x].X, series.Points[x].Y - bias));
-      }
-
-      // Find Peaks and Zero Crossings
-      int min_spike_length = (int)((double)((double)RespiratoryMinimumPeakWidth / (double)1000) / (double)sample_period);
-      int spike_length = 0;
-      int maxima = 0;
-      int start = 0;
-      bool? positive = null;
-      ScatterSeries series_pos_peaks = new ScatterSeries();
-      ScatterSeries series_neg_peaks = new ScatterSeries();
-      ScatterSeries series_insets = new ScatterSeries();
-      ScatterSeries series_onsets = new ScatterSeries();
-      for (int x = 0; x < series_norm.Points.Count; x++)
-      {
-        // If positive spike
-        if (positive != false)
-        {
-          // If end of positive spike
-          if (series_norm.Points[x].Y < 0 || x == series_norm.Points.Count - 1)
-          {
-            // If spike is appropriate length
-            if (spike_length > min_spike_length)
-            {
-              if (
-                  // If user does not mind consequent peaks of same sign
-                  !RespiratoryRemoveMultiplePeaks ||
-                  // If first positive peak
-                  series_pos_peaks.Points.Count == 0 ||
-                  // If last peak was negative
-                  (series_neg_peaks.Points.Count != 0 &&
-                  DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) >
-                  DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))
-                 )
-              {
-                // Add new positive peak and onset 
-                series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
-                series_onsets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
-              }
-              else
-              {
-                // If this peak is greater than the previous
-                if (series_norm.Points[maxima].Y > series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].Y)
-                {
-                  // Replace previous spike maxima with latest spike maxima
-                  series_pos_peaks.Points.Remove(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1]);
-                  series_onsets.Points.Remove(series_onsets.Points[series_onsets.Points.Count - 1]);
-                  series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
-                  series_onsets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
-                }
-              }
-            }
-
-            // Initialization for analyzing negative peak
-            positive = false;
-            spike_length = 1;
-            maxima = x;
-            start = x;
-          }
-          // If middle of positive spike
-          else
-          {
-            if (Math.Abs(series_norm.Points[x].Y) > Math.Abs(series_norm.Points[maxima].Y))
-              maxima = x;
-            spike_length++;
-          }
-        }
-        // If negative spike
-        else
-        {
-          // If end of negative spike
-          if (series_norm.Points[x].Y > 0 || x == series_norm.Points.Count - 1)
-          {
-            // If spike is appropriate length
-            if (spike_length > min_spike_length)
-            {
-              if (
-                  // If user does not mind consequent peaks of same sign
-                  !RespiratoryRemoveMultiplePeaks ||
-                  // If first negative peak
-                  series_neg_peaks.Points.Count == 0 ||
-                  // If last peak was positive 
-                  (series_pos_peaks.Points.Count != 0 &&
-                  DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) <
-                  DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))
-                )
-              {
-                // Add new negative peak and onset 
-                series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
-                series_insets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
-              }
-              else
-              {
-                // If this peak is less than the previous
-                if (series_norm.Points[maxima].Y < series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].Y)
-                {
-                  // Replace previous spike maxima with latest spike maxima
-                  series_neg_peaks.Points.Remove(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1]);
-                  series_insets.Points.Remove(series_insets.Points[series_insets.Points.Count - 1]);
-                  series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
-                  series_insets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
-                }
-              }
-            }
-
-            // Initialization for analyzing positive peak
-            positive = true;
-            spike_length = 1;
-            maxima = x;
-            start = x;
-          }
-          // If middle of negative spike
-          else
-          {
-            if (Math.Abs(series_norm.Points[x].Y) > Math.Abs(series_norm.Points[maxima].Y))
-              maxima = x;
-            spike_length++;
-          }
-        }
-      }
-
-      series_norm.YAxisKey = Signal;
-      series_norm.XAxisKey = "DateTime";
-      series_onsets.YAxisKey = Signal;
-      series_onsets.XAxisKey = "DateTime";
-      series_insets.YAxisKey = Signal;
-      series_insets.XAxisKey = "DateTime";
-      series_pos_peaks.YAxisKey = Signal;
-      series_pos_peaks.XAxisKey = "DateTime";
-      series_neg_peaks.YAxisKey = Signal;
-      series_neg_peaks.XAxisKey = "DateTime";
-
-      DateTimeAxis xAxis = new DateTimeAxis();
-      xAxis.Key = "DateTime";
-      xAxis.Minimum = DateTimeAxis.ToDouble(epochs_from);
-      xAxis.Maximum = DateTimeAxis.ToDouble(epochs_length);
-      temp_SignalPlot.Axes.Add(xAxis);
-
-      LinearAxis yAxis = new LinearAxis();
-      yAxis.MajorGridlineStyle = LineStyle.Solid;
-      yAxis.MinorGridlineStyle = LineStyle.Dot;
-      yAxis.Title = Signal;
-      yAxis.Key = Signal;
-
-      series_onsets.MarkerFill = OxyColor.FromRgb(255, 0, 0);
-      series_insets.MarkerFill = OxyColor.FromRgb(0, 255, 0);
-      series_pos_peaks.MarkerFill = OxyColor.FromRgb(0, 0, 255);
-      series_neg_peaks.MarkerFill = OxyColor.FromRgb(255, 255, 0);
-
-      temp_SignalPlot.Axes.Add(yAxis);
-      temp_SignalPlot.Series.Add(series_norm);
-      temp_SignalPlot.Series.Add(series_onsets);
-      temp_SignalPlot.Series.Add(series_insets);
-      temp_SignalPlot.Series.Add(series_pos_peaks);
-      temp_SignalPlot.Series.Add(series_neg_peaks);
-
-      RespiratorySignalPlot = temp_SignalPlot;
-
-      // Find Breathing Rate
-      List<double> breathing_periods = new List<double>();
-      for (int x = 1; x < series_insets.Points.Count; x++)
-        breathing_periods.Add((DateTimeAxis.ToDateTime(series_insets.Points[x].X) - DateTimeAxis.ToDateTime(series_insets.Points[x - 1].X)).TotalSeconds);
-      for (int x = 1; x < series_onsets.Points.Count; x++)
-        breathing_periods.Add((DateTimeAxis.ToDateTime(series_onsets.Points[x].X) - DateTimeAxis.ToDateTime(series_onsets.Points[x - 1].X)).TotalSeconds);
-      for (int x = 1; x < series_pos_peaks.Points.Count; x++)
-        breathing_periods.Add((DateTimeAxis.ToDateTime(series_pos_peaks.Points[x].X) - DateTimeAxis.ToDateTime(series_pos_peaks.Points[x - 1].X)).TotalSeconds);
-      for (int x = 1; x < series_neg_peaks.Points.Count; x++)
-        breathing_periods.Add((DateTimeAxis.ToDateTime(series_neg_peaks.Points[x].X) - DateTimeAxis.ToDateTime(series_neg_peaks.Points[x - 1].X)).TotalSeconds);
-
-      breathing_periods.Sort();
-
-      if (breathing_periods.Count > 0)
-      {
-        RespiratoryBreathingPeriodMean = (breathing_periods.Average()).ToString("0.## sec/breath");
-        RespiratoryBreathingPeriodMedian = (breathing_periods[breathing_periods.Count / 2 - 1]).ToString("0.## sec/breath");
-      }
+      Tuple<double, double> breathing_periods = GetRespiratorySignalBreathingPeriod(new ScatterSeries[] { resp_plots.Item2, resp_plots.Item3, resp_plots.Item4, resp_plots.Item5 });
+      RespiratoryBreathingPeriodMean = breathing_periods.Item1.ToString("0.## sec/breath");
+      RespiratoryBreathingPeriodMedian = breathing_periods.Item2.ToString("0.## sec/breath");
     }
 
     // Respiratory Analysis From EDF File
@@ -1133,205 +1157,37 @@ namespace SleepApneaDiagnoser
                                                   Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 1)
                                                   );
 
-      // Plot Insets of Respiration Expiration
 
-      // Calculate Bias
-      double bias = 0;
-      for (int x = 0; x < series.Points.Count; x++)
-      {
-        double point_1 = series.Points[x].Y;
-        double point_2 = x + 1 < series.Points.Count ? series.Points[x + 1].Y : series.Points[x].Y;
-        double average = (point_1 + point_2) / 2;
-        bias += average / (double)series.Points.Count;
-      }
-
-      // Normalization
-      LineSeries series_norm = new LineSeries();
-      for (int x = 0; x < series.Points.Count; x++)
-      {
-        series_norm.Points.Add(new DataPoint(series.Points[x].X, series.Points[x].Y - bias));
-      }
-
-      // Find Peaks and Zero Crossings
-      int min_spike_length = (int)((double)((double)RespiratoryMinimumPeakWidth / (double)1000) / (double)sample_period);
-      int spike_length = 0;
-      int maxima = 0;
-      int start = 0;
-      bool? positive = null;
-      ScatterSeries series_pos_peaks = new ScatterSeries();
-      ScatterSeries series_neg_peaks = new ScatterSeries();
-      ScatterSeries series_insets = new ScatterSeries();
-      ScatterSeries series_onsets = new ScatterSeries();
-      for (int x = 0; x < series_norm.Points.Count; x++)
-      {
-        // If positive spike
-        if (positive != false)
-        {
-          // If end of positive spike
-          if (series_norm.Points[x].Y < 0 || x == series_norm.Points.Count - 1)
-          {
-            // If spike is appropriate length
-            if (spike_length > min_spike_length)
-            {
-              if (
-                  // If user does not mind consequent peaks of same sign
-                  !RespiratoryRemoveMultiplePeaks ||
-                  // If first positive peak
-                  series_pos_peaks.Points.Count == 0 ||
-                  // If last peak was negative
-                  (series_neg_peaks.Points.Count != 0 &&
-                  DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) >
-                  DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))
-                 )
-              {
-                // Add new positive peak and onset 
-                series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
-                series_onsets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
-              }
-              else
-              {
-                // If this peak is greater than the previous
-                if (series_norm.Points[maxima].Y > series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].Y)
-                {
-                  // Replace previous spike maxima with latest spike maxima
-                  series_pos_peaks.Points.Remove(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1]);
-                  series_onsets.Points.Remove(series_onsets.Points[series_onsets.Points.Count - 1]);
-                  series_pos_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
-                  series_onsets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
-                }
-              }
-            }
-
-            // Initialization for analyzing negative peak
-            positive = false;
-            spike_length = 1;
-            maxima = x;
-            start = x;
-          }
-          // If middle of positive spike
-          else
-          {
-            if (Math.Abs(series_norm.Points[x].Y) > Math.Abs(series_norm.Points[maxima].Y))
-              maxima = x;
-            spike_length++;
-          }
-        }
-        // If negative spike
-        else
-        {
-          // If end of negative spike
-          if (series_norm.Points[x].Y > 0 || x == series_norm.Points.Count - 1)
-          {
-            // If spike is appropriate length
-            if (spike_length > min_spike_length)
-            {
-              if (
-                  // If user does not mind consequent peaks of same sign
-                  !RespiratoryRemoveMultiplePeaks ||
-                  // If first negative peak
-                  series_neg_peaks.Points.Count == 0 ||
-                  // If last peak was positive 
-                  (series_pos_peaks.Points.Count != 0 &&
-                  DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) <
-                  DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))
-                )
-              {
-                // Add new negative peak and onset 
-                series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
-                series_insets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
-              }
-              else
-              {
-                // If this peak is less than the previous
-                if (series_norm.Points[maxima].Y < series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].Y)
-                {
-                  // Replace previous spike maxima with latest spike maxima
-                  series_neg_peaks.Points.Remove(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1]);
-                  series_insets.Points.Remove(series_insets.Points[series_insets.Points.Count - 1]);
-                  series_neg_peaks.Points.Add(new ScatterPoint(series_norm.Points[maxima].X, series_norm.Points[maxima].Y));
-                  series_insets.Points.Add(new ScatterPoint(series_norm.Points[start].X, series_norm.Points[start].Y));
-                }
-              }
-            }
-
-            // Initialization for analyzing positive peak
-            positive = true;
-            spike_length = 1;
-            maxima = x;
-            start = x;
-          }
-          // If middle of negative spike
-          else
-          {
-            if (Math.Abs(series_norm.Points[x].Y) > Math.Abs(series_norm.Points[maxima].Y))
-              maxima = x;
-            spike_length++;
-          }
-        }
-      }
-
-      series_norm.YAxisKey = RespiratoryEDFSelectedSignal;
-      series_norm.XAxisKey = "DateTime";
-      series_onsets.YAxisKey = RespiratoryEDFSelectedSignal;
-      series_onsets.XAxisKey = "DateTime";
-      series_insets.YAxisKey = RespiratoryEDFSelectedSignal;
-      series_insets.XAxisKey = "DateTime";
-      series_pos_peaks.YAxisKey = RespiratoryEDFSelectedSignal;
-      series_pos_peaks.XAxisKey = "DateTime";
-      series_neg_peaks.YAxisKey = RespiratoryEDFSelectedSignal;
-      series_neg_peaks.XAxisKey = "DateTime";
-
-      DateTimeAxis xAxis = new DateTimeAxis();
-      xAxis.Key = "DateTime";
-      xAxis.Minimum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile));
-      xAxis.Maximum = DateTimeAxis.ToDouble(Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 1));
-      temp_SignalPlot.Axes.Add(xAxis);
-
-      LinearAxis yAxis = new LinearAxis();
-      yAxis.MajorGridlineStyle = LineStyle.Solid;
-      yAxis.MinorGridlineStyle = LineStyle.Dot;
-      yAxis.Title = RespiratoryEDFSelectedSignal;
-      yAxis.Key = RespiratoryEDFSelectedSignal;
+      PlotModel tempPlotModel = new PlotModel();
+      Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> resp_plots = GetRespiratoryAnalysisPlot(
+        RespiratoryEDFSelectedSignal, 
+        series.Points.Select(temp => (float)temp.Y).ToList(), 
+        sample_period, 
+        RespiratoryRemoveMultiplePeaks, 
+        RespiratoryMinimumPeakWidth,
+        Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile),
+        Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile),
+        Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 1)
+        );
 
       if (RespiratoryUseConstantAxis)
       {
-        yAxis.Maximum = GetMaxSignalValue(RespiratoryEDFSelectedSignal) - bias;
-        yAxis.Minimum = GetMinSignalValue(RespiratoryEDFSelectedSignal) - bias;
+        resp_plots.Item7.Minimum = GetMinSignalValue(RespiratoryEDFSelectedSignal);
+        resp_plots.Item7.Maximum = GetMaxSignalValue(RespiratoryEDFSelectedSignal);
       }
 
-      series_onsets.MarkerFill = OxyColor.FromRgb(255, 0, 0);
-      series_insets.MarkerFill = OxyColor.FromRgb(0, 255, 0);
-      series_pos_peaks.MarkerFill = OxyColor.FromRgb(0, 0, 255);
-      series_neg_peaks.MarkerFill = OxyColor.FromRgb(255, 255, 0);
+      tempPlotModel.Series.Add(resp_plots.Item1);
+      tempPlotModel.Series.Add(resp_plots.Item2);
+      tempPlotModel.Series.Add(resp_plots.Item3);
+      tempPlotModel.Series.Add(resp_plots.Item4);
+      tempPlotModel.Series.Add(resp_plots.Item5);
+      tempPlotModel.Axes.Add(resp_plots.Item6);
+      tempPlotModel.Axes.Add(resp_plots.Item7);
+      RespiratorySignalPlot = tempPlotModel;
 
-      temp_SignalPlot.Axes.Add(yAxis);
-      temp_SignalPlot.Series.Add(series_norm);
-      temp_SignalPlot.Series.Add(series_onsets);
-      temp_SignalPlot.Series.Add(series_insets);
-      temp_SignalPlot.Series.Add(series_pos_peaks);
-      temp_SignalPlot.Series.Add(series_neg_peaks);
-
-      RespiratorySignalPlot = temp_SignalPlot;
-
-      // Find Breathing Rate
-      List<double> breathing_periods = new List<double>();
-      for (int x = 1; x < series_insets.Points.Count; x++)
-        breathing_periods.Add((DateTimeAxis.ToDateTime(series_insets.Points[x].X) - DateTimeAxis.ToDateTime(series_insets.Points[x - 1].X)).TotalSeconds);
-      for (int x = 1; x < series_onsets.Points.Count; x++)
-        breathing_periods.Add((DateTimeAxis.ToDateTime(series_onsets.Points[x].X) - DateTimeAxis.ToDateTime(series_onsets.Points[x - 1].X)).TotalSeconds);
-      for (int x = 1; x < series_pos_peaks.Points.Count; x++)
-        breathing_periods.Add((DateTimeAxis.ToDateTime(series_pos_peaks.Points[x].X) - DateTimeAxis.ToDateTime(series_pos_peaks.Points[x - 1].X)).TotalSeconds);
-      for (int x = 1; x < series_neg_peaks.Points.Count; x++)
-        breathing_periods.Add((DateTimeAxis.ToDateTime(series_neg_peaks.Points[x].X) - DateTimeAxis.ToDateTime(series_neg_peaks.Points[x - 1].X)).TotalSeconds);
-
-      breathing_periods.Sort();
-
-      if (breathing_periods.Count > 0)
-      {
-        RespiratoryBreathingPeriodMean = (breathing_periods.Average()).ToString("0.## sec/breath");
-        RespiratoryBreathingPeriodMedian = (breathing_periods[breathing_periods.Count / 2 - 1]).ToString("0.## sec/breath");
-      }
-
+      Tuple<double, double> breathing_periods = GetRespiratorySignalBreathingPeriod(new ScatterSeries[] { resp_plots.Item2, resp_plots.Item3, resp_plots.Item4, resp_plots.Item5 });
+      RespiratoryBreathingPeriodMean = breathing_periods.Item1.ToString("0.## sec/breath");
+      RespiratoryBreathingPeriodMedian = breathing_periods.Item2.ToString("0.## sec/breath");
     }
     /// <summary>
     /// Peforms respiratory analysis 
@@ -3306,9 +3162,8 @@ namespace SleepApneaDiagnoser
           resp_bin_new_from = newFrom;
           resp_bin_new_to = newFrom.AddSeconds((double)RespiratoryBinaryDuration*30);
         }
-
-        // perform all of the respiratory analysis
-        RespiratoryAnalysisBinary(resp_bin_signal_name, resp_signal_values, DateTime.Parse(resp_bin_date_time_from), resp_bin_new_from, resp_bin_new_to, resp_bin_sample_period);
+        
+        PerformRespiratoryAnalysisBinary();
         OnPropertyChanged(nameof(RespiratoryBinaryStart));
       }
     }
@@ -3340,8 +3195,7 @@ namespace SleepApneaDiagnoser
             resp_bin_new_to = newTo;
           }
 
-          // perform all of the respiratory analysis
-          RespiratoryAnalysisBinary(resp_bin_signal_name, resp_signal_values, DateTime.Parse(resp_bin_date_time_from), resp_bin_new_from, resp_bin_new_to, resp_bin_sample_period);
+          PerformRespiratoryAnalysisBinary();
         }
 
         OnPropertyChanged(nameof(RespiratoryBinaryDuration));
