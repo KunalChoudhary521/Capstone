@@ -135,7 +135,7 @@ namespace SleepApneaDiagnoser
     private void button_Done_Click(object sender, RoutedEventArgs e)
     {
       for (int x = 0; x < categories.Count; x++)
-        categories[x].CategoryName = ((TextBox)listBox_Categories.Items[x]).Text;
+        categories[x].CategoryName = (x + 1).ToString() + ". " + ((TextBox)listBox_Categories.Items[x]).Text;
 
       model.ManageCategoriesOutput(categories.ToArray());
       DialogManager.HideMetroDialogAsync(window, this);
