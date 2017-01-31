@@ -1418,11 +1418,10 @@ namespace SleepApneaDiagnoser
     private void BW_EEGAnalysisEDF(object sender, DoWorkEventArgs e)
     {
       float sample_period;
-      LineSeries series = GetSeriesFromSignalName(out sample_period,
-                                                  EEGEDFSelectedSignal,
-                                                  Utils.EpochtoDateTime(EpochForAnalysis ?? 1, LoadedEDFFile),
-                                                  Utils.EpochtoDateTime(EpochForAnalysis ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(1)
-                                                  );
+      DateTime StartEpoch = Utils.EpochtoDateTime(EpochForAnalysis ?? 1, LoadedEDFFile);
+      DateTime EndEpoch = StartEpoch + Utils.EpochPeriodtoTimeSpan(1);
+      LineSeries series = GetSeriesFromSignalName(out sample_period, EEGEDFSelectedSignal,
+                                                  StartEpoch, EndEpoch);
 
       if (series.Points.Count == 0) {
         //need to type error message for User
@@ -1510,12 +1509,12 @@ namespace SleepApneaDiagnoser
       //PlotSpecGram = tempSpectGram;
 
 
-      /*************************Exporting to .tiff format**************************/
-      String plotsDirectory = "EEGPlots";
-      Directory.CreateDirectory(plotsDirectory);//if directory already exist, this line will be ignored
-      ExportEEGPlot(PlotAbsPwr, plotsDirectory + "//AbsolutePower.png");
-      ExportEEGPlot(PlotRelPwr, plotsDirectory + "//RelativePower.png");
-      ExportEEGPlot(PlotPSD, plotsDirectory + "//PowerSpecDensity.png");
+      /*************************Exporting to .tiff format**************************/      
+      String plotsDir = "EEGPlots//Epoch-" + ((int)EpochForAnalysis).ToString() + "//";
+      Directory.CreateDirectory(plotsDir);//if directory already exist, this line will be ignored
+      ExportEEGPlot(PlotAbsPwr, plotsDir + "AbsPower.png");
+      ExportEEGPlot(PlotRelPwr, plotsDir + "RelPower.png");
+      ExportEEGPlot(PlotPSD, plotsDir + "PSD-Epoch.png");
 
       //GenericExportImage(PlotSpecGram, "Spectrogram.png");//Need to review implementation
 
@@ -1653,6 +1652,7 @@ namespace SleepApneaDiagnoser
       {
         return;
       }
+      String fromToDir = "Epoch-" + ExportEpochStart.ToString() + "-" + ExportEpochEnd.ToString();
       double[] signalToAnalyze;
       float sample_period;
 
@@ -1671,36 +1671,38 @@ namespace SleepApneaDiagnoser
       MWNumericArray[] fqRange;
       setFreqBands(out fqRange, totalFreqBands);
 
-      LineSeries[] signalPerEpoch = new LineSeries[(int)ExportEpochEnd - (int)ExportEpochStart + 1];
+      LineSeries signalPerEpoch = null;
 
       //Setup data to be entered in each file
-      String analysisDirectory = "EEGAnalysis";
-      Directory.CreateDirectory(analysisDirectory);//if directory already exist, this line will be ignored
+      String analysisDir = "EEGAnalysis//" + fromToDir + "//";
+      Directory.CreateDirectory(analysisDir);//if directory already exist, this line will be ignored
 
-      StreamWriter fileSetup = new StreamWriter(analysisDirectory + "//EEGSignal.csv");
+      StreamWriter fileSetup = new StreamWriter(analysisDir + "EEGSignal.csv");
       fileSetup.WriteLine(String.Format("Epoch#, X(time), Y(SigVal)"));
       fileSetup.Close();
 
-      fileSetup = new StreamWriter(analysisDirectory + "//EEGPSD.csv");
+      fileSetup = new StreamWriter(analysisDir + "EEGPSD.csv");
       fileSetup.WriteLine(String.Format("Epoch#, Power(db),Frequency(Hz)"));
       fileSetup.Close();
 
-      fileSetup = new StreamWriter(analysisDirectory + "//EEGAbsPwr.csv");
+      fileSetup = new StreamWriter(analysisDir + "EEGAbsPwr.csv");
       fileSetup.WriteLine(String.Format("Epoch#, delta, theta, alpha, beta1, beta2, gamma1, gamma2"));
       fileSetup.Close();
 
-      for (int i = 0; i < ExportEpochEnd; i++)
-      {
-        StartEpoch = Utils.EpochtoDateTime((ExportEpochStart + i) ?? 1, LoadedEDFFile);
-        EndEpoch = Utils.EpochtoDateTime((ExportEpochStart + i) ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(1);
-        signalPerEpoch[i] = GetSeriesFromSignalName(out sample_period, EEGEDFSelectedSignal,
-                                                  StartEpoch, EndEpoch);
-        EDFSignalToCSV(signalPerEpoch[i], i, analysisDirectory + "//EEGSignal.csv");
+      int currentEpoch = ExportEpochStart ?? 1;
 
-        signalToAnalyze = new double[signalPerEpoch[i].Points.Count];//select length to be more than From (on GUI)
-        for (int s = 0; s < signalPerEpoch[i].Points.Count; s++)
+      for (int i = (int)ExportEpochStart; i <= ExportEpochEnd; i++)
+      {
+        StartEpoch = Utils.EpochtoDateTime(i, LoadedEDFFile);
+        EndEpoch = StartEpoch + Utils.EpochPeriodtoTimeSpan(1);
+        signalPerEpoch = GetSeriesFromSignalName(out sample_period, EEGEDFSelectedSignal,
+                                                  StartEpoch, EndEpoch);
+        EDFSignalToCSV(signalPerEpoch, i, analysisDir + "EEGSignal.csv");
+
+        signalToAnalyze = new double[signalPerEpoch.Points.Count];//select length to be more than From (on GUI)
+        for (int s = 0; s < signalPerEpoch.Points.Count; s++)
         {
-          signalToAnalyze[s] = signalPerEpoch[i].Points[s].Y;
+          signalToAnalyze[s] = signalPerEpoch.Points[s].Y;
         }
 
         signalToMatlab = new MWNumericArray(signalToAnalyze);
@@ -1709,14 +1711,14 @@ namespace SleepApneaDiagnoser
         //perform Absolute power calculations
         AbsPwrAnalysis(out totalPower, out absPower, out absPlotbandItems, signalToMatlab, fqRange, sample_period);
         //output Absolute power calculations to file
-        AbsPwrToCSV(absPower, i, analysisDirectory + "//EEGAbsPwr.csv");
+        AbsPwrToCSV(absPower, i, analysisDir + "EEGAbsPwr.csv");
 
         //No need to perform Relative power calculations, as it is not exported. It can be derived from Absolute Power.
 
         //perform PSD calculations
         PSDAnalysis(out psdValue, out frqValue, signalToMatlab, sampleFreq);
         //output PSD calculations to file
-        PSDToCSV(psdValue, frqValue, i, analysisDirectory + "//EEGPSD.csv");
+        PSDToCSV(psdValue, frqValue, i, analysisDir + "EEGPSD.csv");
       }
     }
     public void ExportEEGPlot(PlotModel pModel, String fileName)
@@ -1731,7 +1733,7 @@ namespace SleepApneaDiagnoser
     {
       StreamWriter absPwrStream = File.AppendText(fileName);
       String dataLine = null;
-      absPwrStream.Write((epoch + 1).ToString());
+      absPwrStream.Write(epoch.ToString());
 
       for (int i = 0; i < absPwrData.Length; i++)
       {
@@ -1743,11 +1745,10 @@ namespace SleepApneaDiagnoser
     public void PSDToCSV(double[] psdVal, double[] frqVal, int epoch, String fileName)
     {
       StreamWriter psdStream = File.AppendText(fileName);
-      psdStream.Write((epoch + 1).ToString());
 
       for (int j = 1; j < psdVal.Length; j++)
       {
-        psdStream.WriteLine(String.Format(",{0:0.000},{1:0.000}", psdVal[j], frqVal[j]));
+        psdStream.WriteLine(String.Format("{0},{1:0.000},{2:0.000}", epoch,psdVal[j], frqVal[j]));
       }
       psdStream.Close();
     }
@@ -1757,11 +1758,10 @@ namespace SleepApneaDiagnoser
     public void EDFSignalToCSV(LineSeries dataToExport, int epoch, String fileName)
     {
       StreamWriter fileStream = File.AppendText(fileName);
-      fileStream.WriteLine((epoch + 1).ToString() + String.Format(",{0:0.00},{1:0.000}", dataToExport.Points[0].X,
-                      dataToExport.Points[0].Y));
       for (int i = 1; i < dataToExport.Points.Count; i++)
       {
-        fileStream.WriteLine(String.Format(",{0:0.00},{1:0.000}", dataToExport.Points[i].X, dataToExport.Points[i].Y).ToString());
+        fileStream.WriteLine(String.Format("{0},{1:0.00},{2:0.000}", epoch, dataToExport.Points[i].X, 
+                              dataToExport.Points[i].Y).ToString());
       }
       fileStream.Close();
     }
