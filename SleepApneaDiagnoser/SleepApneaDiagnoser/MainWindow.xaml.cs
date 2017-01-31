@@ -1005,8 +1005,7 @@ namespace SleepApneaDiagnoser
       }
 
     }
-
-
+    
     /// <summary>
     /// Exports chart to image
     /// </summary>
@@ -1040,6 +1039,7 @@ namespace SleepApneaDiagnoser
       file.Close();
       stream.Close();
     }
+
     /************************************************** RESPIRATORY ANALYSIS TAB ****************************************************/
 
     /// <summary>
@@ -1748,6 +1748,7 @@ namespace SleepApneaDiagnoser
     }
 
     /**************************Exporting EEG Signal to .csv*************************/
+
     public void EDFSignalToCSV(LineSeries dataToExport, int epoch, String fileName)
     {
       StreamWriter fileStream = File.AppendText(fileName);
