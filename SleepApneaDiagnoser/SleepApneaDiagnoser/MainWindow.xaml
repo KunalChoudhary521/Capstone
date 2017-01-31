@@ -183,7 +183,7 @@
             </mtr:MetroTabItem>
 
             <mtr:MetroTabItem Header="Analysis">
-                <TabControl  Margin="10,10,10,10">
+                <TabControl  Margin="10,10,10,10" FocusVisualStyle="{x:Null}">
                     <mtr:MetroTabItem Header="Respiratory" Height="40">
                         <Grid>
                             <Grid Height="125" VerticalAlignment="Top" Margin="10,0,0,0">
@@ -297,7 +297,7 @@
                 </TabControl>
             </mtr:MetroTabItem>
             <mtr:MetroTabItem Header="Tools">
-                <TabControl Margin="10,10,10,10">
+                <TabControl Margin="10,10,10,10" FocusVisualStyle="{x:Null}">
                     <mtr:MetroTabItem Header="Coherence">
                         <Grid>
                             <Grid>
