@@ -206,9 +206,9 @@
                                 <Label Content="Binary" FontSize="14" Margin="0,5,20,5" Grid.Row="1"/>
                                 <Button Content="Open" Width="100" HorizontalAlignment="Left" Margin="10,8,0,8" Grid.Column="1" Grid.Row="1" Click="button_BINRespiratoryAnalysis_Click" />
                                 <Label Content="From" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="0,5,0,5" HorizontalContentAlignment="Left" Grid.Column="2" Grid.Row="1"/>
-                                <mtr:NumericUpDown FontSize="14"  Margin="55,5,10,5" TextAlignment="Center" IsEnabled="{Binding IsRespBinLoaded}" Value="{Binding RespiratoryBinaryStart}" Minimum="1" Grid.Column="2" Grid.Row="1"/>
+                                <mtr:NumericUpDown FontSize="14"  Margin="55,5,10,5" TextAlignment="Center" IsEnabled="{Binding IsRespBinLoaded}" Value="{Binding RespiratoryBinaryStart}" Minimum="1" Maximum="{Binding RespiratoryBinaryStartRecordMax}" Grid.Column="2" Grid.Row="1"/>
                                 <Label Content="Duration" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="0,5,0,5" HorizontalContentAlignment="Left" Grid.Column="3" Grid.Row="1"/>
-                                <mtr:NumericUpDown FontSize="14" Margin="65,5,10,5" TextAlignment="Center" IsEnabled="{Binding IsRespBinLoaded}" Value="{Binding RespiratoryBinaryDuration}" Minimum="1" Grid.Column="3" Grid.Row="1" RenderTransformOrigin="0.705,0.543"/>
+                                <mtr:NumericUpDown FontSize="14" Margin="65,5,10,5" TextAlignment="Center" IsEnabled="{Binding IsRespBinLoaded}" Value="{Binding RespiratoryBinaryDuration}" Minimum="1" Maximum="{Binding RespiratoryBinaryDurationMax}" Grid.Column="3" Grid.Row="1" RenderTransformOrigin="0.705,0.543"/>
                                 <TextBox Grid.Column="1" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Margin="155,5,10,5" Grid.Row="1" TextWrapping="Wrap" Text="{Binding RespiratoryBinaryMaxEpochs}" IsEnabled="{Binding IsRespBinLoaded}" IsReadOnly="true"/>
                                 <Label Content="Max" FontSize="14" Margin="115,5,0,5" HorizontalContentAlignment="Left" Grid.Column="1" Grid.Row="1" HorizontalAlignment="Left" Width="39"/>
                                 <!-- From EDF -->

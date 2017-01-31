@@ -377,6 +377,9 @@ namespace SleepApneaDiagnoser
 
       return series;
     }
+    #endregion
+
+    #region Respiratory Helper Functions
     private static double FindSignalDCBias(LineSeries series)
     {
       double bias = 0;
@@ -520,8 +523,7 @@ namespace SleepApneaDiagnoser
 
       return new Tuple<ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries>(series_insets, series_onsets, series_neg_peaks, series_pos_peaks);
     }
-
-    private static Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> GetRespiratoryAnalysisPlot(string SignalName, List<float> yValues, float sample_period, bool RemoveMultiplePeaks, float MinimumPeakWidth, DateTime AbsStartTime, DateTime ViewStartTime, DateTime ViewEndTime)
+    private static Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> GetRespiratoryAnalysisPlot(string SignalName, List<float> yValues, float sample_period, bool RemoveMultiplePeaks, float MinimumPeakWidth, DateTime ViewStartTime, DateTime ViewEndTime)
     {
       // Variable To Return
       LineSeries series = new LineSeries();
@@ -529,7 +531,7 @@ namespace SleepApneaDiagnoser
       //  // Add Points to Series
       for (int y = 0; y < yValues.Count; y++)
       {
-        series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(AbsStartTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), yValues[y]));
+        series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(ViewStartTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), yValues[y]));
       }
       
       double bias = FindSignalDCBias(series);
@@ -591,7 +593,6 @@ namespace SleepApneaDiagnoser
       else
         return new Tuple<double, double>(0, 0);
     }
-
     #endregion;
 
     #region Actions
@@ -1104,6 +1105,8 @@ namespace SleepApneaDiagnoser
         OnPropertyChanged(nameof(RespiratoryBinaryStart));
         rm.RespiratoryBinaryDuration = 1;
         OnPropertyChanged(nameof(RespiratoryBinaryDuration));
+        OnPropertyChanged(nameof(RespiratoryBinaryDurationMax));
+        OnPropertyChanged(nameof(RespiratoryBinaryStartRecordMax));
 
         PerformRespiratoryAnalysisBinary();
       }
@@ -1131,14 +1134,18 @@ namespace SleepApneaDiagnoser
       if (newTo < newFrom)
         newTo = newFrom;
 
+      int start_index = (int)(((double) (newFrom - DateTime.Parse(resp_bin_date_time_from)).TotalSeconds) / ((double) resp_bin_sample_period));
+      int end_index = (int)(((double)(newTo - DateTime.Parse(resp_bin_date_time_from)).TotalSeconds) / ((double)resp_bin_sample_period));
+      start_index = Math.Max(start_index, 0);
+      end_index = Math.Min(end_index, resp_signal_values.Count - 1);
+
       PlotModel tempPlotModel = new PlotModel();
       Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> resp_plots = GetRespiratoryAnalysisPlot(
         resp_bin_signal_name, 
-        resp_signal_values, 
+        resp_signal_values.GetRange(start_index, end_index - start_index + 1), 
         resp_bin_sample_period, 
         RespiratoryRemoveMultiplePeaks, 
         RespiratoryMinimumPeakWidth, 
-        DateTime.Parse(resp_bin_date_time_from), 
         newFrom, 
         newTo
       );
@@ -1184,7 +1191,6 @@ namespace SleepApneaDiagnoser
         sample_period, 
         RespiratoryRemoveMultiplePeaks, 
         RespiratoryMinimumPeakWidth,
-        Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile),
         Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile),
         Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 1)
         );
@@ -2229,6 +2235,26 @@ namespace SleepApneaDiagnoser
     /*********************************************************************************************************************************/
 
     // Update Actions
+    private void AppliedThemeColor_Changed()
+    {
+      OnPropertyChanged(nameof(AppliedThemeColor));
+
+      var application = System.Windows.Application.Current;
+      Accent newAccent = Utils.ThemeColorToAccent(AppliedThemeColor);
+
+      ThemeManager.AddAccent(newAccent.Name, newAccent.Resources.Source);
+      ThemeManager.ChangeAppStyle(application, newAccent, ThemeManager.GetAppTheme(UseDarkTheme ? "BaseDark" : "BaseLight"));
+
+      // Update all charts to dark or light theme
+      PropertyInfo[] all_plotmodels = this.GetType().GetProperties().ToList().Where(temp => temp.PropertyType == new PlotModel().GetType()).ToArray();
+      for (int x = 0; x < all_plotmodels.Length; x++)
+      {
+        PlotModel model = (PlotModel)all_plotmodels[x].GetValue(this);
+
+        all_plotmodels[x].SetValue(this, null);
+        all_plotmodels[x].SetValue(this, model);
+      }
+    }
     private void LoadedEDFFile_Changed()
     {
       PreviewCurrentCategory = -1;
@@ -2312,7 +2338,7 @@ namespace SleepApneaDiagnoser
       OnPropertyChanged(nameof(RespiratoryEDFNavigationEnabled));
 
       EEGView_Changed();
-      RespiratoryView_Changed();
+      RespiratoryEDFView_Changed();
     }
     private void PreviewCurrentCategory_Changed()
     {
@@ -2355,10 +2381,6 @@ namespace SleepApneaDiagnoser
     {
       PreviewNavigationEnabled = true;
     }
-    private void CoherencePlot_Changed()
-    {
-      CoherenceProgressRingEnabled = false;
-    }
     private void PreviewPropertiesSelectedSignal_Changed()
     {
       OnPropertyChanged(nameof(PreviewPropertiesSelectedSignal));
@@ -2367,41 +2389,44 @@ namespace SleepApneaDiagnoser
       OnPropertyChanged(nameof(PreviewPropertiesLowPassFilter));
       OnPropertyChanged(nameof(PreviewPropertiesSmoothFilter));
     }
-    private void AppliedThemeColor_Changed()
-    {
-      OnPropertyChanged(nameof(AppliedThemeColor));
-
-      var application = System.Windows.Application.Current;
-      Accent newAccent = Utils.ThemeColorToAccent(AppliedThemeColor);
-
-      ThemeManager.AddAccent(newAccent.Name, newAccent.Resources.Source);
-      ThemeManager.ChangeAppStyle(application, newAccent, ThemeManager.GetAppTheme(UseDarkTheme ? "BaseDark" : "BaseLight"));
-      
-      // Update all charts to dark or light theme
-      PropertyInfo[] all_plotmodels = this.GetType().GetProperties().ToList().Where(temp => temp.PropertyType == new PlotModel().GetType()).ToArray();
-      for (int x = 0; x < all_plotmodels.Length; x++)
-      {
-        PlotModel model = (PlotModel) all_plotmodels[x].GetValue(this);
-
-        all_plotmodels[x].SetValue(this, null);
-        all_plotmodels[x].SetValue(this, model);
-      }
-    }
     private void RepiratoryPlotChanged()
     {
       p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
       RespiratoryProgressRingEnabled = false;
     }
-    private void RespiratoryView_Changed()
+    private void RespiratoryEDFView_Changed()
     {
       OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
       OnPropertyChanged(nameof(RespiratoryEDFStartTime));
       OnPropertyChanged(nameof(RespiratoryEDFDuration));
-      
+
       OnPropertyChanged(nameof(RespiratoryEDFStartRecordMax));
       OnPropertyChanged(nameof(RespiratoryEDFStartRecordMin));
       OnPropertyChanged(nameof(RespiratoryEDFDurationMax));
       OnPropertyChanged(nameof(RespiratoryEDFDurationMin));
+    }
+    private void RespiratoryBinaryView_Changed()
+    {
+      OnPropertyChanged(nameof(RespiratoryBinaryStart));
+      OnPropertyChanged(nameof(RespiratoryBinaryDuration));
+
+      OnPropertyChanged(nameof(RespiratoryBinaryStartRecordMax));
+      OnPropertyChanged(nameof(RespiratoryBinaryDurationMax));
+    }
+    private void CoherencePlot_Changed()
+    {
+      CoherenceProgressRingEnabled = false;
+    }
+    private void CoherenceView_Changed()
+    {
+      OnPropertyChanged(nameof(CoherenceEDFStartRecord));
+      OnPropertyChanged(nameof(CoherenceEDFStartTime));
+      OnPropertyChanged(nameof(CoherenceEDFDuration));
+
+      OnPropertyChanged(nameof(CoherenceEDFStartRecordMax));
+      OnPropertyChanged(nameof(CoherenceEDFStartRecordMin));
+      OnPropertyChanged(nameof(CoherenceEDFDurationMax));
+      OnPropertyChanged(nameof(CoherenceEDFDurationMin));
     }
     private void EEGView_Changed()
     {
@@ -2415,18 +2440,7 @@ namespace SleepApneaDiagnoser
       //OnPropertyChanged(nameof(EEGEpochToMax));
       //OnPropertyChanged(nameof(EEGEpochToMin));
     }
-    private void CoherenceView_Changed()
-    {
-      OnPropertyChanged(nameof(CoherenceEDFStartRecord));
-      OnPropertyChanged(nameof(CoherenceEDFStartTime));
-      OnPropertyChanged(nameof(CoherenceEDFDuration));
-
-      OnPropertyChanged(nameof(CoherenceEDFStartRecordMax));
-      OnPropertyChanged(nameof(CoherenceEDFStartRecordMin));
-      OnPropertyChanged(nameof(CoherenceEDFDurationMax));
-      OnPropertyChanged(nameof(CoherenceEDFDurationMin));
-    }
-
+    
     /*********************************************************** GENERAL ************************************************************/
 
     // Loaded EDF Structure and File Name
@@ -3149,7 +3163,7 @@ namespace SleepApneaDiagnoser
         {
           rm.RespiratoryEDFStartRecord = value ?? 1;
           OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
-          RespiratoryView_Changed();
+          RespiratoryEDFView_Changed();
           PerformRespiratoryAnalysisEDF();
         }
       }
@@ -3166,7 +3180,7 @@ namespace SleepApneaDiagnoser
         {
           rm.RespiratoryEDFDuration = value ?? 1;
           OnPropertyChanged(nameof(RespiratoryEDFDuration));
-          RespiratoryView_Changed();
+          RespiratoryEDFView_Changed();
           PerformRespiratoryAnalysisEDF();
         }
       }
@@ -3184,6 +3198,7 @@ namespace SleepApneaDiagnoser
         {
           rm.RespiratoryBinaryStart = value ?? 1;
           OnPropertyChanged(nameof(RespiratoryBinaryStart));
+          RespiratoryBinaryView_Changed();
           PerformRespiratoryAnalysisBinary();
         }
       }
@@ -3200,6 +3215,7 @@ namespace SleepApneaDiagnoser
         {
           rm.RespiratoryBinaryDuration = value ?? 1;
           OnPropertyChanged(nameof(RespiratoryBinaryDuration));
+          RespiratoryBinaryView_Changed();
           PerformRespiratoryAnalysisBinary();
         }
       }
@@ -3356,6 +3372,21 @@ namespace SleepApneaDiagnoser
           return 1;
         else // No File Loaded
           return 0;
+      }
+    }
+
+    public int RespiratoryBinaryStartRecordMax
+    {
+      get
+      {
+        return 1 + resp_bin_max_epoch - RespiratoryBinaryDuration ?? 1;
+      }
+    }
+    public int RespiratoryBinaryDurationMax
+    {
+      get
+      {
+        return 1 + resp_bin_max_epoch - RespiratoryBinaryStart ?? 1;
       }
     }
 
