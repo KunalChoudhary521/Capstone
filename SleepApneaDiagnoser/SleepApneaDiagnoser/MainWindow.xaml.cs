@@ -2327,6 +2327,7 @@ namespace SleepApneaDiagnoser
       // Header
       OnPropertyChanged(nameof(EDFStartTime));
       OnPropertyChanged(nameof(EDFEndTime));
+      OnPropertyChanged(nameof(EDFEndEpoch));
       OnPropertyChanged(nameof(EDFPatientName));
       OnPropertyChanged(nameof(EDFPatientSex));
       OnPropertyChanged(nameof(EDFPatientCode));
@@ -2579,6 +2580,16 @@ namespace SleepApneaDiagnoser
                                );
           return EndTime.ToString();
         }
+        else
+          return "";
+      }
+    }
+    public string EDFEndEpoch
+    {
+      get
+      {
+        if (IsEDFLoaded)
+          return (Utils.DateTimetoEpoch(DateTime.Parse(EDFEndTime), LoadedEDFFile) - 1).ToString();
         else
           return "";
       }
