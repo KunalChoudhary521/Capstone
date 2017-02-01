@@ -41,7 +41,7 @@
               <Grid Name="grid_MainMenu" VerticalAlignment="Top" HorizontalAlignment="Stretch"  Margin="0,0,0,0" Visibility="{Binding Path=SettingsMainMenuVisible, Converter={StaticResource Converter_BoolVis}}">
                 <Label Content="Signal Management" HorizontalAlignment="Left" Width="290" Height="32" VerticalAlignment="Top" Margin="10,0,0,0" FontWeight="Bold"/>
                 <Button BorderThickness="0" Background="Transparent" VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="0,37,0,0" HorizontalContentAlignment="Left" Content="    Personalization" Height="37" Click="button_PersonalizationSettings_Click"/>
-                <Button IsEnabled="{Binding IsEDFLoaded}" BorderThickness="0" Background="Transparent" VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="0,74,0,0" HorizontalContentAlignment="Left" Content="    Respiratory Analysis" Height="37" Click="button_RespiratorySettings_Click"/>
+                <Button BorderThickness="0" Background="Transparent" VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="0,74,0,0" HorizontalContentAlignment="Left" Content="    Respiratory Analysis" Height="37" Click="button_RespiratorySettings_Click"/>
                 <Button IsEnabled="{Binding IsEDFLoaded}" BorderThickness="0" Background="Transparent" VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="0,111,0,0" HorizontalContentAlignment="Left" Content="    Manage Categories" Height="37" Click="button_Categories_Click"/>
                 <Button IsEnabled="{Binding IsEDFLoaded}" BorderThickness="0" Background="Transparent" VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="0,148,0,0" HorizontalContentAlignment="Left" Content="    Hide/Unhide EDF Signals" Height="37" Click="button_HideSignals_Click"/>
                 <Button IsEnabled="{Binding IsEDFLoaded}" BorderThickness="0" Background="Transparent" VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="0,185,0,0" HorizontalContentAlignment="Left" Content="    Add Derivative" Height="37" Click="button_AddDerivative_Click"/>
@@ -276,8 +276,8 @@
                 <Label Content="From" FontSize="14" Margin="24,8,0,2" HorizontalContentAlignment="Left" Grid.Column="4" Grid.Row="1" HorizontalAlignment="Left" Width="70"/>
                 <mtr:NumericUpDown FontSize="14" Margin="99,5,10,5" TextAlignment="Center" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding ExportEpochStart}" Minimum="{Binding EEGEDFStartRecordMin}" Maximum="{Binding EEGEDFStartRecordMax}" Grid.Column="4" Grid.Row="1"/>
                 <Label Content="To" FontSize="14" Margin="24,6,0,4" HorizontalContentAlignment="Left" Grid.Column="4" Grid.Row="2" HorizontalAlignment="Left" Width="70" RenderTransformOrigin="0.057,0.414"/>
-                <mtr:NumericUpDown FontSize="14" Margin="99,10,10,0" TextAlignment="Center" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding ExportEpochEnd}" Minimum="{Binding ExportEpochStart}" Maximum="{Binding EEGEDFStartRecordMax}" Grid.Column="4" Grid.Row="2"/>
-                <Button Content="Export" IsEnabled="{Binding IsEDFLoaded}" Click="button_ExportEEGCalculations_Click" Grid.Column="5" Margin="10,8,10,4" Grid.Row="2"/>
+                <mtr:NumericUpDown FontSize="14" Margin="99,5,10,5" TextAlignment="Center" IsEnabled="{Binding IsEDFLoaded}" Value="{Binding ExportEpochEnd}" Minimum="{Binding ExportEpochStart}" Maximum="{Binding EEGEDFStartRecordMax}" Grid.Column="4" Grid.Row="2"/>
+                <Button Content="Export" IsEnabled="{Binding IsEDFLoaded}" Click="button_ExportEEGCalculations_Click" Grid.Column="5" Margin="10,5,10,5" Grid.Row="2"/>
               </Grid>
 
               <Label Content="Plot" FontSize="18" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="10,130,0,0"/>
