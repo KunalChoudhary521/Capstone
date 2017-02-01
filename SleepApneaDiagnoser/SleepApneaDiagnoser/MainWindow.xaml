@@ -38,7 +38,7 @@
                 <ScrollViewer >
                     <StackPanel Margin="0,0,0,0">
                         <Grid Margin="0,0,0,0">
-                            <Grid Name="grid_MainMenu" VerticalAlignment="Top" HorizontalAlignment="Stretch"  Margin="0,0,0,0" Visibility="{Binding Path=SettingsMainMenuVisible, Converter={StaticResource Converter_BoolVis}}">
+                            <Grid Name="grid_SettingsMainMenu" VerticalAlignment="Top" HorizontalAlignment="Stretch"  Margin="0,0,0,0" Visibility="{Binding Path=SettingsMainMenuVisible, Converter={StaticResource Converter_BoolVis}}">
                                 <Label Content="Signal Management" HorizontalAlignment="Left" Width="290" Height="32" VerticalAlignment="Top" Margin="10,0,0,0" FontWeight="Bold"/>
                                 <Button BorderThickness="0" Background="Transparent" VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="0,37,0,0" HorizontalContentAlignment="Left" Content="    Personalization" Height="37" Click="button_PersonalizationSettings_Click"/>
                                 <Button BorderThickness="0" Background="Transparent" VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="0,74,0,0" HorizontalContentAlignment="Left" Content="    Respiratory Analysis" Height="37" Click="button_RespiratorySettings_Click"/>
@@ -49,18 +49,16 @@
                                 <Button IsEnabled="{Binding IsEDFLoaded}" BorderThickness="0" Background="Transparent" VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="0,259,0,0" HorizontalContentAlignment="Left" Content="    Add Filtered Signal" Height="37" Click="button_AddFilter_Click"/>
                                 <Button IsEnabled="{Binding IsEDFLoaded}" BorderThickness="0" Background="Transparent" VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="0,296,0,0" HorizontalContentAlignment="Left" Content="    Remove Filtered Signal" Height="37" Click="button_RemoveFilter_Click"/>
                             </Grid>
-                            <Grid Name="grid_Respiratory" VerticalAlignment="Top" HorizontalAlignment="Stretch"  Margin="0,0,0,0" Visibility="{Binding Path=SettingsRespiratoryVisible, Converter={StaticResource Converter_BoolVis}}">
+                            <Grid Name="grid_SettingsRespiratory" VerticalAlignment="Top" HorizontalAlignment="Stretch"  Margin="0,0,0,0" Visibility="{Binding Path=SettingsRespiratoryVisible, Converter={StaticResource Converter_BoolVis}}">
                                 <!-- Respiratory Settings -->
                                 <Label Content="Respiratory Analysis" HorizontalAlignment="Left" Width="290" Height="32" VerticalAlignment="Top" Margin="10,0,0,0" FontWeight="Bold"/>
                                 <Label Content="Peak Detection Sensitivity (ms)" HorizontalAlignment="Left" Margin="15,35,0,0" VerticalAlignment="Top"/>
                                 <mtr:NumericUpDown Height="23" Margin="20,65,20,0" VerticalAlignment="Top" Value="{Binding RespiratoryMinimumPeakWidth}"/>
                                 <Label Content="Allow Multiple Subsequent Peaks" HorizontalAlignment="Left" Margin="15,95,0,0" VerticalAlignment="Top"/>
-                                <mtr:ToggleSwitchButton Margin="15,125,20,0" HorizontalAlignment="Right" FontFamily="Segoi UI" FontSize="14" IsChecked="{Binding RespiratoryRemoveMultiplePeaks}" VerticalAlignment="Top" />
-                                <TextBlock Name="TextBlock_RespAllowMultiplePeaks" FontFamily="Segoi UI" Text="Yes" HorizontalAlignment="Left" Margin="15,130,0,0" TextAlignment="Center" FontSize="14" Height="31" Width="35" VerticalAlignment="Top"/>
-                                <TextBlock Name="TextBlock_RespPendingChanges" Text="Changes applied when plot is redrawn." HorizontalAlignment="Left" Margin="15,160,0,0" Foreground="Blue"  Width="251" FontSize="14" Height="29" VerticalAlignment="Top"/>
+                                <mtr:ToggleSwitch Margin="23,125,0,0" Width="228" HorizontalAlignment="Left" FontFamily="Segoi UI" FontSize="14" IsChecked="{Binding RespiratoryRemoveMultiplePeaks}" VerticalAlignment="Top" />
                                 <Button BorderThickness="0" Background="Transparent" HorizontalAlignment="Stretch" Margin="0,220,0,408" HorizontalContentAlignment="Left" Content="    Back" Height="37" Click="button_MainMenuClick"/>
                             </Grid>
-                            <Grid Name="grid_Personalization" VerticalAlignment="Top" HorizontalAlignment="Stretch"  Margin="0,0,0,0" Visibility="{Binding Path=SettingsPersonalizationVisible, Converter={StaticResource Converter_BoolVis}}">
+                            <Grid Name="grid_SettingsPersonalization" VerticalAlignment="Top" HorizontalAlignment="Stretch"  Margin="0,0,0,0" Visibility="{Binding Path=SettingsPersonalizationVisible, Converter={StaticResource Converter_BoolVis}}">
                                 <!-- Personalization Settings -->
                                 <Label Content="Personalization" HorizontalAlignment="Left" Width="290" Height="32" VerticalAlignment="Top" Margin="10,0,0,0" FontWeight="Bold"/>
                                 <Label Content="Manually Select Theme Color" HorizontalAlignment="Left" Margin="15,35,0,0" VerticalAlignment="Top"/>
@@ -186,7 +184,7 @@
 
             <mtr:MetroTabItem Header="Analysis">
                 <TabControl  Margin="10,10,10,10" FocusVisualStyle="{x:Null}">
-                    <mtr:MetroTabItem Header="Respiratory" Height="40">
+                    <mtr:MetroTabItem Name="TabItem_Respiratory" Header="Respiratory" Height="40">
                         <Grid>
                             <Grid Height="125" VerticalAlignment="Top" Margin="10,0,0,0">
                                 <Grid.RowDefinitions>
@@ -211,7 +209,7 @@
                                 <mtr:NumericUpDown FontSize="14"  Margin="55,5,10,5" TextAlignment="Center" IsEnabled="{Binding IsRespBinLoaded}" Value="{Binding RespiratoryBinaryStart}" Minimum="1" Maximum="{Binding RespiratoryBinaryStartRecordMax}" Grid.Column="2" Grid.Row="1"/>
                                 <Label Content="Duration" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="0,5,0,5" HorizontalContentAlignment="Left" Grid.Column="3" Grid.Row="1"/>
                                 <mtr:NumericUpDown FontSize="14" Margin="65,5,10,5" TextAlignment="Center" IsEnabled="{Binding IsRespBinLoaded}" Value="{Binding RespiratoryBinaryDuration}" Minimum="1" Maximum="{Binding RespiratoryBinaryDurationMax}" Grid.Column="3" Grid.Row="1" RenderTransformOrigin="0.705,0.543"/>
-                                <TextBox Grid.Column="1" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Margin="155,5,10,5" Grid.Row="1" TextWrapping="Wrap" Text="{Binding RespiratoryBinaryMaxEpochs}" IsEnabled="{Binding IsRespBinLoaded}" IsReadOnly="true"/>
+                                <TextBox Grid.Column="1" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Margin="155,5,10,5" Grid.Row="1" TextWrapping="Wrap" Text="{Binding RespiratoryBinaryMaxEpochs, Mode=OneWay}" IsEnabled="{Binding IsRespBinLoaded}" IsReadOnly="true"/>
                                 <Label Content="Max" FontSize="14" Margin="115,5,0,5" HorizontalContentAlignment="Left" Grid.Column="1" Grid.Row="1" HorizontalAlignment="Left" Width="39"/>
                                 <!-- From EDF -->
                                 <Label Content="EDF" FontSize="14" Margin="0,5,20,5" Grid.Row="2"/>

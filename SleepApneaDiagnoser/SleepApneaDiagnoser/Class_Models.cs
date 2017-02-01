@@ -65,57 +65,6 @@ namespace SleepApneaDiagnoser
   }
 
   /// <summary>
-  /// Model for variables used exclusively in the 'Respiratory' sub tab of the 'Analysis' tab
-  /// </summary>
-  public class RespiratoryModel
-  {
-    /// <summary>
-    /// The user selected signal to perform respiratory analysis on
-    /// </summary>
-    public string RespiratoryEDFSelectedSignal;
-    /// <summary>
-    /// The user selected start time for the respiratory analysis in 30s epochs
-    /// </summary>
-    public int RespiratoryEDFStartRecord;
-    /// <summary>
-    /// The user selected period for the respiratory analysis in 30s epochs
-    /// </summary>
-    public int RespiratoryEDFDuration;
-    /// <summary>
-    /// The respiratory analysis plot to be displayed
-    /// </summary>
-    public PlotModel RespiratorySignalPlot = null;
-    /// <summary>
-    /// The calculated mean average of the periods of the respiratory signal
-    /// </summary>
-    public string RespiratoryBreathingPeriodMean;
-    /// <summary>
-    /// The calculated median average of the periods of the respiratory signal
-    /// </summary>
-    public string RespiratoryBreathingPeriodMedian;
-    /// <summary>
-    /// A user selected option for setting the sensitivity of the peak detection of the analysis
-    /// Effect where the insets, onsets, and peaks are detected
-    /// Any "spike" that is less wide than the user setting in ms will be ignored
-    /// </summary>
-    public int RespiratoryMinimumPeakWidth = 500;
-    /// <summary>
-    /// A user selected option for choosing whether the analysis will allow for repeated peaks of
-    /// the same polarity
-    /// </summary>
-    public bool RespiratoryRemoveMultiplePeaks = true;
-    /// <summary>
-    /// If true, use a constant axis
-    /// If false, auto adjust to plot
-    /// </summary>
-    public bool RespiratoryUseConstantAxis = false;
-    internal int? RespiratoryBinaryStart;
-    internal int? RespiratoryBinaryDuration;
-
-    public bool RespiratoryProgressRingEnabled = false;
-  }
-
-  /// <summary>
   /// Model for variables used exclusively in the 'EEG' sub tab of the 'Analysis' tab
   /// </summary>
   public class EEGModel

@@ -48,14 +48,16 @@ namespace SleepApneaDiagnoser
   /// </summary>
   public partial class MainWindow : MetroWindow
   {
-    ModelView model;
+    ModelView modelview;
+    RespiratoryModelView resp_modelview;
+    SettingsModel settings_model;
 
     /// <summary>
     /// Function called to populate recent files list. Called when application is first loaded and if the recent files list changes.
     /// </summary>
     public void LoadRecent()
     {
-      List<string> array = model.RecentFiles.ToArray().ToList();
+      List<string> array = modelview.RecentFiles.ToArray().ToList();
 
       itemControl_RecentEDF.Items.Clear();
       for (int x = 0; x < array.Count; x++)
@@ -70,22 +72,27 @@ namespace SleepApneaDiagnoser
     {
       InitializeComponent();
 
-      model = new ModelView(this);
-      this.DataContext = model;
-      this.grid_MainMenu.DataContext = model;
-      this.grid_Respiratory.DataContext = model;
-      this.grid_Personalization.DataContext = model;
+      settings_model = new SettingsModel();
+      modelview = new ModelView(this, settings_model);
+      this.DataContext = modelview;
+      this.grid_SettingsMainMenu.DataContext = modelview;
+      this.grid_SettingsPersonalization.DataContext = modelview;
+
+      resp_modelview = new RespiratoryModelView(modelview, settings_model);
+      this.grid_SettingsRespiratory.DataContext = resp_modelview;
+      this.TabItem_Respiratory.DataContext = resp_modelview;
+            
       LoadRecent();
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
-      model.LoadAppSettings();
+      modelview.LoadAppSettings();
     }
     private void Window_Closing(object sender, CancelEventArgs e)
     {
-      model.WriteAppSettings();
-      model.WriteEDFSettings();
+      modelview.WriteAppSettings();
+      modelview.WriteEDFSettings();
     }
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
     {
@@ -126,12 +133,12 @@ namespace SleepApneaDiagnoser
 
       if (dialog.ShowDialog() == true)
       {
-        model.LoadEDFFile(dialog.FileName);
+        modelview.LoadEDFFile(dialog.FileName);
       }       
     }
     private void TextBlock_Recent_Click(object sender, RoutedEventArgs e)
     {
-      List<string> array = model.RecentFiles.ToArray().ToList();
+      List<string> array = modelview.RecentFiles.ToArray().ToList();
       List<string> selected = array.Where(temp => temp.Split('\\')[temp.Split('\\').Length - 1] == ((Hyperlink)sender).Inlines.FirstInline.DataContext.ToString()).ToList();
 
       if (selected.Count == 0)
@@ -145,13 +152,13 @@ namespace SleepApneaDiagnoser
         {
           if (File.Exists(selected[x]))
           {
-            model.LoadEDFFile(selected[x]);
+            modelview.LoadEDFFile(selected[x]);
             break;
           }
           else
           {
             this.ShowMessageAsync("Error", "File not Found");
-            model.RecentFiles_Remove(selected[x]);
+            modelview.RecentFiles_Remove(selected[x]);
           }
         }
       }
@@ -160,64 +167,64 @@ namespace SleepApneaDiagnoser
     // Setting Flyout Events 
     private void button_Settings_Click(object sender, RoutedEventArgs e)
     {
-      model.OpenCloseSettings();
-      model.SettingsMainMenuVisible = true;
-      model.SettingsPersonalizationVisible = false;
-      model.SettingsRespiratoryVisible = false;
+      modelview.OpenCloseSettings();
+      modelview.SettingsMainMenuVisible = true;
+      modelview.SettingsPersonalizationVisible = false;
+      resp_modelview.SettingsRespiratoryVisible = false;
     }
     private void button_MainMenuClick(object sender, RoutedEventArgs e)
     {
-      model.SettingsMainMenuVisible = true;
-      model.SettingsPersonalizationVisible = false;
-      model.SettingsRespiratoryVisible = false;
+      modelview.SettingsMainMenuVisible = true;
+      modelview.SettingsPersonalizationVisible = false;
+      resp_modelview.SettingsRespiratoryVisible = false;
     }
     private void button_PersonalizationSettings_Click(object sender, RoutedEventArgs e)
     {
-      model.SettingsMainMenuVisible = false;
-      model.SettingsPersonalizationVisible = true;
-      model.SettingsRespiratoryVisible = false;
+      modelview.SettingsMainMenuVisible = false;
+      modelview.SettingsPersonalizationVisible = true;
+      resp_modelview.SettingsRespiratoryVisible = false;
     }
     private void button_RespiratorySettings_Click(object sender, RoutedEventArgs e)
     {
-      model.SettingsMainMenuVisible = false;
-      model.SettingsPersonalizationVisible = false;
-      model.SettingsRespiratoryVisible = true;
+      modelview.SettingsMainMenuVisible = false;
+      modelview.SettingsPersonalizationVisible = false;
+      resp_modelview.SettingsRespiratoryVisible = true;
     }
     private void button_HideSignals_Click(object sender, RoutedEventArgs e)
     {
-      model.OpenCloseSettings();
-      model.HideSignals();
+      modelview.OpenCloseSettings();
+      modelview.HideSignals();
     }
     private void button_AddDerivative_Click(object sender, RoutedEventArgs e)
     {
-      model.OpenCloseSettings();
-      model.AddDerivative();
+      modelview.OpenCloseSettings();
+      modelview.AddDerivative();
     }
     private void button_RemoveDerivative_Click(object sender, RoutedEventArgs e)
     {
-      model.OpenCloseSettings();
-      model.RemoveDerivative();
+      modelview.OpenCloseSettings();
+      modelview.RemoveDerivative();
     }
     private void button_Categories_Click(object sender, RoutedEventArgs e)
     {
-      model.OpenCloseSettings();
-      model.ManageCategories();
+      modelview.OpenCloseSettings();
+      modelview.ManageCategories();
     }
     private void button_AddFilter_Click(object sender, RoutedEventArgs e)
     {
-      model.OpenCloseSettings();
-      model.AddFilter();
+      modelview.OpenCloseSettings();
+      modelview.AddFilter();
     }
     private void button_RemoveFilter_Click(object sender, RoutedEventArgs e)
     {
-      model.OpenCloseSettings();
-      model.RemoveFilter();
+      modelview.OpenCloseSettings();
+      modelview.RemoveFilter();
     }
 
     // Preview Tab Events   
     private void listBox_SignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-      model.SetSelectedSignals(listBox_SignalSelect.SelectedItems);
+      modelview.SetSelectedSignals(listBox_SignalSelect.SelectedItems);
     }
     private void comboBox_SignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -236,16 +243,16 @@ namespace SleepApneaDiagnoser
     
     private void button_Next_Click(object sender, RoutedEventArgs e)
     {
-      model.NextCategory();
+      modelview.NextCategory();
     }
     private void button_Prev_Click(object sender, RoutedEventArgs e)
     {
-      model.PreviousCategory();
+      modelview.PreviousCategory();
     }
 
     private void button_ExportBinary_Click(object sender, RoutedEventArgs e)
     {
-      model.ExportSignals();
+      modelview.ExportSignals();
     }
     private void button_ExportImage_Click(object sender, RoutedEventArgs e)
     {
@@ -255,26 +262,26 @@ namespace SleepApneaDiagnoser
 
       if (dialog.ShowDialog() == true)
       {
-        model.ExportImage(dialog.FileName);
+        modelview.ExportImage(dialog.FileName);
       }
     }
 
     // Analysis Tab Events 
     private void button_EDFEEGAnalysis_Click(object sender, RoutedEventArgs e)
     {
-      model.PerformEEGAnalysisEDF();
+      modelview.PerformEEGAnalysisEDF();
     }
     private void button_ExportEEGCalculations_Click(object sender, RoutedEventArgs e)
     {
-      model.ExportEEGCalculations();
+      modelview.ExportEEGCalculations();
     }
     private void button_BINRespiratoryAnalysis_Click(object sender, RoutedEventArgs e)
     {
-      model.LoadRespiratoryAnalysisBinary();
+      resp_modelview.LoadRespiratoryAnalysisBinary();
     }
     private void button_BINEEGAnalysis_Click(object sender, RoutedEventArgs e)
     {
-      model.PerformEEGAnalysisBinary();
+      modelview.PerformEEGAnalysisBinary();
     }
   }
 
@@ -290,7 +297,7 @@ namespace SleepApneaDiagnoser
     /// <param name="StartTime">  The input start time to be contained in the series </param>
     /// <param name="EndTime"> The input end time to be contained in the series </param>
     /// <returns> The series of X,Y values to draw on the plot </returns>
-    private LineSeries GetSeriesFromSignalName(out float sample_period, string Signal, DateTime StartTime, DateTime EndTime)
+    public LineSeries GetSeriesFromSignalName(out float sample_period, string Signal, DateTime StartTime, DateTime EndTime)
     {
       // Variable To Return
       LineSeries series = new LineSeries();
@@ -378,209 +385,6 @@ namespace SleepApneaDiagnoser
       return series;
     }
     #endregion
-
-    #region Respiratory Helper Functions
-    private static LineSeries RemoveBiasFromSignal(LineSeries series, double bias)
-    {
-      // Normalization
-      LineSeries series_norm = new LineSeries();
-      for (int x = 0; x < series.Points.Count; x++)
-      {
-        series_norm.Points.Add(new DataPoint(series.Points[x].X, series.Points[x].Y - bias));
-      }
-
-      return series_norm;
-    }
-    private static Tuple<ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries>  GetPeaksAndOnsets(LineSeries series, bool RemoveMultiplePeaks, int min_spike_length)
-    {
-      int spike_length = 0;
-      int maxima = 0;
-      int start = 0;
-      bool? positive = null;
-      ScatterSeries series_pos_peaks = new ScatterSeries();
-      ScatterSeries series_neg_peaks = new ScatterSeries();
-      ScatterSeries series_insets = new ScatterSeries();
-      ScatterSeries series_onsets = new ScatterSeries();
-      for (int x = 0; x < series.Points.Count; x++)
-      {
-        // If positive spike
-        if (positive != false)
-        {
-          // If end of positive spike
-          if (series.Points[x].Y < 0 || x == series.Points.Count - 1)
-          {
-            // If spike is appropriate length
-            if (spike_length > min_spike_length)
-            {
-              if (
-                  // If user does not mind consequent peaks of same sign
-                  !RemoveMultiplePeaks ||
-                  // If first positive peak
-                  series_pos_peaks.Points.Count == 0 ||
-                  // If last peak was negative
-                  (series_neg_peaks.Points.Count != 0 &&
-                  DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) >
-                  DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))
-                 )
-              {
-                // Add new positive peak and onset 
-                series_pos_peaks.Points.Add(new ScatterPoint(series.Points[maxima].X, series.Points[maxima].Y));
-                series_onsets.Points.Add(new ScatterPoint(series.Points[start].X, series.Points[start].Y));
-              }
-              else
-              {
-                // If this peak is greater than the previous
-                if (series.Points[maxima].Y > series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].Y)
-                {
-                  // Replace previous spike maxima with latest spike maxima
-                  series_pos_peaks.Points.Remove(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1]);
-                  series_onsets.Points.Remove(series_onsets.Points[series_onsets.Points.Count - 1]);
-                  series_pos_peaks.Points.Add(new ScatterPoint(series.Points[maxima].X, series.Points[maxima].Y));
-                  series_onsets.Points.Add(new ScatterPoint(series.Points[start].X, series.Points[start].Y));
-                }
-              }
-            }
-
-            // Initialization for analyzing negative peak
-            positive = false;
-            spike_length = 1;
-            maxima = x;
-            start = x;
-          }
-          // If middle of positive spike
-          else
-          {
-            if (Math.Abs(series.Points[x].Y) > Math.Abs(series.Points[maxima].Y))
-              maxima = x;
-            spike_length++;
-          }
-        }
-        // If negative spike
-        else
-        {
-          // If end of negative spike
-          if (series.Points[x].Y > 0 || x == series.Points.Count - 1)
-          {
-            // If spike is appropriate length
-            if (spike_length > min_spike_length)
-            {
-              if (
-                  // If user does not mind consequent peaks of same sign
-                  !RemoveMultiplePeaks ||
-                  // If first negative peak
-                  series_neg_peaks.Points.Count == 0 ||
-                  // If last peak was positive 
-                  (series_pos_peaks.Points.Count != 0 &&
-                  DateTimeAxis.ToDateTime(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].X) <
-                  DateTimeAxis.ToDateTime(series_pos_peaks.Points[series_pos_peaks.Points.Count - 1].X))
-                )
-              {
-                // Add new negative peak and onset 
-                series_neg_peaks.Points.Add(new ScatterPoint(series.Points[maxima].X, series.Points[maxima].Y));
-                series_insets.Points.Add(new ScatterPoint(series.Points[start].X, series.Points[start].Y));
-              }
-              else
-              {
-                // If this peak is less than the previous
-                if (series.Points[maxima].Y < series_neg_peaks.Points[series_neg_peaks.Points.Count - 1].Y)
-                {
-                  // Replace previous spike maxima with latest spike maxima
-                  series_neg_peaks.Points.Remove(series_neg_peaks.Points[series_neg_peaks.Points.Count - 1]);
-                  series_insets.Points.Remove(series_insets.Points[series_insets.Points.Count - 1]);
-                  series_neg_peaks.Points.Add(new ScatterPoint(series.Points[maxima].X, series.Points[maxima].Y));
-                  series_insets.Points.Add(new ScatterPoint(series.Points[start].X, series.Points[start].Y));
-                }
-              }
-            }
-
-            // Initialization for analyzing positive peak
-            positive = true;
-            spike_length = 1;
-            maxima = x;
-            start = x;
-          }
-          // If middle of negative spike
-          else
-          {
-            if (Math.Abs(series.Points[x].Y) > Math.Abs(series.Points[maxima].Y))
-              maxima = x;
-            spike_length++;
-          }
-        }
-      }
-
-      return new Tuple<ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries>(series_insets, series_onsets, series_neg_peaks, series_pos_peaks);
-    }
-    private static Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> GetRespiratoryAnalysisPlot(string SignalName, List<float> yValues, float sample_period, float bias, bool RemoveMultiplePeaks, float MinimumPeakWidth, DateTime ViewStartTime, DateTime ViewEndTime)
-    {
-      // Variable To Return
-      LineSeries series = new LineSeries();
-
-      //  // Add Points to Series
-      for (int y = 0; y < yValues.Count; y++)
-      {
-        series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(ViewStartTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), yValues[y]));
-      }
-      
-      LineSeries series_norm = RemoveBiasFromSignal(series, bias);
-
-      // Find Peaks and Zero Crossings
-      int min_spike_length = (int)((double)((double)MinimumPeakWidth / (double)1000) / (double)sample_period);
-      Tuple<ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries> output = GetPeaksAndOnsets(series_norm, RemoveMultiplePeaks, min_spike_length);
-      ScatterSeries series_insets = output.Item1;
-      ScatterSeries series_onsets = output.Item2;
-      ScatterSeries series_neg_peaks = output.Item3;
-      ScatterSeries series_pos_peaks = output.Item4;
-
-      // Modify Series colors
-      series_onsets.MarkerFill = OxyColor.FromRgb(255, 0, 0);
-      series_insets.MarkerFill = OxyColor.FromRgb(0, 255, 0);
-      series_pos_peaks.MarkerFill = OxyColor.FromRgb(0, 0, 255);
-      series_neg_peaks.MarkerFill = OxyColor.FromRgb(255, 255, 0);
-
-      // Bind to Axes
-      series_norm.YAxisKey = SignalName;
-      series_norm.XAxisKey = "DateTime";
-      series_onsets.YAxisKey = SignalName;
-      series_onsets.XAxisKey = "DateTime";
-      series_insets.YAxisKey = SignalName;
-      series_insets.XAxisKey = "DateTime";
-      series_pos_peaks.YAxisKey = SignalName;
-      series_pos_peaks.XAxisKey = "DateTime";
-      series_neg_peaks.YAxisKey = SignalName;
-      series_neg_peaks.XAxisKey = "DateTime";
-
-      // Configure Axes
-      DateTimeAxis xAxis = new DateTimeAxis();
-      xAxis.Key = "DateTime";
-      xAxis.Minimum = DateTimeAxis.ToDouble(ViewStartTime);
-      xAxis.Maximum = DateTimeAxis.ToDouble(ViewEndTime);
-
-      LinearAxis yAxis = new LinearAxis();
-      yAxis.MajorGridlineStyle = LineStyle.Solid;
-      yAxis.MinorGridlineStyle = LineStyle.Dot;
-      yAxis.Title = SignalName;
-      yAxis.Key = SignalName;
-      
-      return new Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis>(series_norm, series_insets, series_onsets, series_neg_peaks, series_pos_peaks, xAxis, yAxis);
-    }
-    private static Tuple<double, double> GetRespiratorySignalBreathingPeriod(ScatterSeries[] series)
-    {
-      // Find Breathing Rate
-      List<double> breathing_periods = new List<double>();
-      for (int x = 0; x < series.Length; x++)
-      {
-        for (int y = 1; y < series[x].Points.Count; y++)
-          breathing_periods.Add((DateTimeAxis.ToDateTime(series[x].Points[y].X) - DateTimeAxis.ToDateTime(series[x].Points[y - 1].X)).TotalSeconds);
-      }
-      breathing_periods.Sort();
-
-      if (breathing_periods.Count != 0)
-        return new Tuple<double, double>(breathing_periods.Average(), breathing_periods[breathing_periods.Count / 2 - 1]);
-      else
-        return new Tuple<double, double>(0, 0);
-    }
-    #endregion;
 
     #region Actions
 
@@ -750,8 +554,8 @@ namespace SleepApneaDiagnoser
               yAxis.StartPosition = (double)1 - (double)(y + 1) * ((double)1 / (double)pm.PreviewSelectedSignals.Count);
               if (PreviewUseConstantAxis)
               {
-                yAxis.Maximum = GetMaxSignalValue(pm.PreviewSelectedSignals[y], false);
-                yAxis.Minimum = GetMinSignalValue(pm.PreviewSelectedSignals[y], false);
+                yAxis.Maximum = Utils.GetMaxSignalValue(pm.PreviewSelectedSignals[y], false, LoadedEDFFile, sm);
+                yAxis.Minimum = Utils.GetMinSignalValue(pm.PreviewSelectedSignals[y], false, LoadedEDFFile, sm);
               }
               series_array[y] = series;
               axis_array[y] = yAxis;
@@ -1050,196 +854,6 @@ namespace SleepApneaDiagnoser
       stream.Close();
     }
 
-    /************************************************** RESPIRATORY ANALYSIS TAB ****************************************************/
-
-    /// <summary>
-    /// Respiratory Analysis From Binary FIle
-    /// </summary>
-    public void LoadRespiratoryAnalysisBinary()
-    {
-      this.RespiratoryAnalysisBinaryFileLoaded = 1;
-      OnPropertyChanged(nameof(IsRespBinLoaded));
-      System.Windows.Forms.OpenFileDialog dialog = new System.Windows.Forms.OpenFileDialog();
-
-      dialog.Filter = "|*.bin";
-
-      if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-      {
-        // select the binary file
-        FileStream bin_file = new FileStream(dialog.FileName, FileMode.Open);
-        BinaryReader reader = new BinaryReader(bin_file);
-
-        byte[] value = new byte[4];
-        bool didReachEnd = false;
-        this.resp_signal_values = new List<float>();
-        // read the whole binary file and build the signal values
-        while (reader.BaseStream.Position != reader.BaseStream.Length)
-        {
-          try
-          {
-            value = reader.ReadBytes(4);
-            float myFloat = System.BitConverter.ToSingle(value, 0);
-            resp_signal_values.Add(myFloat);
-          }
-          catch (Exception ex)
-          {
-            didReachEnd = true;
-            break;
-          }
-        }
-
-        // close the binary file
-        bin_file.Close();
-
-        // get the file metadata from the header file
-        bin_file = new FileStream(dialog.FileName.Remove(dialog.FileName.Length - 4, 4) + ".hdr", FileMode.Open);
-
-        StreamReader file_reader = new StreamReader(bin_file);
-        // get the signal name
-        this.resp_bin_signal_name = file_reader.ReadLine();
-        this.resp_bin_subject_id = file_reader.ReadLine();
-        this.resp_bin_date_time_from = file_reader.ReadLine();
-        this.resp_bin_date_time_length = file_reader.ReadLine();
-        this.resp_bin_sample_frequency_s = file_reader.ReadLine();
-
-        bin_file.Close();
-
-        this.resp_bin_sample_period = 1 / float.Parse(resp_bin_sample_frequency_s);
-
-        DateTime epochs_from_datetime = DateTime.Parse(resp_bin_date_time_from);
-        DateTime epochs_to_datetime = DateTime.Parse(resp_bin_date_time_length);
-
-        resp_bin_max_epoch = (int)epochs_to_datetime.Subtract(epochs_from_datetime).TotalSeconds / 30;
-        OnPropertyChanged(nameof(RespiratoryBinaryMaxEpochs));
-        rm.RespiratoryBinaryStart = 1;
-        OnPropertyChanged(nameof(RespiratoryBinaryStart));
-        rm.RespiratoryBinaryDuration = 1;
-        OnPropertyChanged(nameof(RespiratoryBinaryDuration));
-        OnPropertyChanged(nameof(RespiratoryBinaryDurationMax));
-        OnPropertyChanged(nameof(RespiratoryBinaryStartRecordMax));
-
-        PerformRespiratoryAnalysisBinary();
-      }
-      else
-      {
-        p_window.ShowMessageAsync("Error", "File could not be opened.");
-      }
-    }
-    public void PerformRespiratoryAnalysisBinary()
-    {
-      RespiratoryProgressRingEnabled = true;
-
-      // Finding From 
-      int modelStartRecord = RespiratoryBinaryStart.Value;
-      DateTime newFrom = DateTime.Parse(resp_bin_date_time_from);
-      newFrom = newFrom.AddSeconds(30 * (modelStartRecord - 1));
-      
-      // Finding To 
-      int modelLength = rm.RespiratoryBinaryDuration.Value;
-      DateTime newTo = newFrom;
-      newTo = newTo.AddSeconds(30 * (modelLength));
-
-      if (newFrom < DateTime.Parse(resp_bin_date_time_from))
-        newFrom = DateTime.Parse(resp_bin_date_time_from);
-      if (newTo < newFrom)
-        newTo = newFrom;
-
-      int start_index = (int)(((double) (newFrom - DateTime.Parse(resp_bin_date_time_from)).TotalSeconds) / ((double) resp_bin_sample_period));
-      int end_index = (int)(((double)(newTo - DateTime.Parse(resp_bin_date_time_from)).TotalSeconds) / ((double)resp_bin_sample_period));
-      start_index = Math.Max(start_index, 0);
-      end_index = Math.Min(end_index, resp_signal_values.Count - 1);
-
-      PlotModel tempPlotModel = new PlotModel();
-      Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> resp_plots = GetRespiratoryAnalysisPlot(
-        resp_bin_signal_name,
-        resp_signal_values.GetRange(start_index, end_index - start_index + 1),
-        resp_bin_sample_period,
-        resp_signal_values.Average(),
-        RespiratoryRemoveMultiplePeaks, 
-        RespiratoryMinimumPeakWidth, 
-        newFrom, 
-        newTo
-      );
-      tempPlotModel.Series.Add(resp_plots.Item1);
-      tempPlotModel.Series.Add(resp_plots.Item2);
-      tempPlotModel.Series.Add(resp_plots.Item3);
-      tempPlotModel.Series.Add(resp_plots.Item4);
-      tempPlotModel.Series.Add(resp_plots.Item5);
-      tempPlotModel.Axes.Add(resp_plots.Item6);
-      tempPlotModel.Axes.Add(resp_plots.Item7);
-      RespiratorySignalPlot = tempPlotModel;
-
-      Tuple<double, double> breathing_periods = GetRespiratorySignalBreathingPeriod(new ScatterSeries[] { resp_plots.Item2, resp_plots.Item3, resp_plots.Item4, resp_plots.Item5 });
-      RespiratoryBreathingPeriodMean = breathing_periods.Item1.ToString("0.## sec/breath");
-      RespiratoryBreathingPeriodMedian = breathing_periods.Item2.ToString("0.## sec/breath");
-    }
-
-    // Respiratory Analysis From EDF File
-    /// <summary>
-    /// Background process for performing respiratory analysis
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
-    private void BW_RespiratoryAnalysisEDF(object sender, DoWorkEventArgs e)
-    {
-      PlotModel temp_SignalPlot = new PlotModel();
-
-      temp_SignalPlot.Series.Clear();
-      temp_SignalPlot.Axes.Clear();
-
-      float sample_period;
-      LineSeries series = GetSeriesFromSignalName(out sample_period,
-                                                  RespiratoryEDFSelectedSignal,
-                                                  Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile),
-                                                  Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 1)
-                                                  );
-
-
-      PlotModel tempPlotModel = new PlotModel();
-      Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> resp_plots = GetRespiratoryAnalysisPlot(
-        RespiratoryEDFSelectedSignal, 
-        series.Points.Select(temp => (float)temp.Y).ToList(), 
-        sample_period, 
-        (float)(GetMaxSignalValue(RespiratoryEDFSelectedSignal, false) - GetMaxSignalValue(RespiratoryEDFSelectedSignal, true)),
-        RespiratoryRemoveMultiplePeaks, 
-        RespiratoryMinimumPeakWidth,
-        Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile),
-        Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 1)
-        );
-
-      if (RespiratoryUseConstantAxis)
-      {
-        resp_plots.Item7.Minimum = GetMinSignalValue(RespiratoryEDFSelectedSignal, true);
-        resp_plots.Item7.Maximum = GetMaxSignalValue(RespiratoryEDFSelectedSignal, true);
-      }
-
-      tempPlotModel.Series.Add(resp_plots.Item1);
-      tempPlotModel.Series.Add(resp_plots.Item2);
-      tempPlotModel.Series.Add(resp_plots.Item3);
-      tempPlotModel.Series.Add(resp_plots.Item4);
-      tempPlotModel.Series.Add(resp_plots.Item5);
-      tempPlotModel.Axes.Add(resp_plots.Item6);
-      tempPlotModel.Axes.Add(resp_plots.Item7);
-      RespiratorySignalPlot = tempPlotModel;
-
-      Tuple<double, double> breathing_periods = GetRespiratorySignalBreathingPeriod(new ScatterSeries[] { resp_plots.Item2, resp_plots.Item3, resp_plots.Item4, resp_plots.Item5 });
-      RespiratoryBreathingPeriodMean = breathing_periods.Item1.ToString("0.## sec/breath");
-      RespiratoryBreathingPeriodMedian = breathing_periods.Item2.ToString("0.## sec/breath");
-    }
-    /// <summary>
-    /// Peforms respiratory analysis 
-    /// </summary>
-    public void PerformRespiratoryAnalysisEDF()
-    {
-      if (RespiratoryEDFSelectedSignal == null)
-        return;
-      
-      RespiratoryProgressRingEnabled = true;
-
-      BackgroundWorker bw = new BackgroundWorker();
-      bw.DoWork += BW_RespiratoryAnalysisEDF;
-      bw.RunWorkerAsync();
-    }
 
     /****************************************************** EEG ANALYSIS TAB ********************************************************/
 
@@ -1873,8 +1487,8 @@ namespace SleepApneaDiagnoser
 
         if (CoherenceUseConstantAxis)
         {
-          yAxis.Maximum = GetMaxSignalValue(CoherenceEDFSelectedSignal1, false);
-          yAxis.Minimum = GetMinSignalValue(CoherenceEDFSelectedSignal1, false);
+          yAxis.Maximum = Utils.GetMaxSignalValue(CoherenceEDFSelectedSignal1, false, LoadedEDFFile, sm);
+          yAxis.Minimum = Utils.GetMinSignalValue(CoherenceEDFSelectedSignal1, false, LoadedEDFFile, sm);
         }
 
         temp_SignalPlot.Axes.Add(yAxis);
@@ -1916,8 +1530,8 @@ namespace SleepApneaDiagnoser
 
         if (CoherenceUseConstantAxis)
         {
-          yAxis.Maximum = GetMaxSignalValue(CoherenceEDFSelectedSignal2, false);
-          yAxis.Minimum = GetMinSignalValue(CoherenceEDFSelectedSignal2, false);
+          yAxis.Maximum = Utils.GetMaxSignalValue(CoherenceEDFSelectedSignal2, false, LoadedEDFFile, sm);
+          yAxis.Minimum = Utils.GetMinSignalValue(CoherenceEDFSelectedSignal2, false, LoadedEDFFile, sm);
         }
         temp_SignalPlot.Axes.Add(yAxis);
 
@@ -2274,11 +1888,6 @@ namespace SleepApneaDiagnoser
     private PreviewModel pm = new PreviewModel();
 
     /// <summary>
-    /// Respiratory Model
-    /// </summary>
-    private RespiratoryModel rm = new RespiratoryModel();
-
-    /// <summary>
     /// EEG Model
     /// </summary>
     private EEGModel eegm = new EEGModel();
@@ -2288,7 +1897,7 @@ namespace SleepApneaDiagnoser
     /// </summary>
     private CoherenceModel cm = new CoherenceModel();
 
-    private SettingsModel sm = new SettingsModel();
+    private SettingsModel sm;
 
     /*********************************************************************************************************************************/
 
@@ -2332,13 +1941,6 @@ namespace SleepApneaDiagnoser
         PreviewViewDuration = null;
         LoadedEDFFileName = null;
 
-        RespiratoryBreathingPeriodMean = "";
-        RespiratoryBreathingPeriodMedian = "";
-        RespiratorySignalPlot = null;
-        RespiratoryEDFSelectedSignal = null;
-        RespiratoryEDFDuration = null;
-        RespiratoryEDFStartRecord = null;
-
         EEGEDFSelectedSignal = null;
         ExportEpochStart = null;
         ExportEpochEnd = null;
@@ -2358,14 +1960,6 @@ namespace SleepApneaDiagnoser
         PreviewViewStartTime = LoadedEDFFile.Header.StartDateTime;
         PreviewViewStartRecord = 1;
         PreviewViewDuration = 1;
-
-        RespiratoryBreathingPeriodMean = "";
-        RespiratoryBreathingPeriodMedian = "";
-        RespiratoryEDFSelectedSignal = null;
-        RespiratorySignalPlot = null;
-        RespiratoryEDFStartRecord = 1;
-        RespiratoryEDFDuration = 1;
-        
 
         EEGEDFSelectedSignal = null;
         EpochForAnalysis = 1;
@@ -2400,10 +1994,8 @@ namespace SleepApneaDiagnoser
 
       // Analysis 
       OnPropertyChanged(nameof(CoherenceEDFNavigationEnabled));
-      OnPropertyChanged(nameof(RespiratoryEDFNavigationEnabled));
 
       EEGView_Changed();
-      RespiratoryEDFView_Changed();
     }
     private void PreviewCurrentCategory_Changed()
     {
@@ -2453,30 +2045,6 @@ namespace SleepApneaDiagnoser
       OnPropertyChanged(nameof(PreviewPropertiesComponentSignal));
       OnPropertyChanged(nameof(PreviewPropertiesLowPassFilter));
       OnPropertyChanged(nameof(PreviewPropertiesSmoothFilter));
-    }
-    private void RepiratoryPlotChanged()
-    {
-      p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
-      RespiratoryProgressRingEnabled = false;
-    }
-    private void RespiratoryEDFView_Changed()
-    {
-      OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
-      OnPropertyChanged(nameof(RespiratoryEDFStartTime));
-      OnPropertyChanged(nameof(RespiratoryEDFDuration));
-
-      OnPropertyChanged(nameof(RespiratoryEDFStartRecordMax));
-      OnPropertyChanged(nameof(RespiratoryEDFStartRecordMin));
-      OnPropertyChanged(nameof(RespiratoryEDFDurationMax));
-      OnPropertyChanged(nameof(RespiratoryEDFDurationMin));
-    }
-    private void RespiratoryBinaryView_Changed()
-    {
-      OnPropertyChanged(nameof(RespiratoryBinaryStart));
-      OnPropertyChanged(nameof(RespiratoryBinaryDuration));
-
-      OnPropertyChanged(nameof(RespiratoryBinaryStartRecordMax));
-      OnPropertyChanged(nameof(RespiratoryBinaryDurationMax));
     }
     private void CoherencePlot_Changed()
     {
@@ -2591,28 +2159,7 @@ namespace SleepApneaDiagnoser
         AppliedThemeColor_Changed();
       }
     }
-    public void ApplyThemeToPlot(PlotModel plot)
-    {
-      if (plot != null)
-      {
-        var color = UseDarkTheme ? OxyColors.LightGray : OxyColors.Black;
-
-        plot.TitleColor = color;
-        plot.PlotAreaBorderColor = color;
-        for (int x = 0; x < plot.Axes.Count; x++)
-        {
-          plot.Axes[x].AxislineColor = color;
-          plot.Axes[x].ExtraGridlineColor = color;
-          plot.Axes[x].MajorGridlineColor = color;
-          plot.Axes[x].MinorGridlineColor = color;
-          plot.Axes[x].MinorTicklineColor = color;
-          plot.Axes[x].TextColor = color;
-          plot.Axes[x].TicklineColor = color;
-          plot.Axes[x].TitleColor = color;
-        }
-      }
-    }
-
+    
     /********************************************************* PREVIEW TAB **********************************************************/
 
     // EDF Header
@@ -3203,312 +2750,14 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        ApplyThemeToPlot(value);
+        Utils.ApplyThemeToPlot(value, UseDarkTheme);
         pm.PreviewSignalPlot = value;
         OnPropertyChanged(nameof(PreviewSignalPlot));
         PreviewSignalPlot_Changed();
       }
     }
 
-    /************************************************** RESPIRATORY ANALYSIS TAB ****************************************************/
-
-    // Respiratory Analysis
-    public string RespiratoryEDFSelectedSignal
-    {
-      get
-      {
-        return rm.RespiratoryEDFSelectedSignal;
-      }
-      set
-      {
-        rm.RespiratoryEDFSelectedSignal = value;
-        OnPropertyChanged(nameof(RespiratoryEDFSelectedSignal));
-        PerformRespiratoryAnalysisEDF();
-      }
-    }
-    public int? RespiratoryEDFStartRecord
-    {
-      get
-      {
-        if (IsEDFLoaded)
-          return rm.RespiratoryEDFStartRecord;
-        else
-          return null;
-      }
-      set
-      {
-        if (IsEDFLoaded && rm.RespiratoryEDFStartRecord != (value ?? 1))
-        {
-          rm.RespiratoryEDFStartRecord = value ?? 1;
-          OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
-          RespiratoryEDFView_Changed();
-          PerformRespiratoryAnalysisEDF();
-        }
-      }
-    }
-    public int? RespiratoryEDFDuration
-    {
-      get
-      {
-        if (IsEDFLoaded)
-          return rm.RespiratoryEDFDuration;
-        else
-          return null;
-      }
-      set
-      {
-        if (IsEDFLoaded && rm.RespiratoryEDFDuration != (value ?? 1))
-        {
-          rm.RespiratoryEDFDuration = value ?? 1;
-          OnPropertyChanged(nameof(RespiratoryEDFDuration));
-          RespiratoryEDFView_Changed();
-          PerformRespiratoryAnalysisEDF();
-        }
-      }
-    }
-
-    public int? RespiratoryBinaryStart
-    {
-      get
-      {
-        return rm.RespiratoryBinaryStart;
-      }
-      set
-      {
-        if (IsRespBinLoaded && rm.RespiratoryBinaryStart != (value ?? 1))
-        {
-          rm.RespiratoryBinaryStart = value ?? 1;
-          OnPropertyChanged(nameof(RespiratoryBinaryStart));
-          RespiratoryBinaryView_Changed();
-          PerformRespiratoryAnalysisBinary();
-        }
-      }
-    }
-    public int? RespiratoryBinaryDuration
-    {
-      get
-      {
-        return rm.RespiratoryBinaryDuration;
-      }
-      set
-      {
-        if (IsRespBinLoaded && rm.RespiratoryBinaryDuration != (value ?? 1))
-        {
-          rm.RespiratoryBinaryDuration = value ?? 1;
-          OnPropertyChanged(nameof(RespiratoryBinaryDuration));
-          RespiratoryBinaryView_Changed();
-          PerformRespiratoryAnalysisBinary();
-        }
-      }
-    }   
-
-    public PlotModel RespiratorySignalPlot
-    {
-      get
-      {
-        return rm.RespiratorySignalPlot;
-      }
-      set
-      {
-        ApplyThemeToPlot(value);
-        rm.RespiratorySignalPlot = value;
-        OnPropertyChanged(nameof(RespiratorySignalPlot));
-        RepiratoryPlotChanged();
-      }
-    }
-    public string RespiratoryBreathingPeriodMean
-    {
-      get
-      {
-        return rm.RespiratoryBreathingPeriodMean;
-      }
-      set
-      {
-        rm.RespiratoryBreathingPeriodMean = value;
-        OnPropertyChanged(nameof(RespiratoryBreathingPeriodMean));
-      }
-    }
-    public string RespiratoryBreathingPeriodMedian
-    {
-      get
-      {
-        return rm.RespiratoryBreathingPeriodMedian;
-      }
-      set
-      {
-        rm.RespiratoryBreathingPeriodMedian = value;
-        OnPropertyChanged(nameof(RespiratoryBreathingPeriodMedian));
-      }
-    }
-    public int RespiratoryMinimumPeakWidth
-    {
-      get
-      {
-        return rm.RespiratoryMinimumPeakWidth;
-      }
-      set
-      {
-        rm.RespiratoryMinimumPeakWidth = value;
-        OnPropertyChanged(nameof(RespiratoryMinimumPeakWidth));
-        p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Visible; }));
-      }
-    }
-    public bool RespiratoryRemoveMultiplePeaks
-    {
-      get
-      {
-        return rm.RespiratoryRemoveMultiplePeaks;
-      }
-      set
-      {
-        rm.RespiratoryRemoveMultiplePeaks = value;
-        OnPropertyChanged(nameof(RespiratoryRemoveMultiplePeaks));
-        p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Visible; }));
-        if (value == true)
-          p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespAllowMultiplePeaks.Text = "No"; }));
-        else
-          p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespAllowMultiplePeaks.Text = "Yes"; }));
-
-      }
-    }
-
-    public DateTime RespiratoryEDFStartTime
-    {
-      get
-      {
-        if (LoadedEDFFile != null)
-          return Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile);
-        else
-          return new DateTime();
-      }
-    }
-    public DateTime RespiratoryEDFStartTimeMax
-    {
-      get
-      {
-        if (LoadedEDFFile != null)
-        {
-          DateTime EndTime = DateTime.Parse(EDFEndTime); // EDF End Time
-          TimeSpan duration = Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 1); // User Selected Duration 
-          return EndTime - duration;
-        }
-        else
-          return new DateTime();
-      }
-    }
-    public DateTime RespiratoryEDFStartTimeMin
-    {
-      get
-      {
-        if (LoadedEDFFile != null)
-          return LoadedEDFFile.Header.StartDateTime; // Start Time
-        else
-          return new DateTime();
-      }
-    }
-    public int RespiratoryEDFStartRecordMax
-    {
-      get
-      {
-        if (LoadedEDFFile != null)
-          return Utils.DateTimetoEpoch(RespiratoryEDFStartTimeMax, LoadedEDFFile); // RespiratoryViewStartTimeMax to Record
-        else
-          return 0;
-      }
-    }
-    public int RespiratoryEDFStartRecordMin
-    {
-      get
-      {
-        if (LoadedEDFFile != null)
-          return Utils.DateTimetoEpoch(RespiratoryEDFStartTimeMin, LoadedEDFFile); // RespiratoryViewStartTimeMax to Record
-        else
-          return 0;
-      }
-    }
-    public int RespiratoryEDFDurationMax
-    {
-      get
-      {
-        if (LoadedEDFFile != null) // File Loaded
-        {
-          DateTime EndTime = DateTime.Parse(EDFEndTime); // EDF End Time
-          TimeSpan duration = EndTime - (RespiratoryEDFStartTime); // Theoretical Limit Duration
-          TimeSpan limit = new TimeSpan(TimeSpan.TicksPerHour * 2); // Practical Limit Duration
-          
-          return Math.Min(
-              Utils.TimeSpantoEpochPeriod(limit),
-              Utils.TimeSpantoEpochPeriod(duration)
-              );
-        }
-        else // No File Loaded
-          return 0;
-      }
-    }
-    public int RespiratoryEDFDurationMin
-    {
-      get
-      {
-        if (LoadedEDFFile != null) // File Loaded
-          return 1;
-        else // No File Loaded
-          return 0;
-      }
-    }
-
-    public int RespiratoryBinaryStartRecordMax
-    {
-      get
-      {
-        return 1 + resp_bin_max_epoch - RespiratoryBinaryDuration ?? 1;
-      }
-    }
-    public int RespiratoryBinaryDurationMax
-    {
-      get
-      {
-        return 1 + resp_bin_max_epoch - RespiratoryBinaryStart ?? 1;
-      }
-    }
-
-    public bool RespiratoryUseConstantAxis
-    {
-      get
-      {
-        return rm.RespiratoryUseConstantAxis;
-      }
-      set
-      {
-        rm.RespiratoryUseConstantAxis = value;
-        OnPropertyChanged(nameof(RespiratoryUseConstantAxis));
-        PerformRespiratoryAnalysisEDF();
-      }
-    }
-
-    public bool RespiratoryProgressRingEnabled
-    {
-      get
-      {
-        return rm.RespiratoryProgressRingEnabled;
-      }
-      set
-      {
-        rm.RespiratoryProgressRingEnabled = value;
-        OnPropertyChanged(nameof(RespiratoryProgressRingEnabled));
-        OnPropertyChanged(nameof(RespiratoryEDFNavigationEnabled));
-      }
-    }
-    public bool RespiratoryEDFNavigationEnabled
-    {
-      get
-      {
-        if (!IsEDFLoaded)
-          return false;
-        else
-          return !RespiratoryProgressRingEnabled;
-      }
-    }
-
+    
     /****************************************************** EEG ANALYSIS TAB ********************************************************/
 
     //EEG Anaylsis
@@ -3596,10 +2845,9 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        ApplyThemeToPlot(value);
+        Utils.ApplyThemeToPlot(value, UseDarkTheme);
         eegm.PlotAbsPwr = value;
         OnPropertyChanged(nameof(PlotAbsPwr));
-        p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
       }
     }
     public PlotModel PlotRelPwr
@@ -3610,10 +2858,9 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        ApplyThemeToPlot(value);
+        Utils.ApplyThemeToPlot(value, UseDarkTheme);
         eegm.PlotRelPwr = value;
         OnPropertyChanged(nameof(PlotRelPwr));
-        p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
       }
     }
 
@@ -3625,10 +2872,9 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        ApplyThemeToPlot(value);
+        Utils.ApplyThemeToPlot(value, UseDarkTheme);
         eegm.PlotSpecGram = value;
         OnPropertyChanged(nameof(PlotSpecGram));
-        p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
       }
     }
 
@@ -3640,10 +2886,9 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        ApplyThemeToPlot(value);
+        Utils.ApplyThemeToPlot(value, UseDarkTheme);
         eegm.PlotPSD = value;
         OnPropertyChanged(nameof(PlotPSD));
-        p_window.Dispatcher.Invoke(new Action(() => { p_window.TextBlock_RespPendingChanges.Visibility = Visibility.Hidden; }));
       }
     }
     public String[] EEGExportOptions
@@ -3782,7 +3027,7 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        ApplyThemeToPlot(value);
+        Utils.ApplyThemeToPlot(value, UseDarkTheme);
         cm.CoherenceSignalPlot1 = value;
         OnPropertyChanged(nameof(CoherenceSignalPlot1));
       }
@@ -3795,7 +3040,7 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        ApplyThemeToPlot(value);
+        Utils.ApplyThemeToPlot(value, UseDarkTheme);
         cm.CoherenceSignalPlot2 = value;
         OnPropertyChanged(nameof(CoherenceSignalPlot2));
       }
@@ -3808,7 +3053,7 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        ApplyThemeToPlot(value);
+        Utils.ApplyThemeToPlot(value, UseDarkTheme);
         cm.CoherencePlot = value;
         OnPropertyChanged(nameof(CoherencePlot));
         CoherencePlot_Changed();
@@ -3975,18 +3220,6 @@ namespace SleepApneaDiagnoser
         OnPropertyChanged(nameof(SettingsPersonalizationVisible));
       }
     }
-    public bool SettingsRespiratoryVisible
-    {
-      get
-      {
-        return sm.SettingsRespiratoryVisible;
-      }
-      set
-      {
-        sm.SettingsRespiratoryVisible = value;
-        OnPropertyChanged(nameof(SettingsRespiratoryVisible));
-      }
-    }
 
     // Recent File List and Functions. 
     public ReadOnlyCollection<string> RecentFiles
@@ -4055,131 +3288,7 @@ namespace SleepApneaDiagnoser
 
       p_window.LoadRecent();
     }
-
-    // Signal Y Axis Extremes
-    private double percent_high = 99;
-    private double percent_low = 1;
-    private void SetYBounds(string Signal)
-    {
-      string OrigName = Signal;
-      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
-
-      if (find == null)
-      {
-        List<float> values = new List<float>();
-
-        // Check if this signal needs filtering 
-        FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
-        if (filteredSignal != null)
-          Signal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal).OriginalName;
-        if (EDFAllSignals.Contains(Signal)) // Regular Signal
-        {
-          EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal);
-          values = LoadedEDFFile.retrieveSignalSampleValues(edfsignal);
-        }
-        else // EDF Signal 
-        {
-          // Get Signals
-          DerivativeSignal deriv_info = sm.DerivedSignals.Find(temp => temp.DerivativeName == Signal);
-          EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal1Name.Trim());
-          EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal2Name.Trim());
-
-          // Get Arrays and Perform Resampling if needed
-          List<float> values1;
-          List<float> values2;
-          if (edfsignal1.NumberOfSamplesPerDataRecord == edfsignal2.NumberOfSamplesPerDataRecord) // No resampling
-          {
-            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
-          }
-          else if (edfsignal1.NumberOfSamplesPerDataRecord > edfsignal2.NumberOfSamplesPerDataRecord) // Upsample signal 2
-          {
-            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
-            values2 = Utils.MATLAB_Resample(values2.ToArray(), edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord);
-          }
-          else // Upsample signal 1
-          {
-            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
-            values1 = Utils.MATLAB_Resample(values1.ToArray(), edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord);
-          }
-
-          for (int x = 0; x < Math.Min(values1.Count, values2.Count); x += 1)
-          {
-            values.Add(values1[x] - values2[x]);
-          }
-        }
-        int last_unique = 0;
-        for (int x = 0; x < values.Count; x++)
-        {
-          if (x > 0 && values[x] == values[last_unique])
-            values[x] = float.NaN;
-          else
-            last_unique = x;
-        }
-        values.RemoveAll(temp => float.IsNaN(temp));
-        values.Sort();
-        int high_index = (int)(percent_high / 100 * (values.Count - 1));
-        int low_index = (int)(percent_low / 100 * (values.Count - 1));
-        float range = values[high_index] - values[low_index];
-        float high_value = values[high_index] + range * (100 - (float)percent_high) / 100;
-        float low_value = values[low_index] - range * ((float)percent_low) / 100;
-        float av_value = values.Average();
-        sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(OrigName) { yMax = high_value, yMin = low_value, yAvr = av_value });
-      }
-    }
-    private double GetMaxSignalValue(string Signal, bool woBias)
-    {
-      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
-
-      if (find != null)
-      {
-        if (!Double.IsNaN(find.yMax) && !Double.IsNaN(find.yAvr))
-        {
-          if (woBias)
-            return find.yMax - find.yAvr;
-          else
-            return find.yMax;
-        }
-        else
-        {
-          SetYBounds(Signal);
-          return GetMaxSignalValue(Signal, woBias);
-        }
-      }
-      else
-      {
-        SetYBounds(Signal);
-        return GetMaxSignalValue(Signal, woBias);
-      }
-    }
-    private double GetMinSignalValue(string Signal, bool woBias)
-    {
-      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
-
-      if (find != null)
-      {
-        if (!Double.IsNaN(find.yMin) && !Double.IsNaN(find.yAvr))
-        {
-          if (woBias)
-            return find.yMin - find.yAvr;
-          else
-            return find.yMin;
-        } 
-        else
-        {
-          SetYBounds(Signal);
-          return GetMinSignalValue(Signal, woBias);
-        }
-      }
-      else
-      {
-        SetYBounds(Signal);
-        return GetMinSignalValue(Signal, woBias);
-      }
-    }
-
+   
     /********************************************************** ZABEEH'S BINARY STUFF ****************************************************/
 
     public int EEGAnalysisBinaryFileLoaded = 0;
@@ -4200,30 +3309,6 @@ namespace SleepApneaDiagnoser
       set {
       }
     }
-
-    public int RespiratoryAnalysisBinaryFileLoaded = 0;
-    public int RespiratoryBinaryMaxEpochs { get { return resp_bin_max_epoch; } set { } }
-    public bool IsRespBinLoaded
-    {
-      get
-      {
-        if (RespiratoryAnalysisBinaryFileLoaded == 1)
-        {
-          return true;
-        }
-        return false;
-      }
-    }
-
-    // Used For Importing From Binary For Respiratory Signals
-    private string resp_bin_sample_frequency_s;
-    private string resp_bin_date_time_length;
-    private string resp_bin_date_time_from;
-    private string resp_bin_subject_id;
-    private string resp_bin_signal_name;
-    private float resp_bin_sample_period;
-    private List<float> resp_signal_values;
-    private int resp_bin_max_epoch;
 
     // Used For Importing From Binary For EEG Signals
     private List<float> eeg_bin_signal_values;
@@ -4250,9 +3335,10 @@ namespace SleepApneaDiagnoser
 
     #endregion
 
-    public ModelView(MainWindow i_window)
+    public ModelView(MainWindow i_window, SettingsModel i_sm)
     {
       p_window = i_window;
+      sm = i_sm;
 
       #region Preload MATLAB functions into memory
       {
