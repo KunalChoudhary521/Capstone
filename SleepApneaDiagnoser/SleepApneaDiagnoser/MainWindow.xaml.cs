@@ -846,7 +846,21 @@ namespace SleepApneaDiagnoser
           arguments.Add(signals_data);
           arguments.Add(location);
 
-          bw.RunWorkerAsync(arguments);
+          int end_epochs = signals_data.Epochs_From + signals_data.Epochs_Length;
+          if (end_epochs > int.Parse(EDFEndEpoch))
+          {
+            end_epochs = int.Parse(EDFEndEpoch) - signals_data.Epochs_From + 1;
+          }
+          if (end_epochs <= 0)
+          {
+            await controller.CloseAsync();
+
+            await p_window.ShowMessageAsync("Export Cancelled", "No data to export in the length specified");
+          }
+          else
+          {
+            bw.RunWorkerAsync(arguments);
+          }
         }
         else
         {
@@ -899,7 +913,11 @@ namespace SleepApneaDiagnoser
 
           if (foundInDerived) {
             DateTime startTime = Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile); // epoch start
-            DateTime endTime = Utils.EpochtoDateTime((signals_data.Epochs_From + signals_data.Epochs_Length - 1), LoadedEDFFile); // epoch end
+            int end_epochs = signals_data.Epochs_From + signals_data.Epochs_Length;
+            if (end_epochs > int.Parse(EDFEndEpoch)) {
+              end_epochs = int.Parse(EDFEndEpoch) + 1;
+            }
+            DateTime endTime = Utils.EpochtoDateTime(end_epochs, LoadedEDFFile); // epoch end
 
             LineSeries derivedSeries = GetSeriesFromSignalName(out derivedSampleFrequency, signal, startTime, endTime);
 
@@ -913,7 +931,7 @@ namespace SleepApneaDiagnoser
             sb_hdr.AppendLine(signal) // name
                 .AppendLine(signals_data.Subject_ID.ToString()) // subject id
                 .AppendLine(Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile).ToString()) // epoch start
-                .AppendLine(Utils.EpochtoDateTime((signals_data.Epochs_From + signals_data.Epochs_Length), LoadedEDFFile).ToString()) // epoch length
+                .AppendLine(Utils.EpochtoDateTime(end_epochs, LoadedEDFFile).ToString()) // epoch length
                 .AppendLine((1 / derivedSampleFrequency).ToString()); // sample frequency 
 
             var bytes_to_write = Encoding.ASCII.GetBytes(sb_hdr.ToString());
@@ -963,7 +981,7 @@ namespace SleepApneaDiagnoser
 
           StringBuilder sb_hdr = new StringBuilder(); // string builder used for writing into the file
 
-          int end_index = (int)(((signals_data.Epochs_From + signals_data.Epochs_Length - 1) * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * edfsignal.NumberOfSamplesPerDataRecord;
+          int end_index = (int)(((signals_data.Epochs_From + signals_data.Epochs_Length) * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * edfsignal.NumberOfSamplesPerDataRecord;
 
           var edfSignal = LoadedEDFFile.Header.Signals.Find(s => s.Label.Trim() == signal.Trim());
           var signalValues = LoadedEDFFile.retrieveSignalSampleValues(edfSignal).ToArray();
@@ -1316,7 +1334,8 @@ namespace SleepApneaDiagnoser
         series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(epochs_from + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[(int)y]));
       }
 
-      if (series.Points.Count == 0) {
+      if (series.Points.Count == 0)
+      {
         //need to type error message for User
         return;
       }
@@ -1349,26 +1368,45 @@ namespace SleepApneaDiagnoser
       PSDAnalysis(out psdValues, out frqValues, mLabsignalSeries, sampleFreq);
 
       /****************************Computation for Spectrogram**************************/
-      /*Spectrogram computeForspec = new Spectrogram();
+      Spectrogram computeForspec = new Spectrogram();
       MWArray[] mLabSpec = null;
-      mLabSpec = computeForspec.eeg_specgram(2, MLabsignalSeries, SampleFreq);
-      MWNumericArray tempspec = (MWNumericArray)mLabSpec[0];
-      MWNumericArray tempTime = (MWNumericArray)mLabSpec[1];
+      mLabSpec = computeForspec.eeg_specgram(3, mLabsignalSeries, sampleFreq);//[colorData,f,t]
+      MWNumericArray tempSpec = (MWNumericArray)mLabSpec[0];//already multiplied by 10*log10()
+      MWNumericArray tempFrq = (MWNumericArray)mLabSpec[1];
+      MWNumericArray tempTime = (MWNumericArray)mLabSpec[2];
 
-      //MATLAB stores matrix in column-major order
-      double[,] specMatrix = new double[mLabSpec[0].Dimensions[0], mLabSpec[0].Dimensions[1]];//rows by columns
-      double[] specTime = new double[tempTime.NumberOfElements];
-      for (int row = 1; row < mLabSpec[0].Dimensions[0]; row++) 
+      //# of rows = mLabSpec[0].Dimensions[0]
+      double[,] specMatrix = new double[mLabSpec[0].Dimensions[0], mLabSpec[0].Dimensions[1]];
+      double[] specTime = new double[tempTime.NumberOfElements + 1];
+      double[] specFrq = new double[tempFrq.NumberOfElements];
+      int idx = 0;
+      //MATLAB matrix are column-major order
+      for (int i = 0; i < mLabSpec[0].Dimensions[0]; i++)
       {
-        for (int col = 0; col < mLabSpec[0].Dimensions[1]; col++)
+        for (int j = 0; j < mLabSpec[0].Dimensions[1]; j++)
         {
-          specMatrix[row-1, col] = (double)tempspec[(mLabSpec[0].Dimensions[0] * row) + col];//(total_cols * curr_col) + curr_row
+          idx = (mLabSpec[0].Dimensions[0] * j) + i + 1;//(total_rows * curr_col) + curr_row
+          specMatrix[i, j] = (double)tempSpec[idx];
         }
-      }      
-      for(int i = 1; i < specTime.Length; i++)
+      }
+      double[,] specMatrixtranspose = new double[mLabSpec[0].Dimensions[1], mLabSpec[0].Dimensions[0]];
+      for (int j = 0; j < mLabSpec[0].Dimensions[1]; j++)//need to combine this loop with the loop above 
+      {
+        for (int i = 0; i < mLabSpec[0].Dimensions[0]; i++)
+        {
+          specMatrixtranspose[j, i] = specMatrix[i, j];
+        }
+      }
+
+      for (int i = 1; i < specTime.Length; i++)
       {
         specTime[i] = (double)tempTime[i];
-      }*/
+      }
+      for (int i = 1; i < specFrq.Length; i++)
+      {
+        specFrq[i - 1] = (double)tempFrq[i];
+      }
+
 
       //order of bands MUST match the order of bands in fqRange array (see above)
       String[] freqBandName = new String[] { "delta", "theta", "alpha", "beta1", "beta2", "gamma1", "gamma2" };
@@ -1383,11 +1421,11 @@ namespace SleepApneaDiagnoser
       PlotPowerSpectralDensity(psdValues, frqValues);
 
       /********************Plotting a heatmap for spectrogram (line 820, 2133 - PSG_viewer_v7.m)*********************/
-      /*PlotModel tempSpectGram = new PlotModel()
+      PlotModel tempSpectGram = new PlotModel()
       {
         Title = "Spectrogram",
       };
-      LinearColorAxis specLegend = new LinearColorAxis() { Position = AxisPosition.Right, Palette = OxyPalettes.Jet(100), HighColor = OxyColors.Red, LowColor = OxyColors.Blue };
+      LinearColorAxis specLegend = new LinearColorAxis() { Position = AxisPosition.Right, Palette = OxyPalettes.Jet(500) };
       LinearAxis specYAxis = new LinearAxis() { Position = AxisPosition.Left, Title = "Frequency (Hz)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8 };
       LinearAxis specXAxis = new LinearAxis() { Position = AxisPosition.Bottom, Title = "Time (s)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold };
 
@@ -1395,19 +1433,19 @@ namespace SleepApneaDiagnoser
       tempSpectGram.Axes.Add(specXAxis);
       tempSpectGram.Axes.Add(specYAxis);
 
-      double minTime = specMatrix.Min2D(), maxTime = specMatrix.Max2D(), minFreq = specMatrix.Min2D(), maxFreq = specMatrix.Max2D();
-      HeatMapSeries specGram = new HeatMapSeries() { X0 = minTime, X1 = maxTime, Y0 = minFreq, Y1 = maxFreq, Data = specMatrix };
-      tempSpectGram.Series.Add(specGram);*/
+      double minTime = specTime.Min(), maxTime = specTime.Max(), minFreq = specFrq.Min(), maxFreq = specFrq.Max();
+      HeatMapSeries specGram = new HeatMapSeries() { X0 = minTime, X1 = maxTime, Y0 = minFreq, Y1 = maxFreq, Data = specMatrixtranspose };
+      tempSpectGram.Series.Add(specGram);
 
-      //PlotSpecGram = tempSpectGram;
+      PlotSpecGram = tempSpectGram;
 
 
       /*************************Exporting to .tiff format**************************/
-      String plotsDirectory = "EEGPlots";
-      Directory.CreateDirectory(plotsDirectory);//if directory already exist, this line will be ignored
-      ExportEEGPlot(PlotAbsPwr, plotsDirectory + "//AbsolutePower.png");
-      ExportEEGPlot(PlotRelPwr, plotsDirectory + "//RelativePower.png");
-      ExportEEGPlot(PlotPSD, plotsDirectory + "//PowerSpecDensity.png");
+      String plotsDir = "EEGPlots//Epoch-" + ((int)EpochForAnalysis).ToString() + "//";
+      Directory.CreateDirectory(plotsDir);//if directory already exist, this line will be ignored
+      ExportEEGPlot(PlotAbsPwr, plotsDir + "AbsPower.png");
+      ExportEEGPlot(PlotRelPwr, plotsDir + "RelPower.png");
+      ExportEEGPlot(PlotPSD, plotsDir + "PSD-Epoch.png");
 
       //GenericExportImage(PlotSpecGram, "Spectrogram.png");//Need to review implementation
 
