@@ -250,6 +250,7 @@ namespace SleepApneaDiagnoser
     public string SignalName = "";
     public double yMax = Double.NaN;
     public double yMin = Double.NaN;
+    public double yAvr = Double.NaN;
 
     public SignalYAxisExtremes(string name)
     {

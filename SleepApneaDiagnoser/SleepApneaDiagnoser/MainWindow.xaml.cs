@@ -763,8 +763,8 @@ namespace SleepApneaDiagnoser
               yAxis.StartPosition = (double)1 - (double)(y + 1) * ((double)1 / (double)pm.PreviewSelectedSignals.Count);
               if (PreviewUseConstantAxis)
               {
-                yAxis.Maximum = GetMaxSignalValue(pm.PreviewSelectedSignals[y]);
-                yAxis.Minimum = GetMinSignalValue(pm.PreviewSelectedSignals[y]);
+                yAxis.Maximum = GetMaxSignalValue(pm.PreviewSelectedSignals[y], false);
+                yAxis.Minimum = GetMinSignalValue(pm.PreviewSelectedSignals[y], false);
               }
               series_array[y] = series;
               axis_array[y] = yAxis;
@@ -1220,8 +1220,8 @@ namespace SleepApneaDiagnoser
 
       if (RespiratoryUseConstantAxis)
       {
-        resp_plots.Item7.Minimum = GetMinSignalValue(RespiratoryEDFSelectedSignal) - FindSignalDCBias(series);
-        resp_plots.Item7.Maximum = GetMaxSignalValue(RespiratoryEDFSelectedSignal) - FindSignalDCBias(series);
+        resp_plots.Item7.Minimum = GetMinSignalValue(RespiratoryEDFSelectedSignal, true);
+        resp_plots.Item7.Maximum = GetMaxSignalValue(RespiratoryEDFSelectedSignal, true);
       }
 
       tempPlotModel.Series.Add(resp_plots.Item1);
@@ -1884,8 +1884,8 @@ namespace SleepApneaDiagnoser
 
         if (CoherenceUseConstantAxis)
         {
-          yAxis.Maximum = GetMaxSignalValue(CoherenceEDFSelectedSignal1);
-          yAxis.Minimum = GetMinSignalValue(CoherenceEDFSelectedSignal1);
+          yAxis.Maximum = GetMaxSignalValue(CoherenceEDFSelectedSignal1, false);
+          yAxis.Minimum = GetMinSignalValue(CoherenceEDFSelectedSignal1, false);
         }
 
         temp_SignalPlot.Axes.Add(yAxis);
@@ -1927,8 +1927,8 @@ namespace SleepApneaDiagnoser
 
         if (CoherenceUseConstantAxis)
         {
-          yAxis.Maximum = GetMaxSignalValue(CoherenceEDFSelectedSignal2);
-          yAxis.Minimum = GetMinSignalValue(CoherenceEDFSelectedSignal2);
+          yAxis.Maximum = GetMaxSignalValue(CoherenceEDFSelectedSignal2, false);
+          yAxis.Minimum = GetMinSignalValue(CoherenceEDFSelectedSignal2, false);
         }
         temp_SignalPlot.Axes.Add(yAxis);
 
@@ -4136,51 +4136,58 @@ namespace SleepApneaDiagnoser
         float range = values[high_index] - values[low_index];
         float high_value = values[high_index] + range * (100 - (float)percent_high) / 100;
         float low_value = values[low_index] - range * ((float)percent_low) / 100;
-        sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(OrigName) { yMax = high_value, yMin = low_value });
+        float av_value = values.Average();
+        sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(OrigName) { yMax = high_value, yMin = low_value, yAvr = av_value });
       }
     }
-    private double GetMaxSignalValue(string Signal)
+    private double GetMaxSignalValue(string Signal, bool woBias)
     {
       SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
 
       if (find != null)
       {
-        if (!Double.IsNaN(find.yMax))
+        if (!Double.IsNaN(find.yMax) && !Double.IsNaN(find.yAvr))
         {
-          return find.yMax;
+          if (woBias)
+            return find.yMax - find.yAvr;
+          else
+            return find.yMax;
         }
         else
         {
           SetYBounds(Signal);
-          return GetMaxSignalValue(Signal);
+          return GetMaxSignalValue(Signal, woBias);
         }
       }
       else
       {
         SetYBounds(Signal);
-        return GetMaxSignalValue(Signal);
+        return GetMaxSignalValue(Signal, woBias);
       }
     }
-    private double GetMinSignalValue(string Signal)
+    private double GetMinSignalValue(string Signal, bool woBias)
     {
       SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
 
       if (find != null)
       {
-        if (!Double.IsNaN(find.yMin))
+        if (!Double.IsNaN(find.yMin) && !Double.IsNaN(find.yAvr))
         {
-          return find.yMin;
-        }
+          if (woBias)
+            return find.yMin - find.yAvr;
+          else
+            return find.yMin;
+        } 
         else
         {
           SetYBounds(Signal);
-          return GetMinSignalValue(Signal);
+          return GetMinSignalValue(Signal, woBias);
         }
       }
       else
       {
         SetYBounds(Signal);
-        return GetMinSignalValue(Signal);
+        return GetMinSignalValue(Signal, woBias);
       }
     }
 
