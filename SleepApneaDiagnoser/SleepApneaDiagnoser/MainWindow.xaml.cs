@@ -380,18 +380,6 @@ namespace SleepApneaDiagnoser
     #endregion
 
     #region Respiratory Helper Functions
-    private static double FindSignalDCBias(LineSeries series)
-    {
-      double bias = 0;
-      for (int x = 0; x < series.Points.Count; x++)
-      {
-        double point_1 = series.Points[x].Y;
-        double point_2 = x + 1 < series.Points.Count ? series.Points[x + 1].Y : series.Points[x].Y;
-        double average = (point_1 + point_2) / 2;
-        bias += average / (double)series.Points.Count;
-      }
-      return bias;
-    }
     private static LineSeries RemoveBiasFromSignal(LineSeries series, double bias)
     {
       // Normalization
@@ -523,7 +511,7 @@ namespace SleepApneaDiagnoser
 
       return new Tuple<ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries>(series_insets, series_onsets, series_neg_peaks, series_pos_peaks);
     }
-    private static Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> GetRespiratoryAnalysisPlot(string SignalName, List<float> yValues, float sample_period, bool RemoveMultiplePeaks, float MinimumPeakWidth, DateTime ViewStartTime, DateTime ViewEndTime)
+    private static Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> GetRespiratoryAnalysisPlot(string SignalName, List<float> yValues, float sample_period, float bias, bool RemoveMultiplePeaks, float MinimumPeakWidth, DateTime ViewStartTime, DateTime ViewEndTime)
     {
       // Variable To Return
       LineSeries series = new LineSeries();
@@ -534,7 +522,6 @@ namespace SleepApneaDiagnoser
         series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(ViewStartTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), yValues[y]));
       }
       
-      double bias = FindSignalDCBias(series);
       LineSeries series_norm = RemoveBiasFromSignal(series, bias);
 
       // Find Peaks and Zero Crossings
@@ -1164,9 +1151,10 @@ namespace SleepApneaDiagnoser
 
       PlotModel tempPlotModel = new PlotModel();
       Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> resp_plots = GetRespiratoryAnalysisPlot(
-        resp_bin_signal_name, 
-        resp_signal_values.GetRange(start_index, end_index - start_index + 1), 
-        resp_bin_sample_period, 
+        resp_bin_signal_name,
+        resp_signal_values.GetRange(start_index, end_index - start_index + 1),
+        resp_bin_sample_period,
+        resp_signal_values.Average(),
         RespiratoryRemoveMultiplePeaks, 
         RespiratoryMinimumPeakWidth, 
         newFrom, 
@@ -1212,6 +1200,7 @@ namespace SleepApneaDiagnoser
         RespiratoryEDFSelectedSignal, 
         series.Points.Select(temp => (float)temp.Y).ToList(), 
         sample_period, 
+        (float)(GetMaxSignalValue(RespiratoryEDFSelectedSignal, false) - GetMaxSignalValue(RespiratoryEDFSelectedSignal, true)),
         RespiratoryRemoveMultiplePeaks, 
         RespiratoryMinimumPeakWidth,
         Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile),
