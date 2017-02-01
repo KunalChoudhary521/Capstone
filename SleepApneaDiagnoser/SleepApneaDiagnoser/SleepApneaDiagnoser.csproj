@@ -169,8 +169,9 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Class_Coherence.cs" />
-    <Compile Include="Class_Respiratory.cs" />
+    <Compile Include="Class_Analysis_Coherence.cs" />
+    <Compile Include="Class_Preview.cs" />
+    <Compile Include="Class_Analysis_Respiratory.cs" />
     <Compile Include="Class_Utils.cs" />
     <Compile Include="Class_Models.cs" />
     <Compile Include="Dialog_Add_Filter.xaml.cs">
