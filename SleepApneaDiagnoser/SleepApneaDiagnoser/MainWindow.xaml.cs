@@ -1566,13 +1566,13 @@ namespace SleepApneaDiagnoser
 
 
       /*************************Exporting to .tiff format**************************/      
-      String plotsDir = "EEGPlots//Epoch-" + ((int)EpochForAnalysis).ToString() + "//";
+      String plotsDir = "EEGPlots//" + EEGEDFSelectedSignal.ToString() + "-" 
+                         + ((int)EpochForAnalysis).ToString() + "//";            
       Directory.CreateDirectory(plotsDir);//if directory already exist, this line will be ignored
       ExportEEGPlot(PlotAbsPwr, plotsDir + "AbsPower.png");
       ExportEEGPlot(PlotRelPwr, plotsDir + "RelPower.png");
-      ExportEEGPlot(PlotPSD, plotsDir + "PSD-Epoch.png");
-
-      //GenericExportImage(PlotSpecGram, "Spectrogram.png");//Need to review implementation
+      ExportEEGPlot(PlotPSD, plotsDir + "PSD.png");
+      ExportEEGPlot(PlotSpecGram, plotsDir + "Spectrogram.png");
 
       return;//for debugging only
     }
