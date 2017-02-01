@@ -33,7 +33,7 @@ using MahApps.Metro;
 using System.Windows.Forms;
 using EEGBandpower;
 using PSD_Welch;
-using EEG_Spec;
+using EEGSpec;
 
 using System.Numerics;
 using MathNet.Filtering;
@@ -1335,7 +1335,7 @@ namespace SleepApneaDiagnoser
 
       /********************************Computing Absolute Power**************************************/
       double totalPower;
-      MWNumericArray[] absPower;
+      double[] absPower;
       ColumnItem[] absPlotbandItems;
       AbsPwrAnalysis(out totalPower, out absPower, out absPlotbandItems, mLabsignalSeries, fqRange, sample_period);
 
@@ -1415,6 +1415,16 @@ namespace SleepApneaDiagnoser
     }
 
     //EEG Analysis From EDF File
+    /* Note to self:
+     * 1  AbsPwrAnalysis returns absPower in V^2/R, so multiply absPower in by 10*Math.Log10() when 
+     *    plotting absolute power or exporting absolute power calculations because 
+     *    rel power = abs power(V^2/R) / totalPower(V^2/R)
+     *    
+     * 2  PSDPower returns power in (db), so don't mltiply by 10*Math.Log10()
+     * 
+     * 3  Add signal name to folders in EEGanalysis & EEGPlots directory
+     * 4  Add values to bar graphs so the user can see the values of bars
+    */
     private void BW_EEGAnalysisEDF(object sender, DoWorkEventArgs e)
     {
       float sample_period;
@@ -1442,7 +1452,7 @@ namespace SleepApneaDiagnoser
 
       /********************************Computing Absolute Power**************************************/
       double totalPower;
-      MWNumericArray[] absPower;
+      double[] absPower;
       ColumnItem[] absPlotbandItems;
       AbsPwrAnalysis(out totalPower, out absPower, out absPlotbandItems, mLabsignalSeries, fqRange, sample_period);
 
@@ -1456,26 +1466,45 @@ namespace SleepApneaDiagnoser
       PSDAnalysis(out psdValues, out frqValues, mLabsignalSeries, sampleFreq);
 
       /****************************Computation for Spectrogram**************************/
-      /*Spectrogram computeForspec = new Spectrogram();
+      Spectrogram computeForspec = new Spectrogram();
       MWArray[] mLabSpec = null;
-      mLabSpec = computeForspec.eeg_specgram(2, MLabsignalSeries, SampleFreq);
-      MWNumericArray tempspec = (MWNumericArray)mLabSpec[0];
-      MWNumericArray tempTime = (MWNumericArray)mLabSpec[1];
+      mLabSpec = computeForspec.eeg_specgram(3, mLabsignalSeries, sampleFreq);//[colorData,f,t]
+      MWNumericArray tempSpec = (MWNumericArray)mLabSpec[0];//already multiplied by 10*log10()
+      MWNumericArray tempFrq = (MWNumericArray)mLabSpec[1];
+      MWNumericArray tempTime = (MWNumericArray)mLabSpec[2];
 
-      //MATLAB stores matrix in column-major order
-      double[,] specMatrix = new double[mLabSpec[0].Dimensions[0], mLabSpec[0].Dimensions[1]];//rows by columns
-      double[] specTime = new double[tempTime.NumberOfElements];
-      for (int row = 1; row < mLabSpec[0].Dimensions[0]; row++) 
+      //# of rows = mLabSpec[0].Dimensions[0]
+      double[,] specMatrix = new double[mLabSpec[0].Dimensions[0], mLabSpec[0].Dimensions[1]];
+      double[] specTime = new double[tempTime.NumberOfElements + 1];
+      double[] specFrq = new double[tempFrq.NumberOfElements];
+      int idx = 0;
+      //MATLAB matrix are column-major order
+      for (int i = 0; i < mLabSpec[0].Dimensions[0]; i++) 
       {
-        for (int col = 0; col < mLabSpec[0].Dimensions[1]; col++)
+        for (int j = 0; j < mLabSpec[0].Dimensions[1]; j++)
         {
-          specMatrix[row-1, col] = (double)tempspec[(mLabSpec[0].Dimensions[0] * row) + col];//(total_cols * curr_col) + curr_row
+          idx = (mLabSpec[0].Dimensions[0] * j) + i + 1;//(total_rows * curr_col) + curr_row
+          specMatrix[i, j] = (double)tempSpec[idx];
         }
-      }      
-      for(int i = 1; i < specTime.Length; i++)
+      }
+      double[,] specMatrixtranspose = new double[mLabSpec[0].Dimensions[1], mLabSpec[0].Dimensions[0]];
+      for (int j = 0; j < mLabSpec[0].Dimensions[1]; j++)//need to combine this loop with the loop above 
+      {
+        for (int i = 0; i < mLabSpec[0].Dimensions[0]; i++)
+        {
+          specMatrixtranspose[j, i] = specMatrix[i, j];
+        }
+      }
+
+      for (int i = 1; i < specTime.Length; i++)
       {
         specTime[i] = (double)tempTime[i];
-      }*/
+      }
+      for (int i = 1; i < specFrq.Length; i++)
+      {
+        specFrq[i - 1] = (double)tempFrq[i];
+      }
+
 
       //order of bands MUST match the order of bands in fqRange array (see above)
       String[] freqBandName = new String[] { "delta", "theta", "alpha", "beta1", "beta2", "gamma1", "gamma2" };
@@ -1490,11 +1519,11 @@ namespace SleepApneaDiagnoser
       PlotPowerSpectralDensity(psdValues, frqValues);
 
       /********************Plotting a heatmap for spectrogram (line 820, 2133 - PSG_viewer_v7.m)*********************/
-      /*PlotModel tempSpectGram = new PlotModel()
+      PlotModel tempSpectGram = new PlotModel()
       {
         Title = "Spectrogram",
       };
-      LinearColorAxis specLegend = new LinearColorAxis() { Position = AxisPosition.Right, Palette = OxyPalettes.Jet(100), HighColor = OxyColors.Red, LowColor = OxyColors.Blue };
+      LinearColorAxis specLegend = new LinearColorAxis() { Position = AxisPosition.Right, Palette = OxyPalettes.Jet(500)};
       LinearAxis specYAxis = new LinearAxis() { Position = AxisPosition.Left, Title = "Frequency (Hz)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8 };
       LinearAxis specXAxis = new LinearAxis() { Position = AxisPosition.Bottom, Title = "Time (s)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold };
 
@@ -1502,11 +1531,11 @@ namespace SleepApneaDiagnoser
       tempSpectGram.Axes.Add(specXAxis);
       tempSpectGram.Axes.Add(specYAxis);
 
-      double minTime = specMatrix.Min2D(), maxTime = specMatrix.Max2D(), minFreq = specMatrix.Min2D(), maxFreq = specMatrix.Max2D();
-      HeatMapSeries specGram = new HeatMapSeries() { X0 = minTime, X1 = maxTime, Y0 = minFreq, Y1 = maxFreq, Data = specMatrix };
-      tempSpectGram.Series.Add(specGram);*/
+      double minTime = specTime.Min(), maxTime = specTime.Max(), minFreq = specFrq.Min(), maxFreq = specFrq.Max();
+      HeatMapSeries specGram = new HeatMapSeries() { X0 = minTime, X1 = maxTime, Y0 = minFreq, Y1 = maxFreq, Data = specMatrixtranspose };
+      tempSpectGram.Series.Add(specGram);
 
-      //PlotSpecGram = tempSpectGram;
+      PlotSpecGram = tempSpectGram;
 
 
       /*************************Exporting to .tiff format**************************/      
@@ -1533,29 +1562,29 @@ namespace SleepApneaDiagnoser
       fRange[6] = new MWNumericArray(1, 2, new double[] { 41, 50 });//gamma2 band
     }
 
-    public void AbsPwrAnalysis(out double totalPower, out MWNumericArray[] absPower, out ColumnItem[] absPlotbandItems,
-                            MWNumericArray signalArray, MWNumericArray[] freqRange, float sample_period)
+    public void AbsPwrAnalysis(out double totalPower, out double[] absPower, out ColumnItem[] absPlotbandItems,
+                            MWNumericArray signalToMLab, MWNumericArray[] frqRangeToMLab, float sample_period)
     {
       EEGPower pwr = new EEGPower();
       totalPower = 0.0;
-      absPower = new MWNumericArray[freqRange.Length];
+      absPower = new double[frqRangeToMLab.Length];
       MWNumericArray sampleFreq = new MWNumericArray(1 / sample_period);
 
-      absPlotbandItems = new ColumnItem[freqRange.Length];
-      for (int i = 0; i < freqRange.Length; i++)
+      absPlotbandItems = new ColumnItem[frqRangeToMLab.Length];
+      for (int i = 0; i < frqRangeToMLab.Length; i++)
       {
-        absPower[i] = (MWNumericArray)pwr.eeg_bandpower(signalArray, sampleFreq, freqRange[i]);
-        totalPower += (double)absPower[i];
-        absPlotbandItems[i] = new ColumnItem { Value = 10 * Math.Log10((double)absPower[i]) };//bars for abs pwr plot
+        absPower[i] = (double)(MWNumericArray)pwr.eeg_bandpower(signalToMLab, sampleFreq, frqRangeToMLab[i]);
+        totalPower += absPower[i];
+        absPlotbandItems[i] = new ColumnItem { Value = 10 * Math.Log10(absPower[i]) };//bars for abs pwr plot
       }
     }
-    public void RelPwrAnalysis(out ColumnItem[] plotbandItems, double totalPower, MWNumericArray[] absPower, int totalFrqBands)
+    public void RelPwrAnalysis(out ColumnItem[] plotbandItems, double totalPower, double[] absPower, int totalFrqBands)
     {
       plotbandItems = new ColumnItem[totalFrqBands];
       double[] relPower = new double[totalFrqBands];
       for (int i = 0; i < relPower.Length; i++)
       {
-        relPower[i] = 100 * ((double)absPower[i]) / totalPower;
+        relPower[i] = 100 * (absPower[i]) / totalPower;
         plotbandItems[i] = new ColumnItem { Value = relPower[i] };//bars for rel pwr plot
       }
     }
@@ -1596,7 +1625,7 @@ namespace SleepApneaDiagnoser
 
       absbandLabels.Labels.AddRange(bandFrqs);
 
-      LinearAxis absYAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Power (db)", MinimumPadding = 0, MaximumPadding = 0.06, AbsoluteMinimum = 0, TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8 };
+      LinearAxis absYAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Power (db)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8 };
       tempAbsPwr.Series.Add(absPlotbars);
       tempAbsPwr.Axes.Add(absbandLabels);
       tempAbsPwr.Axes.Add(absYAxis);
@@ -1646,7 +1675,7 @@ namespace SleepApneaDiagnoser
       PlotPSD = tempPSD;
     }
 
-    public void ExportEEGCalculations()
+    public void ExportEEGCalculations()//add signal title in the analysisDir name
     {
       if (ExportEpochEnd < ExportEpochStart)//restrict ExportEpochEnd to the max size of signal
       {
@@ -1664,7 +1693,7 @@ namespace SleepApneaDiagnoser
       double[] frqValue;
 
       double totalPower;
-      MWNumericArray[] absPower;
+      double[] absPower;
       ColumnItem[] absPlotbandItems;
 
       const int totalFreqBands = 7;
@@ -1720,6 +1749,8 @@ namespace SleepApneaDiagnoser
         //output PSD calculations to file
         PSDToCSV(psdValue, frqValue, i, analysisDir + "EEGPSD.csv");
       }
+
+      return;//for debugging only
     }
     public void ExportEEGPlot(PlotModel pModel, String fileName)
     {
@@ -1729,7 +1760,7 @@ namespace SleepApneaDiagnoser
       exportTh.Join();
     }
 
-    public void AbsPwrToCSV(MWNumericArray[] absPwrData, int epoch, String fileName)
+    public void AbsPwrToCSV(double[] absPwrData, int epoch, String fileName)
     {
       StreamWriter absPwrStream = File.AppendText(fileName);
       String dataLine = null;
@@ -1737,7 +1768,7 @@ namespace SleepApneaDiagnoser
 
       for (int i = 0; i < absPwrData.Length; i++)
       {
-        dataLine += String.Format(",{0:0.000}", absPwrData[i]);
+        dataLine += String.Format(",{0:0.000}", 10 * Math.Log10(absPwrData[i]));
       }
       absPwrStream.WriteLine(dataLine);
       absPwrStream.Close();
