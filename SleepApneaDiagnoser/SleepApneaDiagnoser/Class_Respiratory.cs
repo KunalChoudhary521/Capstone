@@ -310,9 +310,12 @@ namespace SleepApneaDiagnoser
   /// <summary>
   /// ModelView containing UI logic used exclusively in the 'Respiratory' sub tab of the 'Analysis' tab
   /// </summary>
-  public class RespiratoryModelView:INotifyPropertyChanged
+  public class RespiratoryModelView : INotifyPropertyChanged
   {
     #region Shared Properties and Functions
+
+    private ModelView modelview;
+
     // Property Changed Listener
     private void ModelView_PropertyChanged(object sender, PropertyChangedEventArgs e)
     {
@@ -408,6 +411,7 @@ namespace SleepApneaDiagnoser
     {
       return modelview.GetSeriesFromSignalName(out sample_period, Signal, StartTime, EndTime);
     }
+    
     #endregion
 
     #region Members
@@ -416,7 +420,6 @@ namespace SleepApneaDiagnoser
     /// Respiratory Model
     /// </summary>
     private RespiratoryModel rm = new RespiratoryModel();
-    private ModelView modelview;
     private SettingsModel sm;
 
     #endregion
@@ -980,7 +983,8 @@ namespace SleepApneaDiagnoser
     public event PropertyChangedEventHandler PropertyChanged;
     private void OnPropertyChanged(string propertyName)
     {
-      PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+      if (PropertyChanged != null)
+        PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
     }
 
     #endregion

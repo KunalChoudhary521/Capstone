@@ -112,51 +112,6 @@ namespace SleepApneaDiagnoser
 
   }
 
-  /// <summary>
-  /// Model for variables used exclusively in the 'Coherence' sub tab of the 'Tool' tab
-  /// </summary>
-  public class CoherenceModel
-  {
-    /// <summary>
-    /// The first selected signal
-    /// </summary>
-    public string CoherenceEDFSelectedSignal1;
-    /// <summary>
-    /// The second selected signal
-    /// </summary>
-    public string CoherenceEDFSelectedSignal2;
-    /// <summary>
-    /// The start time in 30s epochs of the signals to perform coherence analysis on
-    /// </summary>
-    public int CoherenceEDFStartRecord;
-    /// <summary>
-    /// The duration in 30s epochs of the signals to perform coherence analysis on
-    /// </summary>
-    public int CoherenceEDFDuration;
-    /// <summary>
-    /// A time domain plot of the first signal to perform coherence analysis on
-    /// </summary>
-    public PlotModel CoherenceSignalPlot1 = null;
-    /// <summary>
-    /// A time domain plot of the second signal to perform coherence analysis on
-    /// </summary>
-    public PlotModel CoherenceSignalPlot2 = null;
-    /// <summary>
-    /// The plot of the coherence signal
-    /// </summary>
-    public PlotModel CoherencePlot = null;
-    /// <summary>
-    /// If true, the progress ring should be shown
-    /// If false, the progress ring should not be shown
-    /// </summary>
-    public bool CoherenceProgressRingEnabled = false;
-    /// <summary>
-    /// If true, use a constant axis
-    /// If false, auto adjust to plot
-    /// </summary>
-    public bool CoherenceUseConstantAxis = false;
-  }
-
   public class SignalCategory
   {
     public string CategoryName = "";
