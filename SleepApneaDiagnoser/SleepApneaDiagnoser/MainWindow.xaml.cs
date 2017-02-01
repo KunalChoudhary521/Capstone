@@ -3241,7 +3241,10 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return rm.RespiratoryEDFStartRecord;
+        if (IsEDFLoaded)
+          return rm.RespiratoryEDFStartRecord;
+        else
+          return null;
       }
       set
       {
@@ -3258,7 +3261,10 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return rm.RespiratoryEDFDuration;
+        if (IsEDFLoaded)
+          return rm.RespiratoryEDFDuration;
+        else
+          return null;
       }
       set
       {
@@ -3749,7 +3755,10 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return cm.CoherenceEDFStartRecord;
+        if (IsEDFLoaded)
+          return cm.CoherenceEDFStartRecord;
+        else
+          return null;
       }
       set
       {
@@ -3763,7 +3772,10 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return cm.CoherenceEDFDuration;
+        if (IsEDFLoaded)
+          return cm.CoherenceEDFDuration;
+        else
+          return null;
       }
       set
       {
