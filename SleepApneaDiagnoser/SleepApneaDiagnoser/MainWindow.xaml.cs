@@ -1220,8 +1220,8 @@ namespace SleepApneaDiagnoser
 
       if (RespiratoryUseConstantAxis)
       {
-        resp_plots.Item7.Minimum = GetMinSignalValue(RespiratoryEDFSelectedSignal);
-        resp_plots.Item7.Maximum = GetMaxSignalValue(RespiratoryEDFSelectedSignal);
+        resp_plots.Item7.Minimum = GetMinSignalValue(RespiratoryEDFSelectedSignal) - FindSignalDCBias(series);
+        resp_plots.Item7.Maximum = GetMaxSignalValue(RespiratoryEDFSelectedSignal) - FindSignalDCBias(series);
       }
 
       tempPlotModel.Series.Add(resp_plots.Item1);
