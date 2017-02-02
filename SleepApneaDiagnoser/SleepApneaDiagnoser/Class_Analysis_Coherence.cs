@@ -99,7 +99,7 @@ namespace SleepApneaDiagnoser
     private ModelView modelview;
 
     // Property Changed Listener
-    private void ModelView_PropertyChanged(object sender, PropertyChangedEventArgs e)
+    private void Exterior_PropertyChanged(object sender, PropertyChangedEventArgs e)
     {
       switch (e.PropertyName)
       {
@@ -133,7 +133,7 @@ namespace SleepApneaDiagnoser
           break;
       }
     }
-
+    
     // Shared Properties
     public bool IsEDFLoaded
     {
@@ -638,11 +638,13 @@ namespace SleepApneaDiagnoser
 
     #endregion
 
-    public CoherenceModelView(ModelView i_modelview, SettingsModel i_sm)
+    public CoherenceModelView(ModelView i_modelview, SettingsModelView i_svm)
     {
-      sm = i_sm;
+      sm = i_svm.sm;
       modelview = i_modelview;
-      modelview.PropertyChanged += ModelView_PropertyChanged;
+      modelview.PropertyChanged += Exterior_PropertyChanged;
+
+      i_svm.PropertyChanged += Exterior_PropertyChanged;
     }
   }
 }

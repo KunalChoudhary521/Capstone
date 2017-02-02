@@ -52,14 +52,14 @@ namespace SleepApneaDiagnoser
     PreviewModelView preview_modelview;
     RespiratoryModelView resp_modelview;
     CoherenceModelView cohere_modelview;
-    SettingsModel settings_model;
+    SettingsModelView settings_modelview;
 
     /// <summary>
     /// Function called to populate recent files list. Called when application is first loaded and if the recent files list changes.
     /// </summary>
     public void LoadRecent()
     {
-      List<string> array = modelview.RecentFiles.ToArray().ToList();
+      List<string> array = settings_modelview.RecentFiles.ToArray().ToList();
 
       itemControl_RecentEDF.Items.Clear();
       for (int x = 0; x < array.Count; x++)
@@ -77,29 +77,35 @@ namespace SleepApneaDiagnoser
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
-      settings_model = new SettingsModel();
-      modelview = new ModelView(this, settings_model);
-      this.DataContext = modelview;
-      this.grid_SettingsMainMenu.DataContext = modelview;
-      this.grid_SettingsPersonalization.DataContext = modelview;
+      SettingsModel settings_model = new SettingsModel();
 
-      resp_modelview = new RespiratoryModelView(modelview, settings_model);
+      modelview = new ModelView(this, settings_model);
+      settings_modelview = new SettingsModelView(this, settings_model);
+      settings_modelview.modelview = modelview;
+      resp_modelview = new RespiratoryModelView(modelview, settings_modelview);
+      cohere_modelview = new CoherenceModelView(modelview, settings_modelview);
+      preview_modelview = new PreviewModelView(modelview, settings_modelview);
+
+      this.DataContext = modelview;
+
+      this.TabItem_Preview.DataContext = preview_modelview;
+
       this.TabItem_Respiratory.DataContext = resp_modelview;
       this.grid_SettingsRespiratory.DataContext = resp_modelview;
 
-      cohere_modelview = new CoherenceModelView(modelview, settings_model);
       this.TabItem_Coherence.DataContext = cohere_modelview;
 
-      preview_modelview = new PreviewModelView(modelview, settings_model);
-      this.TabItem_Preview.DataContext = preview_modelview;
+      this.Flyout_Settings.DataContext = settings_modelview;
+      this.grid_SettingsMainMenu.DataContext = settings_modelview;
+      this.grid_SettingsPersonalization.DataContext = settings_modelview;
 
       LoadRecent();
-      modelview.LoadAppSettings();
+      settings_modelview.LoadAppSettings();
     }
     private void Window_Closing(object sender, CancelEventArgs e)
     {
-      modelview.WriteAppSettings();
-      modelview.WriteEDFSettings();
+      settings_modelview.WriteAppSettings();
+      settings_modelview.WriteEDFSettings();
     }
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
     {
@@ -140,12 +146,13 @@ namespace SleepApneaDiagnoser
 
       if (dialog.ShowDialog() == true)
       {
+        settings_modelview.WriteEDFSettings();
         modelview.LoadEDFFile(dialog.FileName);
       }       
     }
     private void TextBlock_Recent_Click(object sender, RoutedEventArgs e)
     {
-      List<string> array = modelview.RecentFiles.ToArray().ToList();
+      List<string> array = settings_modelview.RecentFiles.ToArray().ToList();
       List<string> selected = array.Where(temp => temp.Split('\\')[temp.Split('\\').Length - 1] == ((Hyperlink)sender).Inlines.FirstInline.DataContext.ToString()).ToList();
 
       if (selected.Count == 0)
@@ -159,13 +166,14 @@ namespace SleepApneaDiagnoser
         {
           if (File.Exists(selected[x]))
           {
+            settings_modelview.WriteEDFSettings();
             modelview.LoadEDFFile(selected[x]);
             break;
           }
           else
           {
             this.ShowMessageAsync("Error", "File not Found");
-            modelview.RecentFiles_Remove(selected[x]);
+            settings_modelview.RecentFiles_Remove(selected[x]);
           }
         }
       }
@@ -174,58 +182,58 @@ namespace SleepApneaDiagnoser
     // Setting Flyout Events 
     private void button_Settings_Click(object sender, RoutedEventArgs e)
     {
-      modelview.OpenCloseSettings();
-      modelview.SettingsMainMenuVisible = true;
-      modelview.SettingsPersonalizationVisible = false;
+      settings_modelview.OpenCloseSettings();
+      settings_modelview.SettingsMainMenuVisible = true;
+      settings_modelview.SettingsPersonalizationVisible = false;
       resp_modelview.SettingsRespiratoryVisible = false;
     }
     private void button_MainMenuClick(object sender, RoutedEventArgs e)
     {
-      modelview.SettingsMainMenuVisible = true;
-      modelview.SettingsPersonalizationVisible = false;
+      settings_modelview.SettingsMainMenuVisible = true;
+      settings_modelview.SettingsPersonalizationVisible = false;
       resp_modelview.SettingsRespiratoryVisible = false;
     }
     private void button_PersonalizationSettings_Click(object sender, RoutedEventArgs e)
     {
-      modelview.SettingsMainMenuVisible = false;
-      modelview.SettingsPersonalizationVisible = true;
+      settings_modelview.SettingsMainMenuVisible = false;
+      settings_modelview.SettingsPersonalizationVisible = true;
       resp_modelview.SettingsRespiratoryVisible = false;
     }
     private void button_RespiratorySettings_Click(object sender, RoutedEventArgs e)
     {
-      modelview.SettingsMainMenuVisible = false;
-      modelview.SettingsPersonalizationVisible = false;
+      settings_modelview.SettingsMainMenuVisible = false;
+      settings_modelview.SettingsPersonalizationVisible = false;
       resp_modelview.SettingsRespiratoryVisible = true;
     }
     private void button_HideSignals_Click(object sender, RoutedEventArgs e)
     {
-      modelview.OpenCloseSettings();
-      modelview.HideSignals();
+      settings_modelview.OpenCloseSettings();
+      settings_modelview.HideSignals();
     }
     private void button_AddDerivative_Click(object sender, RoutedEventArgs e)
     {
-      modelview.OpenCloseSettings();
-      modelview.AddDerivative();
+      settings_modelview.OpenCloseSettings();
+      settings_modelview.AddDerivative();
     }
     private void button_RemoveDerivative_Click(object sender, RoutedEventArgs e)
     {
-      modelview.OpenCloseSettings();
-      modelview.RemoveDerivative();
+      settings_modelview.OpenCloseSettings();
+      settings_modelview.RemoveDerivative();
     }
     private void button_Categories_Click(object sender, RoutedEventArgs e)
     {
-      modelview.OpenCloseSettings();
-      modelview.ManageCategories();
+      settings_modelview.OpenCloseSettings();
+      settings_modelview.ManageCategories();
     }
     private void button_AddFilter_Click(object sender, RoutedEventArgs e)
     {
-      modelview.OpenCloseSettings();
-      modelview.AddFilter();
+      settings_modelview.OpenCloseSettings();
+      settings_modelview.AddFilter();
     }
     private void button_RemoveFilter_Click(object sender, RoutedEventArgs e)
     {
-      modelview.OpenCloseSettings();
-      modelview.RemoveFilter();
+      settings_modelview.OpenCloseSettings();
+      settings_modelview.RemoveFilter();
     }
 
     // Preview Tab Events   
@@ -444,10 +452,7 @@ namespace SleepApneaDiagnoser
       EDFFile temp = new EDFFile();
       temp.readFile(e.Argument.ToString());
       LoadedEDFFile = temp;
-
-      // Load Settings Files
-      LoadEDFSettings();
-
+      
       // End 'Update Progress Bar' Task 
       bw_progressbar.CancelAsync();
       while (bw_progressbar.IsBusy)
@@ -460,9 +465,6 @@ namespace SleepApneaDiagnoser
     /// <param name="e"></param>
     private async void BW_FinishLoad(object sender, RunWorkerCompletedEventArgs e)
     {
-      // Add loaded EDF file to Recent Files list
-      RecentFiles_Add(LoadedEDFFileName);
-
       // Close progress bar and display message
       await controller.CloseAsync();
       await p_window.ShowMessageAsync("Success!", "EDF file loaded");
@@ -475,9 +477,7 @@ namespace SleepApneaDiagnoser
     {
       controller = await p_window.ShowProgressAsync("Please wait...", "Loading EDF File: " + fileNameIn);
 
-      WriteEDFSettings();
       LoadedEDFFile = null;
-
       LoadedEDFFileName = fileNameIn;
       BackgroundWorker bw = new BackgroundWorker();
       bw.DoWork += BW_LoadEDFFile;
@@ -1080,249 +1080,6 @@ namespace SleepApneaDiagnoser
       bw.RunWorkerAsync();
     }
   
-    /***************************************************** SETTINGS FLYOUT **********************************************************/
-
-    /// <summary>
-    /// Opens and Closes the Settings menu
-    /// </summary>
-    public void OpenCloseSettings()
-    {
-      FlyoutOpen = !FlyoutOpen;
-    }
-
-    /// <summary>
-    /// Opens the Signal Category Management Wizard
-    /// </summary>
-    public void ManageCategories()
-    {
-      Dialog_Manage_Categories dlg = new Dialog_Manage_Categories(p_window,
-                                                                  this,
-                                                                  sm.SignalCategories.ToArray(),
-                                                                  AllSignals.ToArray()
-                                                                  );
-      p_window.ShowMetroDialogAsync(dlg);
-    }
-    /// <summary>
-    /// The Signal Category Management Wizard calls this function to return user input
-    /// </summary>
-    /// <param name="categories"> A list of categories </param>
-    /// <param name="categories_signals"> A list of signals belonging to those categories </param>
-    public void ManageCategoriesOutput(SignalCategory[] categories)
-    {
-      PreviewList_Updated();
-      sm.SignalCategories = categories.ToList();
-    }
-
-    /// <summary>
-    /// Opens the Add Derivative Signal Wizard
-    /// </summary>
-    public void AddDerivative()
-    {
-      Dialog_Add_Derivative dlg = new Dialog_Add_Derivative(p_window,
-                                                            this,
-                                                            EDFAllSignals.ToArray(),
-                                                            AllSignals.ToArray()
-                                                            );
-      p_window.ShowMetroDialogAsync(dlg);
-    }
-    /// <summary>
-    /// The Add Derivative Signal Wizard call this function to return user input
-    /// </summary>
-    /// <param name="name"> The name of the new derivative signal </param>
-    /// <param name="signal1"> The minuend signal </param>
-    /// <param name="signal2"> The subtrahend signal </param>
-    public void AddDerivativeOutput(string name, string signal1, string signal2)
-    {
-      sm.DerivedSignals.Add(new DerivativeSignal(name, signal1, signal2));
-
-      PreviewList_Updated();
-      OnPropertyChanged(nameof(AllNonHiddenSignals));
-    }
-    /// <summary>
-    /// Opens the Remove Derivative Signal Wizard
-    /// </summary>
-    public void RemoveDerivative()
-    {
-      Dialog_Remove_Derivative dlg = new Dialog_Remove_Derivative(p_window,
-                                                                  this,
-                                                                  sm.DerivedSignals.Select(temp => temp.DerivativeName).ToArray());
-      p_window.ShowMetroDialogAsync(dlg);
-    }
-    /// <summary>
-    /// The Remove Derivative Signal Wizard call this function to return user input
-    /// </summary>
-    /// <param name="RemovedSignals"> An entry for every derivative signal to remove </param>
-    public void RemoveDerivativeOutput(string[] RemovedSignals)
-    {
-      for (int x = 0; x < RemovedSignals.Length; x++)
-      {
-        List<DerivativeSignal> RemovedDerivatives = sm.DerivedSignals.FindAll(temp => temp.DerivativeName.Trim() == RemovedSignals[x].Trim()).ToList();
-        sm.DerivedSignals.RemoveAll(temp => RemovedDerivatives.Contains(temp));
-
-        // Remove Potentially Saved Min/Max Values
-        sm.SignalsYAxisExtremes.RemoveAll(temp => temp.SignalName.Trim() == RemovedSignals[x].Trim());
-      }
-
-      // Remove from categories
-      for (int x = 0; x < RemovedSignals.Length; x++)
-      {
-        for (int y = 0; y < sm.SignalCategories.Count; y++)
-        {
-          if (sm.SignalCategories[y].Signals.Contains(RemovedSignals[x]))
-          {
-            sm.SignalCategories[y].Signals.Remove(RemovedSignals[x]);
-          }
-        }
-      }
-
-      PreviewList_Updated();
-      OnPropertyChanged(nameof(AllNonHiddenSignals));
-    }
-
-    /// <summary>
-    /// Calls the Hide/Unhide Signals Wizard
-    /// </summary>
-    public void HideSignals()
-    {
-      bool[] input = new bool[EDFAllSignals.Count];
-      for (int x = 0; x < EDFAllSignals.Count; x++)
-      {
-        if (sm.HiddenSignals.Contains(EDFAllSignals[x]))
-          input[x] = true;
-        else
-          input[x] = false;
-      }
-
-      Dialog_Hide_Signals dlg = new Dialog_Hide_Signals(p_window,
-                                                        this,
-                                                        EDFAllSignals.ToArray(),
-                                                        input);
-      p_window.ShowMetroDialogAsync(dlg);
-    }
-    /// <summary>
-    /// The Hide/Unhide Signals Wizard calls this function to return user inpout
-    /// </summary>
-    /// <param name="hide_signals_new"> An array with an entry for all EDF Signals. True means hide signal, false means show signal </param>
-    public void HideSignalsOutput(bool[] hide_signals_new)
-    {
-      for (int x = 0; x < hide_signals_new.Length; x++)
-      {
-        if (hide_signals_new[x])
-        {
-          if (!sm.HiddenSignals.Contains(EDFAllSignals[x]))
-          {
-            sm.HiddenSignals.Add(EDFAllSignals[x]);
-          }
-        }
-        else
-        {
-          if (sm.HiddenSignals.Contains(EDFAllSignals[x]))
-          {
-            sm.HiddenSignals.Remove(EDFAllSignals[x]);
-          }
-        }
-      }
-
-      PreviewList_Updated();
-      OnPropertyChanged(nameof(AllNonHiddenSignals));
-    }
-
-    /// <summary>
-    /// Call the Add Filtered Signal Wizard
-    /// </summary>
-    public void AddFilter()
-    {
-      Dialog_Add_Filter dlg = new Dialog_Add_Filter(p_window,
-                                                            this,
-                                                            EDFAllSignals.ToArray(),
-                                                            sm.DerivedSignals.Select(temp => temp.DerivativeName).ToArray(),
-                                                            AllSignals.ToArray()
-                                                            );
-      p_window.ShowMetroDialogAsync(dlg);
-
-    }
-    /// <summary>
-    /// The Add Filtered Signal Wizard calls this function to return user input
-    /// </summary>
-    public void AddFilterOutput(FilteredSignal filteredSignal)
-    {
-      sm.FilteredSignals.Add(filteredSignal);
-
-      PreviewList_Updated();
-      OnPropertyChanged(nameof(AllNonHiddenSignals));
-    }
-    /// <summary>
-    /// Calls the Remove Filtered Signal Wizard.
-    /// </summary>
-    public void RemoveFilter()
-    {
-      Dialog_Remove_Filter dlg = new Dialog_Remove_Filter(p_window,
-                                                          this,
-                                                          sm.FilteredSignals.Select(temp => temp.SignalName).ToArray());
-      p_window.ShowMetroDialogAsync(dlg);
-    }
-    /// <summary>
-    /// The Remove Filtered Signal Wizard calls this function to return user input.
-    /// </summary>
-    public void RemoveFilterOutput(string[] RemovedSignals)
-    {
-      for (int x = 0; x < RemovedSignals.Length; x++)
-      {
-        List<FilteredSignal> RemovedFilters = sm.FilteredSignals.FindAll(temp => temp.SignalName.Trim() == RemovedSignals[x].Trim()).ToList();
-        sm.FilteredSignals.RemoveAll(temp => RemovedFilters.Contains(temp));
-
-        // Remove Potentially Saved Min/Max Values
-        sm.SignalsYAxisExtremes.RemoveAll(temp => temp.SignalName.Trim() == RemovedSignals[x].Trim());
-      }
-
-      // Remove from categories
-      for (int x = 0; x < RemovedSignals.Length; x++)
-      {
-        for (int y = 0; y < sm.SignalCategories.Count; y++)
-        {
-          if (sm.SignalCategories[y].Signals.Contains(RemovedSignals[x]))
-          {
-            sm.SignalCategories[y].Signals.Remove(RemovedSignals[x]);
-          }
-        }
-      }
-
-      PreviewList_Updated();
-      OnPropertyChanged(nameof(AllNonHiddenSignals));
-
-    }
-
-    public void WriteEDFSettings()
-    {
-      Utils.WriteToDerivativesFile(sm.DerivedSignals.ToArray(), AllSignals.ToArray());
-      Utils.WriteToFilteredSignalsFile(sm.FilteredSignals.ToArray(), AllSignals.ToArray());
-      Utils.WriteToCategoriesFile(sm.SignalCategories.ToArray(), AllSignals.ToArray());
-    }
-    public void WriteAppSettings()
-    {
-      Utils.WriteToHiddenSignalsFile(sm.HiddenSignals.ToArray());
-      Utils.WriteToPersonalization(UseCustomColor, ThemeColor, UseDarkTheme);
-    }
-    public void LoadEDFSettings()
-    {
-      sm.SignalsYAxisExtremes.Clear();
-      sm.DerivedSignals = Utils.LoadDerivativesFile(LoadedEDFFile).ToList();
-      sm.FilteredSignals = Utils.LoadFilteredSignalsFile(AllSignals.ToArray()).ToList();
-      sm.SignalCategories = Utils.LoadCategoriesFile(AllSignals.ToArray()).ToList();
-    }
-    public void LoadAppSettings()
-    {
-      sm.HiddenSignals = Utils.LoadHiddenSignalsFile().ToList();
-
-      Color t_ThemeColor;
-      bool t_UseDarkTheme;
-      bool t_UseCustomColor;
-      Utils.LoadPersonalization(out t_UseCustomColor, out t_ThemeColor, out t_UseDarkTheme);
-      ThemeColor = t_ThemeColor;
-      UseDarkTheme = t_UseDarkTheme;
-      UseCustomColor = t_UseCustomColor;
-    }
-
     #endregion
 
     #region Members
@@ -1368,26 +1125,6 @@ namespace SleepApneaDiagnoser
     /*********************************************************************************************************************************/
 
     // Update Actions
-    private void AppliedThemeColor_Changed()
-    {
-      OnPropertyChanged(nameof(AppliedThemeColor));
-
-      var application = System.Windows.Application.Current;
-      Accent newAccent = Utils.ThemeColorToAccent(AppliedThemeColor);
-
-      ThemeManager.AddAccent(newAccent.Name, newAccent.Resources.Source);
-      ThemeManager.ChangeAppStyle(application, newAccent, ThemeManager.GetAppTheme(UseDarkTheme ? "BaseDark" : "BaseLight"));
-
-      // Update all charts to dark or light theme
-      PropertyInfo[] all_plotmodels = this.GetType().GetProperties().ToList().Where(temp => temp.PropertyType == new PlotModel().GetType()).ToArray();
-      for (int x = 0; x < all_plotmodels.Length; x++)
-      {
-        PlotModel model = (PlotModel)all_plotmodels[x].GetValue(this);
-
-        all_plotmodels[x].SetValue(this, null);
-        all_plotmodels[x].SetValue(this, model);
-      }
-    }
     private void LoadedEDFFile_Changed()
     {
       // Preview Time Picker
@@ -1410,7 +1147,7 @@ namespace SleepApneaDiagnoser
       
       // Misc
       OnPropertyChanged(nameof(IsEDFLoaded));
-      
+
       // Analysis
       EEGView_Changed();
     }
@@ -1488,54 +1225,12 @@ namespace SleepApneaDiagnoser
       }
     }
 
-    // Personalization
-    public Color ThemeColor
-    {
-      get
-      {
-        return sm.ThemeColor;
-      }
-      set
-      {
-        sm.ThemeColor = value;
-        OnPropertyChanged(nameof(ThemeColor));
-        AppliedThemeColor_Changed();
-      }
-    }
-    public bool UseCustomColor
-    {
-      get
-      {
-        return sm.UseCustomColor;
-      }
-      set
-      {
-        sm.UseCustomColor = value;
-        OnPropertyChanged(nameof(UseCustomColor));
-        AppliedThemeColor_Changed();
-      }
-    }
-    public Color AppliedThemeColor
-    {
-      get
-      {
-        if (sm.UseCustomColor)
-          return sm.ThemeColor;
-        else
-          return ((Color)SystemParameters.WindowGlassBrush.GetValue(SolidColorBrush.ColorProperty));
-      }
-    }
+    // Preferences
     public bool UseDarkTheme
     {
       get
       {
         return sm.UseDarkTheme;
-      }
-      set
-      {
-        sm.UseDarkTheme = value;
-        OnPropertyChanged(nameof(UseDarkTheme));
-        AppliedThemeColor_Changed();
       }
     }
 
@@ -1783,115 +1478,7 @@ namespace SleepApneaDiagnoser
           return 0;
       }
     }
-
-    /********************************************************** SETTINGS ***********************************************************/
-
-    // Settings Flyout
-    public bool FlyoutOpen
-    {
-      get
-      {
-        return sm.FlyoutOpen;
-      }
-      set
-      {
-        sm.FlyoutOpen = value;
-        OnPropertyChanged(nameof(FlyoutOpen));
-      }
-    }
-    public bool SettingsMainMenuVisible
-    {
-      get
-      {
-        return sm.SettingsMainMenuVisible;
-      }
-      set
-      {
-        sm.SettingsMainMenuVisible = value;
-        OnPropertyChanged(nameof(SettingsMainMenuVisible));
-      }
-    }
-    public bool SettingsPersonalizationVisible
-    {
-      get
-      {
-        return sm.SettingsPersonalizationVisible;
-      }
-      set
-      {
-        sm.SettingsPersonalizationVisible = value;
-        OnPropertyChanged(nameof(SettingsPersonalizationVisible));
-      }
-    }
-
-    // Recent File List and Functions. 
-    public ReadOnlyCollection<string> RecentFiles
-    {
-      get
-      {
-        if (!Directory.Exists("Settings"))
-          Directory.CreateDirectory("Settings");
-
-        string[] value = null;
-
-        if (File.Exists("Settings\\recent.txt"))
-        {
-          StreamReader sr = new StreamReader("Settings\\recent.txt");
-          string[] text = sr.ReadToEnd().Split('\n');
-          List<string> values = new List<string>();
-          for (int x = 0; x < text.Length; x++)
-            if (File.Exists(text[x].Trim()))
-              values.Add(text[x].Trim());
-          sr.Close();
-
-          value = values.ToArray();
-        }
-        else
-        {
-          value = new string[0];
-        }
-
-        return Array.AsReadOnly(value);
-      }
-    }
-
-    public void RecentFiles_Add(string path)
-    {
-      if (!Directory.Exists("Settings"))
-        Directory.CreateDirectory("Settings");
-
-      List<string> array = RecentFiles.ToArray().ToList();
-      array.Insert(0, path);
-      array = array.Distinct().ToList();
-
-      StreamWriter sw = new StreamWriter("Settings\\recent.txt");
-      for (int x = 0; x < array.Count; x++)
-      {
-        sw.WriteLine(array[x]);
-      }
-      sw.Close();
-
-      p_window.LoadRecent();
-    }
-    public void RecentFiles_Remove(string path)
-    {
-      if (!Directory.Exists("Settings"))
-        Directory.CreateDirectory("Settings");
-
-      List<string> array = RecentFiles.ToArray().ToList();
-      array.Remove(path);
-      array = array.Distinct().ToList();
-
-      StreamWriter sw = new StreamWriter("Settings\\recent.txt");
-      for (int x = 0; x < array.Count; x++)
-      {
-        sw.WriteLine(array[x]);
-      }
-      sw.Close();
-
-      p_window.LoadRecent();
-    }
-   
+    
     /********************************************************** ZABEEH'S BINARY STUFF ****************************************************/
 
     public int EEGAnalysisBinaryFileLoaded = 0;
@@ -1928,12 +1515,10 @@ namespace SleepApneaDiagnoser
     #endregion
 
     #region etc
-
-    public event Action PreviewList_Updated;
-
+      
     // INotify Interface
     public event PropertyChangedEventHandler PropertyChanged;
-    private void OnPropertyChanged(string propertyName)
+    public void OnPropertyChanged(string propertyName)
     {
       PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
     }
@@ -1968,5 +1553,6 @@ namespace SleepApneaDiagnoser
       }
       #endregion 
     }
+
   }
 }

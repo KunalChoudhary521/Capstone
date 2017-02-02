@@ -110,7 +110,7 @@ namespace SleepApneaDiagnoser
     private ModelView modelview;
 
     // Property Changed Listener
-    private void ModelView_PropertyChanged(object sender, PropertyChangedEventArgs e)
+    private void Exterior_PropertyChanged(object sender, PropertyChangedEventArgs e)
     {
       switch (e.PropertyName)
       {
@@ -134,8 +134,8 @@ namespace SleepApneaDiagnoser
           OnPropertyChanged(nameof(PreviewNavigationEnabled));
 
           // Header
-          OnPropertyChanged(nameof(EDFStartTime));
-          OnPropertyChanged(nameof(EDFEndTime));
+          OnPropertyChanged(nameof(EDFStart));
+          OnPropertyChanged(nameof(EDFEnd));
           OnPropertyChanged(nameof(EDFEndEpoch));
           OnPropertyChanged(nameof(EDFPatientName));
           OnPropertyChanged(nameof(EDFPatientSex));
@@ -155,7 +155,7 @@ namespace SleepApneaDiagnoser
           break;
       }
     }
-    private void Modelview_PreviewList_Updated()
+    private void Exterior_PreviewList_Updated()
     {
       PreviewCurrentCategory = -1;
       OnPropertyChanged(nameof(PreviewSignals));
@@ -222,7 +222,7 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return modelview.UseDarkTheme;
+        return sm.UseDarkTheme;
       }
     }
 
@@ -1204,12 +1204,14 @@ namespace SleepApneaDiagnoser
 
     #endregion
 
-    public PreviewModelView(ModelView i_modelview, SettingsModel i_sm)
+    public PreviewModelView(ModelView i_modelview, SettingsModelView i_svm)
     {
-      sm = i_sm;
+      sm = i_svm.sm;
       modelview = i_modelview;
-      modelview.PropertyChanged += ModelView_PropertyChanged;
-      modelview.PreviewList_Updated += Modelview_PreviewList_Updated;
+      modelview.PropertyChanged += Exterior_PropertyChanged;
+      i_svm.PreviewList_Updated += Exterior_PreviewList_Updated;
+
+      i_svm.PropertyChanged += Exterior_PropertyChanged;
     }
 
   }

@@ -49,9 +49,9 @@ namespace SleepApneaDiagnoser
     List<string> AllSignals_NoFiltered;
     string[] AllSignals;
     MainWindow window;
-    ModelView model;
+    SettingsModelView model;
 
-    public Dialog_Add_Filter(MainWindow in_window, ModelView in_model, string[] in_EDFSignals, string[] in_Derivatives, string[] in_AllSignals)
+    public Dialog_Add_Filter(MainWindow in_window, SettingsModelView in_model, string[] in_EDFSignals, string[] in_Derivatives, string[] in_AllSignals)
     {
       InitializeComponent();
 

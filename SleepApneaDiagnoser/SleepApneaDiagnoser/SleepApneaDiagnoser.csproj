@@ -172,8 +172,9 @@
     <Compile Include="Class_Analysis_Coherence.cs" />
     <Compile Include="Class_Preview.cs" />
     <Compile Include="Class_Analysis_Respiratory.cs" />
+    <Compile Include="Class_UserSettings.cs" />
     <Compile Include="Class_Utils.cs" />
-    <Compile Include="Class_Models.cs" />
+    <Compile Include="Class_Analysis_EEG.cs" />
     <Compile Include="Dialog_Add_Filter.xaml.cs">
       <DependentUpon>Dialog_Add_Filter.xaml</DependentUpon>
     </Compile>

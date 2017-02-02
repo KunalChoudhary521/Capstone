@@ -35,9 +35,9 @@ namespace SleepApneaDiagnoser
     }
 
     private MetroWindow window;
-    private ModelView model;
+    private SettingsModelView model;
 
-    public Dialog_Remove_Derivative(MetroWindow i_window, ModelView i_model, string[] DerivedSignals)
+    public Dialog_Remove_Derivative(MetroWindow i_window, SettingsModelView i_model, string[] DerivedSignals)
     {
       InitializeComponent();
 

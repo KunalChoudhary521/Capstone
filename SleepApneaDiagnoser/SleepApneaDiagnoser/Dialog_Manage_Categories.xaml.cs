@@ -61,9 +61,9 @@ namespace SleepApneaDiagnoser
 
     private string[] all_signals;
     private MetroWindow window;
-    private ModelView model;
+    private SettingsModelView model;
 
-    public Dialog_Manage_Categories(MainWindow i_window, ModelView i_model, SignalCategory[] i_categories, string[] i_allsignals)
+    public Dialog_Manage_Categories(MainWindow i_window, SettingsModelView i_model, SignalCategory[] i_categories, string[] i_allsignals)
     {
       InitializeComponent();
       VirtualizingStackPanel.SetIsVirtualizing(listBox_Categories, false);

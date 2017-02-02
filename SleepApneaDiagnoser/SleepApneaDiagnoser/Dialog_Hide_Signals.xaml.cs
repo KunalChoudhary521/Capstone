@@ -38,9 +38,9 @@ namespace SleepApneaDiagnoser
     }
 
     private MetroWindow window;
-    private ModelView model;
+    private SettingsModelView model;
 
-    public Dialog_Hide_Signals(MetroWindow i_window, ModelView i_model, string[] edf_signals, bool[] hide_signals)
+    public Dialog_Hide_Signals(MetroWindow i_window, SettingsModelView i_model, string[] edf_signals, bool[] hide_signals)
     {
       InitializeComponent();
 

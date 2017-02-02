@@ -46,9 +46,9 @@ namespace SleepApneaDiagnoser
     private string[] AllSignals;
     private string[] Signals;
     private MetroWindow window;
-    private ModelView model;
+    private SettingsModelView model;
 
-    public Dialog_Add_Derivative(MetroWindow i_window, ModelView i_model, string[] i_Signals, string[] i_AllSignals)
+    public Dialog_Add_Derivative(MetroWindow i_window, SettingsModelView i_model, string[] i_Signals, string[] i_AllSignals)
     {
       InitializeComponent();
 

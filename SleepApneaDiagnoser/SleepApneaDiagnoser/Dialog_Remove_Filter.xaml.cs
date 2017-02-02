@@ -35,9 +35,9 @@ namespace SleepApneaDiagnoser
     }
 
     private MetroWindow window;
-    private ModelView model;
+    private SettingsModelView model;
 
-    public Dialog_Remove_Filter(MetroWindow i_window, ModelView i_model, string[] FilteredSignals)
+    public Dialog_Remove_Filter(MetroWindow i_window, SettingsModelView i_model, string[] FilteredSignals)
     {
       InitializeComponent();
 
