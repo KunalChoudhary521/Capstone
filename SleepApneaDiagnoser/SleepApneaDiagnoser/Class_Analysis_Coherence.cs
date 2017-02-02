@@ -59,6 +59,9 @@ namespace SleepApneaDiagnoser
     #endregion
   }
 
+  /// <summary>
+  /// Model View for UI logic used exclusively in the 'Coherence' sub tab of the 'Tool' tab
+  /// </summary>
   public class CoherenceModelView : INotifyPropertyChanged
   {
     #region Shared Properties and Functions

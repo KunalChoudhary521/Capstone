@@ -21,6 +21,8 @@ namespace SleepApneaDiagnoser
   /// </summary>
   public class EEGModel
   {
+    #region Members
+
     /// <summary>
     /// The user selected signal to perform eeg analysis on
     /// </summary>
@@ -61,8 +63,13 @@ namespace SleepApneaDiagnoser
     /// Displays the eeg powe spectral density power plot
     /// </summary>
     public String[] EEGExportOptions = null;
+
+    #endregion 
   }
 
+  /// <summary>
+  /// Model View for UI logic used exclusively in the 'EEG' sub tab of the 'Analysis' tab
+  /// </summary>
   public class EEGModelView : INotifyPropertyChanged
   {
     #region Shared Properties and Functions
@@ -175,6 +182,9 @@ namespace SleepApneaDiagnoser
     /// EEG Model
     /// </summary>
     private EEGModel eegm = new EEGModel();
+    /// <summary>
+    /// Settings Model
+    /// </summary>
     private SettingsModel sm;
 
     #region Properties

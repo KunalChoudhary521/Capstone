@@ -73,6 +73,9 @@ namespace SleepApneaDiagnoser
     #endregion 
   }
 
+  /// <summary>
+  /// Model View for UI logic used exclusively in the 'Preview' tab
+  /// </summary>
   public class PreviewModelView : INotifyPropertyChanged
   {
     #region Shared Properties and Functions
