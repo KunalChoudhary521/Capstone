@@ -212,7 +212,7 @@ namespace SleepApneaDiagnoser
 
       return new Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis>(series_norm, series_insets, series_onsets, series_neg_peaks, series_pos_peaks, xAxis, yAxis);
     }
-    public static Tuple<double, double, double> GetRespiratorySignalBreathingPeriod(ScatterSeries[] series)
+    public static Tuple<double, double> GetRespiratorySignalBreathingPeriod(ScatterSeries[] series)
     {
       // Find Breathing Rates
       List<double> breathing_periods = new List<double>();
@@ -224,72 +224,68 @@ namespace SleepApneaDiagnoser
 
       if (breathing_periods.Count != 0) // Non-Zero Breathing Rates
       {
-        breathing_periods.Sort();
-
         // Calculate Mean 
         double mean = breathing_periods.Average();
-
-        // Calculate Median
-        double median = breathing_periods[breathing_periods.Count / 2 - 1];
 
         // Calculate Variance
         double coeff_variance = GetVarianceCoefficient(breathing_periods.ToArray());
 
-        return new Tuple<double, double, double>(mean, median, coeff_variance);
+        return new Tuple<double, double>(mean, coeff_variance);
       }
       else
       {
-        return new Tuple<double, double, double>(0, 0, 0);
+        return new Tuple<double, double>(0, 0);
       }
     }
-    public static Tuple<double, double, double> GetRespiratorySignalExspirationOrInspirationPeriod(ScatterSeries series)
+    public static Tuple<double, double> GetRespiratorySignalBreathingHalfPeriod(ScatterSeries series_1, ScatterSeries series_2)
     {
-      // Find Periods
-      List<double> breathing_periods = new List<double>();
-      for (int y = 1; y < series.Points.Count; y++)
-        breathing_periods.Add((DateTimeAxis.ToDateTime(series.Points[y].X) - DateTimeAxis.ToDateTime(series.Points[y - 1].X)).TotalSeconds);
-
-      if (breathing_periods.Count != 0) // Non-Zero Breathing Rates
+      if (series_1.Points.Count > 0 && series_2.Points.Count > 0)
       {
-        breathing_periods.Sort();
+        int index_1 = 0;
+        int index_2;
+        if (DateTimeAxis.ToDateTime(series_1.Points[0].X) < DateTimeAxis.ToDateTime(series_2.Points[0].X))
+          index_2 = 0;
+        else
+          index_2 = 1;
+
+        List<double> half_periods = new List<double>();
+        while (index_2 < series_2.Points.Count && index_1 < series_1.Points.Count)
+        {
+          half_periods.Add((DateTimeAxis.ToDateTime(series_2.Points[index_2].X) - DateTimeAxis.ToDateTime(series_1.Points[index_1].X)).TotalSeconds);
+
+          index_1++;
+          index_2++;
+        }
 
         // Calculate Mean 
-        double mean = breathing_periods.Average();
-
-        // Calculate Median
-        double median = breathing_periods[breathing_periods.Count / 2 - 1];
+        double mean = half_periods.Average();
 
         // Calculate Variance
-        double coeff_variance = GetVarianceCoefficient(breathing_periods.ToArray());
+        double coeff_variance = GetVarianceCoefficient(half_periods.ToArray());
 
-        return new Tuple<double, double, double>(mean, median, coeff_variance);
+        return new Tuple<double, double>(mean, coeff_variance);
       }
       else
       {
-        return new Tuple<double, double, double>(0, 0, 0);
+        return new Tuple<double, double>(0, 0);
       }
     }
-    public static Tuple<double, double, double> GetRespiratorySignalPeakHeight(ScatterSeries series_peaks)
+    public static Tuple<double, double> GetRespiratorySignalPeakHeight(ScatterSeries series_peaks)
     {
       List<double> peak_heights = series_peaks.Points.Select(temp => Math.Abs(temp.Y)).ToList();
       if (peak_heights.Count != 0)
       {
-        peak_heights.Sort();
-
         // Calculate Mean 
         double mean = peak_heights.Average();
-
-        // Calculate Median
-        double median = peak_heights[peak_heights.Count / 2 - 1];
-
+        
         // Calculate Variance
         double coeff_variance = GetVarianceCoefficient(peak_heights.ToArray());
 
-        return new Tuple<double, double, double>(mean, median, coeff_variance);
+        return new Tuple<double, double>(mean, coeff_variance);
       }
       else
       {
-        return new Tuple<double, double, double>(0, 0, 0);
+        return new Tuple<double, double>(0, 0);
       }
     }
     #endregion
@@ -301,6 +297,8 @@ namespace SleepApneaDiagnoser
   public class RespiratoryModel
   {
     #region Members
+
+    // EDF Signal Selection
 
     /// <summary>
     /// The user selected signal to perform respiratory analysis on
@@ -314,6 +312,9 @@ namespace SleepApneaDiagnoser
     /// The user selected period for the respiratory analysis in 30s epochs
     /// </summary>
     public int RespiratoryEDFDuration;
+
+    // Binary Signal Selection
+
     /// <summary>
     /// The user selected start time for the respiratory analysis in 30s epochs
     /// </summary>
@@ -322,22 +323,63 @@ namespace SleepApneaDiagnoser
     /// The user selected period for the respiratory analysis in 30s epochs
     /// </summary>
     internal int? RespiratoryBinaryDuration;
+
+    // Output Plot
+
     /// <summary>
     /// The respiratory analysis plot to be displayed
     /// </summary>
     public PlotModel RespiratorySignalPlot = null;
+
+    // Output Analysis
+
     /// <summary>
     /// The calculated mean average of the periods of the respiratory signal
     /// </summary>
     public string RespiratoryBreathingPeriodMean;
     /// <summary>
-    /// The calculated median average of the periods of the respiratory signal
-    /// </summary>
-    public string RespiratoryBreathingPeriodMedian;
-    /// <summary>
     /// The calculated coefficient of variance of the periods of the respiratory signal
     /// </summary>
     public string RespiratoryBreathingPeriodCoeffVar;
+
+    /// <summary>
+    /// The calculated mean average of the inspiration periods of the respiratory signal
+    /// </summary>
+    public string RespiratoryInspirationPeriodMean;
+    /// <summary>
+    /// The calculated coefficient of variance of the inspiration periods of the respiratory signal
+    /// </summary>
+    public string RespiratoryInspirationPeriodCoeffVar;
+
+    /// <summary>
+    /// The calculated mean average of the exspiration periods of the respiratory signal
+    /// </summary>
+    public string RespiratoryExspirationPeriodMean;
+    /// <summary>
+    /// The calculated coefficient of variance of the exspiration periods of the respiratory signal
+    /// </summary>
+    public string RespiratoryExspirationPeriodCoeffVar;
+
+    /// <summary>
+    /// The calculated mean average of the positive peaks of the respiratory signal
+    /// </summary>
+    public string RespiratoryPositivePeakMean;
+    /// <summary>
+    /// The calculated coefficient of variance of the positive peaks of the respiratory signal
+    /// </summary>
+    public string RespiratoryPositivePeakCoeffVar;
+
+    /// <summary>
+    /// The calculated mean average of the negative peaks of the respiratory signal
+    /// </summary>
+    public string RespiratoryNegativePeakMean;
+    /// <summary>
+    /// The calculated coefficient of variance of the negative peaks of the respiratory signal
+    /// </summary>
+    public string RespiratoryNegativePeakCoeffVar;
+
+    // Settings and Options
+
     /// <summary>
     /// A user selected option for setting the sensitivity of the peak detection of the analysis
     /// Effect where the insets, onsets, and peaks are detected
@@ -345,15 +387,12 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public int RespiratoryMinimumPeakWidth = 500;
     /// <summary>
-    /// A user selected option for choosing whether the analysis will allow for repeated peaks of
-    /// the same polarity
-    /// </summary>
-    public bool RespiratoryRemoveMultiplePeaks = true;
-    /// <summary>
     /// If true, use a constant axis
     /// If false, auto adjust to plot
     /// </summary>
     public bool RespiratoryUseConstantAxis = false;
+
+    // Freeze UI when Performing Analysis 
 
     /// <summary>
     /// True if the program is performing analysis and a progress ring should be shown
@@ -381,7 +420,7 @@ namespace SleepApneaDiagnoser
           if (!IsEDFLoaded)
           {
             RespiratoryBreathingPeriodMean = "";
-            RespiratoryBreathingPeriodMedian = "";
+            RespiratoryBreathingPeriodCoeffVar = "";
             RespiratorySignalPlot = null;
             RespiratoryEDFSelectedSignal = null;
             RespiratoryEDFDuration = null;
@@ -390,7 +429,7 @@ namespace SleepApneaDiagnoser
           else
           {
             RespiratoryBreathingPeriodMean = "";
-            RespiratoryBreathingPeriodMedian = "";
+            RespiratoryBreathingPeriodCoeffVar = "";
             RespiratoryEDFSelectedSignal = null;
             RespiratorySignalPlot = null;
             RespiratoryEDFStartRecord = 1;
@@ -530,18 +569,6 @@ namespace SleepApneaDiagnoser
         OnPropertyChanged(nameof(RespiratoryMinimumPeakWidth));
       }
     }
-    public bool RespiratoryRemoveMultiplePeaks
-    {
-      get
-      {
-        return rm.RespiratoryRemoveMultiplePeaks;
-      }
-      set
-      {
-        rm.RespiratoryRemoveMultiplePeaks = value;
-        OnPropertyChanged(nameof(RespiratoryRemoveMultiplePeaks));
-      }
-    }
     public bool RespiratoryUseConstantAxis
     {
       get
@@ -663,7 +690,7 @@ namespace SleepApneaDiagnoser
       }
     }
 
-    // Output Breathing Rate
+    // Output Analysis
     public string RespiratoryBreathingPeriodMean
     {
       get
@@ -676,18 +703,6 @@ namespace SleepApneaDiagnoser
         OnPropertyChanged(nameof(RespiratoryBreathingPeriodMean));
       }
     }
-    public string RespiratoryBreathingPeriodMedian
-    {
-      get
-      {
-        return rm.RespiratoryBreathingPeriodMedian;
-      }
-      set
-      {
-        rm.RespiratoryBreathingPeriodMedian = value;
-        OnPropertyChanged(nameof(RespiratoryBreathingPeriodMedian));
-      }
-    }
     public string RespiratoryBreathingPeriodCoeffVar
     {
       get
@@ -698,6 +713,102 @@ namespace SleepApneaDiagnoser
       {
         rm.RespiratoryBreathingPeriodCoeffVar = value;
         OnPropertyChanged(nameof(RespiratoryBreathingPeriodCoeffVar));
+      }
+    }
+    public string RespiratoryInspirationPeriodMean
+    {
+      get
+      {
+        return rm.RespiratoryInspirationPeriodMean;
+      }
+      set
+      {
+        rm.RespiratoryInspirationPeriodMean = value;
+        OnPropertyChanged(nameof(RespiratoryInspirationPeriodMean));
+      }
+    }
+    public string RespiratoryInspirationPeriodCoeffVar
+    {
+      get
+      {
+        return rm.RespiratoryInspirationPeriodCoeffVar;
+      }
+      set
+      {
+        rm.RespiratoryInspirationPeriodCoeffVar = value;
+        OnPropertyChanged(nameof(RespiratoryInspirationPeriodCoeffVar));
+      }
+    }
+    public string RespiratoryExspirationPeriodMean
+    {
+      get
+      {
+        return rm.RespiratoryExspirationPeriodMean;
+      }
+      set
+      {
+        rm.RespiratoryExspirationPeriodMean = value;
+        OnPropertyChanged(nameof(RespiratoryExspirationPeriodMean));
+      }
+    }
+    public string RespiratoryExspirationPeriodCoeffVar
+    {
+      get
+      {
+        return rm.RespiratoryExspirationPeriodCoeffVar;
+      }
+      set
+      {
+        rm.RespiratoryExspirationPeriodCoeffVar = value;
+        OnPropertyChanged(nameof(RespiratoryExspirationPeriodCoeffVar));
+      }
+    }
+    public string RespiratoryPositivePeakMean
+    {
+      get
+      {
+        return rm.RespiratoryPositivePeakMean;
+      }
+      set
+      {
+        rm.RespiratoryPositivePeakMean = value;
+        OnPropertyChanged(nameof(RespiratoryPositivePeakMean));
+      }
+    }
+    public string RespiratoryPositivePeakCoeffVar
+    {
+      get
+      {
+        return rm.RespiratoryPositivePeakCoeffVar;
+      }
+      set
+      {
+        rm.RespiratoryPositivePeakCoeffVar = value;
+        OnPropertyChanged(nameof(RespiratoryPositivePeakCoeffVar));
+      }
+    }
+    public string RespiratoryNegativePeakMean
+    {
+      get
+      {
+        return rm.RespiratoryNegativePeakMean;
+      }
+      set
+      {
+        rm.RespiratoryNegativePeakMean = value;
+        OnPropertyChanged(nameof(RespiratoryNegativePeakMean));
+      }
+    }
+    public string RespiratoryNegativePeakCoeffVar
+    {
+      get
+      {
+        return rm.RespiratoryNegativePeakCoeffVar;
+      }
+      set
+      {
+        rm.RespiratoryNegativePeakCoeffVar = value;
+        OnPropertyChanged(nameof(RespiratoryNegativePeakCoeffVar));
       }
     }
 
@@ -809,7 +920,7 @@ namespace SleepApneaDiagnoser
       }
     }
 
-    // Freeze UI when performing analysis 
+    // Freeze UI when Performing Analysis 
     public bool RespiratoryProgressRingEnabled
     {
       get
@@ -966,7 +1077,7 @@ namespace SleepApneaDiagnoser
         resp_signal_values.GetRange(start_index, end_index - start_index + 1),
         resp_bin_sample_period,
         resp_signal_values.Average(),
-        RespiratoryRemoveMultiplePeaks,
+        true,
         RespiratoryMinimumPeakWidth,
         newFrom,
         newTo
@@ -980,10 +1091,25 @@ namespace SleepApneaDiagnoser
       tempPlotModel.Axes.Add(resp_plots.Item7);
       RespiratorySignalPlot = tempPlotModel;
 
-      Tuple<double, double, double> breathing_periods = RespiratoryFactory.GetRespiratorySignalBreathingPeriod(new ScatterSeries[] { resp_plots.Item2, resp_plots.Item3, resp_plots.Item4, resp_plots.Item5 });
+      Tuple<double, double> breathing_periods = RespiratoryFactory.GetRespiratorySignalBreathingPeriod(new ScatterSeries[] { resp_plots.Item2, resp_plots.Item3, resp_plots.Item4, resp_plots.Item5 });
       RespiratoryBreathingPeriodMean = breathing_periods.Item1.ToString("0.## sec/breath");
-      RespiratoryBreathingPeriodMedian = breathing_periods.Item2.ToString("0.## sec/breath");
-      RespiratoryBreathingPeriodCoeffVar = breathing_periods.Item3.ToString("0.00 %");
+      RespiratoryBreathingPeriodCoeffVar = breathing_periods.Item2.ToString("0.## %");
+
+      Tuple<double, double> neg_peaks = RespiratoryFactory.GetRespiratorySignalPeakHeight(resp_plots.Item4);
+      RespiratoryNegativePeakMean = neg_peaks.Item1.ToString("0.## sec");
+      RespiratoryNegativePeakCoeffVar = neg_peaks.Item2.ToString("0.## %");
+
+      Tuple<double, double> pos_peaks = RespiratoryFactory.GetRespiratorySignalPeakHeight(resp_plots.Item5);
+      RespiratoryPositivePeakMean = pos_peaks.Item1.ToString("0.## sec");
+      RespiratoryPositivePeakCoeffVar = pos_peaks.Item2.ToString("0.## %");
+
+      Tuple<double, double> inspir_periods = RespiratoryFactory.GetRespiratorySignalBreathingHalfPeriod(resp_plots.Item3, resp_plots.Item2);
+      RespiratoryInspirationPeriodMean = inspir_periods.Item1.ToString("0.## sec");
+      RespiratoryInspirationPeriodCoeffVar = inspir_periods.Item2.ToString("0.## %");
+
+      Tuple<double, double> exspir_periods = RespiratoryFactory.GetRespiratorySignalBreathingHalfPeriod(resp_plots.Item2, resp_plots.Item3);
+      RespiratoryExspirationPeriodMean = exspir_periods.Item1.ToString("0.## sec");
+      RespiratoryExspirationPeriodCoeffVar = exspir_periods.Item2.ToString("0.## %");
     }
 
     // Respiratory Analysis From EDF File
@@ -1013,7 +1139,7 @@ namespace SleepApneaDiagnoser
         series.Points.Select(temp => (float)temp.Y).ToList(),
         sample_period,
         (float)(Utils.GetMaxSignalValue(RespiratoryEDFSelectedSignal, false, LoadedEDFFile, sm) - Utils.GetMaxSignalValue(RespiratoryEDFSelectedSignal, true, LoadedEDFFile, sm)),
-        RespiratoryRemoveMultiplePeaks,
+        true,
         RespiratoryMinimumPeakWidth,
         Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile),
         Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 1)
@@ -1034,10 +1160,25 @@ namespace SleepApneaDiagnoser
       tempPlotModel.Axes.Add(resp_plots.Item7);
       RespiratorySignalPlot = tempPlotModel;
 
-      Tuple<double, double, double> breathing_periods = RespiratoryFactory.GetRespiratorySignalBreathingPeriod(new ScatterSeries[] { resp_plots.Item2, resp_plots.Item3, resp_plots.Item4, resp_plots.Item5 });
+      Tuple<double, double> breathing_periods = RespiratoryFactory.GetRespiratorySignalBreathingPeriod(new ScatterSeries[] { resp_plots.Item2, resp_plots.Item3, resp_plots.Item4, resp_plots.Item5 });
       RespiratoryBreathingPeriodMean = breathing_periods.Item1.ToString("0.## sec/breath");
-      RespiratoryBreathingPeriodMedian = breathing_periods.Item2.ToString("0.## sec/breath");
-      RespiratoryBreathingPeriodCoeffVar = breathing_periods.Item3.ToString("0.00 %");
+      RespiratoryBreathingPeriodCoeffVar = breathing_periods.Item2.ToString("0.## %");
+
+      Tuple<double, double> neg_peaks = RespiratoryFactory.GetRespiratorySignalPeakHeight(resp_plots.Item4);
+      RespiratoryNegativePeakMean = neg_peaks.Item1.ToString("0.##");
+      RespiratoryNegativePeakCoeffVar = neg_peaks.Item2.ToString("0.## %");
+
+      Tuple<double, double> pos_peaks = RespiratoryFactory.GetRespiratorySignalPeakHeight(resp_plots.Item5);
+      RespiratoryPositivePeakMean = pos_peaks.Item1.ToString("0.##");
+      RespiratoryPositivePeakCoeffVar = pos_peaks.Item2.ToString("0.## %");
+
+      Tuple<double, double> inspir_periods = RespiratoryFactory.GetRespiratorySignalBreathingHalfPeriod(resp_plots.Item3, resp_plots.Item2);
+      RespiratoryInspirationPeriodMean = inspir_periods.Item1.ToString("0.## sec");
+      RespiratoryInspirationPeriodCoeffVar = inspir_periods.Item2.ToString("0.## %");
+
+      Tuple<double, double> exspir_periods = RespiratoryFactory.GetRespiratorySignalBreathingHalfPeriod(resp_plots.Item2, resp_plots.Item3);
+      RespiratoryExspirationPeriodMean = exspir_periods.Item1.ToString("0.## sec");
+      RespiratoryExspirationPeriodCoeffVar = exspir_periods.Item2.ToString("0.## %");
     }
     /// <summary>
     /// Peforms respiratory analysis 

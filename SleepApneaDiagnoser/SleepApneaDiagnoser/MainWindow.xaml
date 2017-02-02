@@ -54,8 +54,6 @@
                                 <Label Content="Respiratory Analysis" HorizontalAlignment="Left" Width="290" Height="32" VerticalAlignment="Top" Margin="10,0,0,0" FontWeight="Bold"/>
                                 <Label Content="Peak Detection Sensitivity (ms)" HorizontalAlignment="Left" Margin="15,35,0,0" VerticalAlignment="Top"/>
                                 <mtr:NumericUpDown Height="23" Margin="20,65,20,0" VerticalAlignment="Top" Value="{Binding RespiratoryMinimumPeakWidth}"/>
-                                <Label Content="Allow Multiple Subsequent Peaks" HorizontalAlignment="Left" Margin="15,95,0,0" VerticalAlignment="Top"/>
-                                <mtr:ToggleSwitch Margin="23,125,0,0" Width="228" HorizontalAlignment="Left" FontFamily="Segoi UI" FontSize="14" IsChecked="{Binding RespiratoryRemoveMultiplePeaks}" VerticalAlignment="Top" />
                                 <Button BorderThickness="0" Background="Transparent" HorizontalAlignment="Stretch" Margin="0,220,0,408" HorizontalContentAlignment="Left" Content="    Back" Height="37" Click="button_MainMenuClick"/>
                             </Grid>
                             <Grid Name="grid_SettingsPersonalization" VerticalAlignment="Top" HorizontalAlignment="Stretch"  Margin="0,0,0,0" Visibility="{Binding Path=SettingsPersonalizationVisible, Converter={StaticResource Converter_BoolVis}}">
@@ -223,16 +221,43 @@
                             </Grid>
 
                             <Label Content="Plot" FontSize="18" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="10,130,0,0"/>
-                            <oxy:PlotView Background="Transparent" Margin="10,160,10,142" Model="{Binding RespiratorySignalPlot}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
+                            <oxy:PlotView Background="Transparent" Margin="10,160,10,138" Model="{Binding RespiratorySignalPlot}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
 
-                            <Label Content="Analysis" FontSize="18" Height="32" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="200" Margin="10,0,0,110"/>
-                            <Grid Height="110" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="395">
-                                <Label Content="Breathing Period Mean" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
-                                <Label Content="Breathing Period Median" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top"/>
-                                <Label Content="Coefficient of Variance" HorizontalAlignment="Left" Margin="10,72,0,0" VerticalAlignment="Top"/>
-                                <TextBox Height="23" Margin="178,13,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryBreathingPeriodMean}" VerticalAlignment="Top"/>
-                                <TextBox Height="23" Margin="178,44,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryBreathingPeriodMedian}" VerticalAlignment="Top"/>
-                                <TextBox Height="23" Margin="178,75,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryBreathingPeriodCoeffVar}" VerticalAlignment="Top"/>
+                            <Label Content="Analysis" FontSize="18" Height="32" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="200" Margin="10,0,0,106"/>
+                            <Grid Height="106" VerticalAlignment="Bottom" Margin="0,0,10,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="70"/>
+                                    <ColumnDefinition Width="100*"/>
+                                    <ColumnDefinition Width="100*"/>
+                                    <ColumnDefinition Width="100*"/>
+                                    <ColumnDefinition Width="100*"/>
+                                    <ColumnDefinition Width="100*"/>
+                                    <ColumnDefinition Width="100*"/>
+                                    <ColumnDefinition Width="100*"/>
+                                </Grid.ColumnDefinitions>
+                                <!-- Label Column -->
+                                <Label Content="Mean" HorizontalAlignment="Left" Margin="10,42,0,0" VerticalAlignment="Top"/>
+                                <Label Content="% Var" HorizontalAlignment="Left" Margin="10,71,0,0" VerticalAlignment="Top"/>
+                                <!-- Breathing Rate -->
+                                <Label Content="Ttotal" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Grid.Column="1"/>
+                                <TextBox Height="23" Margin="10,45,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryBreathingPeriodMean}" VerticalAlignment="Top" Grid.Column="1"/>
+                                <TextBox Height="23" Margin="10,74,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryBreathingPeriodCoeffVar}" VerticalAlignment="Top" Grid.Column="1"/>
+                                <!-- Inspiration Period -->
+                                <Label Content="Ti" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Grid.Column="2"/>
+                                <TextBox Height="23" Margin="10,45,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryInspirationPeriodMean}" VerticalAlignment="Top" Grid.Column="2"/>
+                                <TextBox Height="23" Margin="10,74,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryInspirationPeriodCoeffVar}" VerticalAlignment="Top" Grid.Column="2"/>
+                                <!-- Expiration Period -->
+                                <Label Content="Te" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Grid.Column="3"/>
+                                <TextBox Height="23" Margin="10,45,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryExspirationPeriodMean}" VerticalAlignment="Top" Grid.Column="3"/>
+                                <TextBox Height="23" Margin="10,74,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryExspirationPeriodCoeffVar}" VerticalAlignment="Top" Grid.Column="3"/>
+                                <!-- Positive Peak Height -->
+                                <Label Content="+ Peak" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Grid.Column="4"/>
+                                <TextBox Height="23" Margin="10,45,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryPositivePeakMean}" VerticalAlignment="Top" Grid.Column="4"/>
+                                <TextBox Height="23" Margin="10,74,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryPositivePeakCoeffVar}" VerticalAlignment="Top" Grid.Column="4"/>
+                                <!-- Negative Peak Height -->
+                                <Label Content="- Peak" HorizontalAlignment="Left" Margin="10,11,0,0" VerticalAlignment="Top" Grid.Column="5"/>
+                                <TextBox Height="23" Margin="10,45,9,0" TextWrapping="Wrap" Text="{Binding RespiratoryNegativePeakMean}" VerticalAlignment="Top" Grid.Column="5"/>
+                                <TextBox Height="23" Margin="10,74,9,0" TextWrapping="Wrap" Text="{Binding RespiratoryNegativePeakCoeffVar}" VerticalAlignment="Top" Grid.Column="5"/>
                             </Grid>
 
                             <mtr:ProgressRing IsActive="{Binding RespiratoryProgressRingEnabled}"/>
