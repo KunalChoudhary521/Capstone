@@ -243,8 +243,7 @@ namespace SleepApneaDiagnoser
       ThemeManager.ChangeAppStyle(application, newAccent, ThemeManager.GetAppTheme(UseDarkTheme ? "BaseDark" : "BaseLight"));
 
       // Update all charts to dark or light theme
-      var all_plotmodels = p_window.FindChildren<OxyPlot.Wpf.PlotView>().ToList();
-        
+      var all_plotmodels = p_window.FindChildren<OxyPlot.Wpf.PlotView>().ToList();   
       for (int x = 0; x < all_plotmodels.Count; x++)
       {
         OxyPlot.Wpf.PlotView plot = all_plotmodels[x];
@@ -256,6 +255,12 @@ namespace SleepApneaDiagnoser
           plot.Model = null;
           plot.Model = model;
         }
+      }
+
+      var all_datetimeupdown = p_window.FindChildren<Xceed.Wpf.Toolkit.DateTimeUpDown>().ToList();
+      for (int x = 0; x < all_datetimeupdown.Count; x++)
+      {
+        all_datetimeupdown[x].Foreground = UseDarkTheme ? Brushes.White : Brushes.Black;
       }
     }
 
