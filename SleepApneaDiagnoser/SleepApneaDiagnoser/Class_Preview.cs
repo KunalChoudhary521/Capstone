@@ -2,16 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-
 using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.IO;
-
 using EDF;
 using OxyPlot;
 using OxyPlot.Series;
 using OxyPlot.Axes;
-
 using System.Windows.Forms;
 
 namespace SleepApneaDiagnoser

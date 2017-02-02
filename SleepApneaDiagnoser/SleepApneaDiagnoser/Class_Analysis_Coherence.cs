@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-
 using System.ComponentModel;
 using System.Collections.ObjectModel;
-
 using EDF;
 using OxyPlot;
 using OxyPlot.Series;

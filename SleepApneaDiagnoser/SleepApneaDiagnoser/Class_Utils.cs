@@ -17,7 +17,9 @@ namespace SleepApneaDiagnoser
 {
   class Utils
   {
-    /******************************************************* STATIC FUNCTIONS *******************************************************/
+    #region Static Functions 
+
+    // Personalization
 
     /// <summary>
     /// Modified From Sample MahApps.Metro Project
@@ -84,6 +86,11 @@ namespace SleepApneaDiagnoser
       
       return new Accent { Name = string.Format("ApplicationAccent_{0}.xaml", Color.FromArgb(a, r, g, b).ToString().Replace("#", string.Empty)), Resources = resourceDictionary };
     }
+    /// <summary>
+    /// Given a PlotModel, makes the axes and text of the PlotModel black or gray depending on whether the user selected a Dark theme or not
+    /// </summary>
+    /// <param name="plot"> The PlotModel to theme </param>
+    /// <param name="UseDarkTheme"> True if the user is using a Dark theme </param>
     public static void ApplyThemeToPlot(PlotModel plot, bool UseDarkTheme)
     {
       if (plot != null)
@@ -105,6 +112,8 @@ namespace SleepApneaDiagnoser
         }
       }
     }
+
+    // Epoch <-> DateTime
 
     /// <summary>
     /// The definition of epochs in seconds
@@ -159,6 +168,16 @@ namespace SleepApneaDiagnoser
       return (int)(period.TotalSeconds / (double)EPOCH_SEC);
     }
 
+    // Determining Signal Y Axis Extremes
+
+    /// <summary>
+    /// this percentile of a signal's values is used as the maximum Y axes value
+    /// </summary>
+    public static double percent_high = 99;
+    /// <summary>
+    /// this percentile of a signal's values is used as the minimum Y axes value
+    /// </summary>
+    public static double percent_low = 1;
     /// <summary>
     /// Gets a value at a specified percentile from an array
     /// </summary>
@@ -195,6 +214,148 @@ namespace SleepApneaDiagnoser
 
       // Call GetPercentileValue on difference
       return GetPercentileValue(values.ToArray(), percentile);
+    }
+    /// <summary>
+    /// Given a settings model and edf file, sets the Y axis bounds of a given signal
+    /// </summary>
+    /// <param name="Signal"> The signal to set the bounds for </param>
+    /// <param name="LoadedEDFFile"> The EDF file with the signal's values </param>
+    /// <param name="sm"> The settings model that bounds are stored in </param>
+    public static void SetYBounds(string Signal, EDFFile LoadedEDFFile, SettingsModel sm)
+    {
+      string OrigName = Signal;
+      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
+
+      if (find == null)
+      {
+        List<float> values = new List<float>();
+
+        // Check if this signal needs filtering 
+        FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
+        if (filteredSignal != null)
+          Signal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal).OriginalName;
+        if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal) != null) // Regular Signal
+        {
+          EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal);
+          values = LoadedEDFFile.retrieveSignalSampleValues(edfsignal);
+        }
+        else // EDF Signal 
+        {
+          // Get Signals
+          DerivativeSignal deriv_info = sm.DerivedSignals.Find(temp => temp.DerivativeName == Signal);
+          EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal1Name.Trim());
+          EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal2Name.Trim());
+
+          // Get Arrays and Perform Resampling if needed
+          List<float> values1;
+          List<float> values2;
+          if (edfsignal1.NumberOfSamplesPerDataRecord == edfsignal2.NumberOfSamplesPerDataRecord) // No resampling
+          {
+            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
+            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
+          }
+          else if (edfsignal1.NumberOfSamplesPerDataRecord > edfsignal2.NumberOfSamplesPerDataRecord) // Upsample signal 2
+          {
+            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
+            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
+            values2 = Utils.MATLAB_Resample(values2.ToArray(), edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord);
+          }
+          else // Upsample signal 1
+          {
+            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
+            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
+            values1 = Utils.MATLAB_Resample(values1.ToArray(), edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord);
+          }
+
+          for (int x = 0; x < Math.Min(values1.Count, values2.Count); x += 1)
+          {
+            values.Add(values1[x] - values2[x]);
+          }
+        }
+        int last_unique = 0;
+        for (int x = 0; x < values.Count; x++)
+        {
+          if (x > 0 && values[x] == values[last_unique])
+            values[x] = float.NaN;
+          else
+            last_unique = x;
+        }
+        values.RemoveAll(temp => float.IsNaN(temp));
+        values.Sort();
+        int high_index = (int)(percent_high / 100 * (values.Count - 1));
+        int low_index = (int)(percent_low / 100 * (values.Count - 1));
+        float range = values[high_index] - values[low_index];
+        float high_value = values[high_index] + range * (100 - (float)percent_high) / 100;
+        float low_value = values[low_index] - range * ((float)percent_low) / 100;
+        float av_value = values.Average();
+        sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(OrigName) { yMax = high_value, yMin = low_value, yAvr = av_value });
+      }
+    }
+    /// <summary>
+    /// Returns a signal's Y axis maximum bound
+    /// </summary>
+    /// <param name="Signal"> The signal to return Y axis bounds for </param>
+    /// <param name="woBias"> True if the returned bounds assumes 0 DC </param>
+    /// <param name="LoadedEDFFile"> The EDF File with all the signal's values in it </param>
+    /// <param name="sm"> The settings model containing the bounds </param>
+    /// <returns> The max y axis bounds of a signal</returns>
+    public static double GetMaxSignalValue(string Signal, bool woBias, EDFFile LoadedEDFFile, SettingsModel sm)
+    {
+      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
+
+      if (find != null)
+      {
+        if (!Double.IsNaN(find.yMax) && !Double.IsNaN(find.yAvr))
+        {
+          if (woBias)
+            return find.yMax - find.yAvr;
+          else
+            return find.yMax;
+        }
+        else
+        {
+          SetYBounds(Signal, LoadedEDFFile, sm);
+          return GetMaxSignalValue(Signal, woBias, LoadedEDFFile, sm);
+        }
+      }
+      else
+      {
+        SetYBounds(Signal, LoadedEDFFile, sm);
+        return GetMaxSignalValue(Signal, woBias, LoadedEDFFile, sm);
+      }
+    }
+    /// <summary>
+    /// Returns a signal's Y axis minimum bound
+    /// </summary>
+    /// <param name="Signal"> The signal to return Y axis bounds for </param>
+    /// <param name="woBias"> True if the returned bounds assumes 0 DC </param>
+    /// <param name="LoadedEDFFile"> The EDF File with all the signal's values in it </param>
+    /// <param name="sm"> The settings model containing the bounds </param>
+    /// <returns> The min y axis bounds of a signal</returns>
+    public static double GetMinSignalValue(string Signal, bool woBias, EDFFile LoadedEDFFile, SettingsModel sm)
+    {
+      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
+
+      if (find != null)
+      {
+        if (!Double.IsNaN(find.yMin) && !Double.IsNaN(find.yAvr))
+        {
+          if (woBias)
+            return find.yMin - find.yAvr;
+          else
+            return find.yMin;
+        }
+        else
+        {
+          SetYBounds(Signal, LoadedEDFFile, sm);
+          return GetMinSignalValue(Signal, woBias, LoadedEDFFile, sm);
+        }
+      }
+      else
+      {
+        SetYBounds(Signal, LoadedEDFFile, sm);
+        return GetMinSignalValue(Signal, woBias, LoadedEDFFile, sm);
+      }
     }
 
     /// <summary>
@@ -619,132 +780,7 @@ namespace SleepApneaDiagnoser
       sw.WriteLine(UseDarkTheme.ToString());
       sw.Close();
     }
-
-    // Settings misc
-    // Signal Y Axis Extremes
-    public static double percent_high = 99;
-    public static double percent_low = 1;
-    public static void SetYBounds(string Signal, EDFFile LoadedEDFFile, SettingsModel sm)
-    {
-      string OrigName = Signal;
-      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
-
-      if (find == null)
-      {
-        List<float> values = new List<float>();
-
-        // Check if this signal needs filtering 
-        FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
-        if (filteredSignal != null)
-          Signal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal).OriginalName;
-        if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal) != null) // Regular Signal
-        {
-          EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal);
-          values = LoadedEDFFile.retrieveSignalSampleValues(edfsignal);
-        }
-        else // EDF Signal 
-        {
-          // Get Signals
-          DerivativeSignal deriv_info = sm.DerivedSignals.Find(temp => temp.DerivativeName == Signal);
-          EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal1Name.Trim());
-          EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal2Name.Trim());
-
-          // Get Arrays and Perform Resampling if needed
-          List<float> values1;
-          List<float> values2;
-          if (edfsignal1.NumberOfSamplesPerDataRecord == edfsignal2.NumberOfSamplesPerDataRecord) // No resampling
-          {
-            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
-          }
-          else if (edfsignal1.NumberOfSamplesPerDataRecord > edfsignal2.NumberOfSamplesPerDataRecord) // Upsample signal 2
-          {
-            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
-            values2 = Utils.MATLAB_Resample(values2.ToArray(), edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord);
-          }
-          else // Upsample signal 1
-          {
-            values1 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal1);
-            values2 = LoadedEDFFile.retrieveSignalSampleValues(edfsignal2);
-            values1 = Utils.MATLAB_Resample(values1.ToArray(), edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord);
-          }
-
-          for (int x = 0; x < Math.Min(values1.Count, values2.Count); x += 1)
-          {
-            values.Add(values1[x] - values2[x]);
-          }
-        }
-        int last_unique = 0;
-        for (int x = 0; x < values.Count; x++)
-        {
-          if (x > 0 && values[x] == values[last_unique])
-            values[x] = float.NaN;
-          else
-            last_unique = x;
-        }
-        values.RemoveAll(temp => float.IsNaN(temp));
-        values.Sort();
-        int high_index = (int)(percent_high / 100 * (values.Count - 1));
-        int low_index = (int)(percent_low / 100 * (values.Count - 1));
-        float range = values[high_index] - values[low_index];
-        float high_value = values[high_index] + range * (100 - (float)percent_high) / 100;
-        float low_value = values[low_index] - range * ((float)percent_low) / 100;
-        float av_value = values.Average();
-        sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(OrigName) { yMax = high_value, yMin = low_value, yAvr = av_value });
-      }
-    }
-    public static double GetMaxSignalValue(string Signal, bool woBias, EDFFile LoadedEDFFile, SettingsModel sm)
-    {
-      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
-
-      if (find != null)
-      {
-        if (!Double.IsNaN(find.yMax) && !Double.IsNaN(find.yAvr))
-        {
-          if (woBias)
-            return find.yMax - find.yAvr;
-          else
-            return find.yMax;
-        }
-        else
-        {
-          SetYBounds(Signal, LoadedEDFFile, sm);
-          return GetMaxSignalValue(Signal, woBias, LoadedEDFFile, sm);
-        }
-      }
-      else
-      {
-        SetYBounds(Signal, LoadedEDFFile, sm);
-        return GetMaxSignalValue(Signal, woBias, LoadedEDFFile, sm);
-      }
-    }
-    public static double GetMinSignalValue(string Signal, bool woBias, EDFFile LoadedEDFFile, SettingsModel sm)
-    {
-      SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
-
-      if (find != null)
-      {
-        if (!Double.IsNaN(find.yMin) && !Double.IsNaN(find.yAvr))
-        {
-          if (woBias)
-            return find.yMin - find.yAvr;
-          else
-            return find.yMin;
-        }
-        else
-        {
-          SetYBounds(Signal, LoadedEDFFile, sm);
-          return GetMinSignalValue(Signal, woBias, LoadedEDFFile, sm);
-        }
-      }
-      else
-      {
-        SetYBounds(Signal, LoadedEDFFile, sm);
-        return GetMinSignalValue(Signal, woBias, LoadedEDFFile, sm);
-      }
-    }
-
+    
     // Filters
     public static LineSeries ApplyWeightedAverageFilter(LineSeries series, float LENGTH)
     {
@@ -801,5 +837,7 @@ namespace SleepApneaDiagnoser
       file.Close();
       stream.Close();
     }
+
+    #endregion 
   }
 }

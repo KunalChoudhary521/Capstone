@@ -3,15 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Media;
-
 using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.IO;
-
 using EDF;
 using OxyPlot;
 using OxyPlot.Series;
-
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
 using MahApps.Metro;
