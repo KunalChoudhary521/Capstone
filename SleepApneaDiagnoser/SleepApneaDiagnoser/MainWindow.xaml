@@ -223,14 +223,16 @@
                             </Grid>
 
                             <Label Content="Plot" FontSize="18" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="10,130,0,0"/>
-                            <oxy:PlotView Background="Transparent" Margin="10,160,10,130" Model="{Binding RespiratorySignalPlot}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
+                            <oxy:PlotView Background="Transparent" Margin="10,160,10,142" Model="{Binding RespiratorySignalPlot}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
 
-                            <Label Content="Analysis" FontSize="18" Height="32" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="200" Margin="0,0,0,93"/>
-                            <Grid Margin="0,0,0,10" Height="83" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="395">
+                            <Label Content="Analysis" FontSize="18" Height="32" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="200" Margin="10,0,0,110"/>
+                            <Grid Height="110" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="395">
                                 <Label Content="Breathing Period Mean" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
                                 <Label Content="Breathing Period Median" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top"/>
+                                <Label Content="Coefficient of Variance" HorizontalAlignment="Left" Margin="10,72,0,0" VerticalAlignment="Top"/>
                                 <TextBox Height="23" Margin="178,13,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryBreathingPeriodMean}" VerticalAlignment="Top"/>
                                 <TextBox Height="23" Margin="178,44,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryBreathingPeriodMedian}" VerticalAlignment="Top"/>
+                                <TextBox Height="23" Margin="178,75,10,0" TextWrapping="Wrap" Text="{Binding RespiratoryBreathingPeriodCoeffVar}" VerticalAlignment="Top"/>
                             </Grid>
 
                             <mtr:ProgressRing IsActive="{Binding RespiratoryProgressRingEnabled}"/>

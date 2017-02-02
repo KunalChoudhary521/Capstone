@@ -105,19 +105,7 @@ namespace SleepApneaDiagnoser
   {
     #region Shared Properties and Functions
 
-    private CommonModelView p_modelview;
-    public CommonModelView common_data
-    {
-      get
-      {
-        return p_modelview;
-      }
-      set
-      {
-        p_modelview = value;
-        p_modelview.PropertyChanged += Exterior_PropertyChanged;
-      }
-    }
+    private CommonModelView common_data;
 
     // Property Changed Listener
     private void Exterior_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -686,6 +674,8 @@ namespace SleepApneaDiagnoser
       p_window = i_window;
       common_data = i_common_data;
       sm = i_sm;
+
+      common_data.PropertyChanged += Exterior_PropertyChanged;
     }
   }
 }
