@@ -946,18 +946,20 @@ namespace SleepApneaDiagnoser
     }
 
     // Used For Importing From Binary For Respiratory Signals
-    public int RespiratoryAnalysisBinaryFileLoaded = 0;
     public bool IsRespBinLoaded
     {
       get
       {
-        if (RespiratoryAnalysisBinaryFileLoaded == 1)
-        {
-          return true;
-        }
-        return false;
+        return resp_bin_loaded;
+      }
+      set
+      {
+        resp_bin_loaded = value;
+        OnPropertyChanged(nameof(IsRespBinLoaded));
       }
     }
+
+    public bool resp_bin_loaded = false;
     private string resp_bin_sample_frequency_s;
     private string resp_bin_date_time_length;
     private string resp_bin_date_time_from;
@@ -977,8 +979,7 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public void LoadRespiratoryAnalysisBinary()
     {
-      this.RespiratoryAnalysisBinaryFileLoaded = 1;
-      OnPropertyChanged(nameof(IsRespBinLoaded));
+      IsRespBinLoaded = true;
       System.Windows.Forms.OpenFileDialog dialog = new System.Windows.Forms.OpenFileDialog();
 
       dialog.Filter = "|*.bin";
@@ -1096,11 +1097,11 @@ namespace SleepApneaDiagnoser
       RespiratoryBreathingPeriodCoeffVar = breathing_periods.Item2.ToString("0.## %");
 
       Tuple<double, double> neg_peaks = RespiratoryFactory.GetRespiratorySignalPeakHeight(resp_plots.Item4);
-      RespiratoryNegativePeakMean = neg_peaks.Item1.ToString("0.## sec");
+      RespiratoryNegativePeakMean = neg_peaks.Item1.ToString("0.##");
       RespiratoryNegativePeakCoeffVar = neg_peaks.Item2.ToString("0.## %");
 
       Tuple<double, double> pos_peaks = RespiratoryFactory.GetRespiratorySignalPeakHeight(resp_plots.Item5);
-      RespiratoryPositivePeakMean = pos_peaks.Item1.ToString("0.## sec");
+      RespiratoryPositivePeakMean = pos_peaks.Item1.ToString("0.##");
       RespiratoryPositivePeakCoeffVar = pos_peaks.Item2.ToString("0.## %");
 
       Tuple<double, double> inspir_periods = RespiratoryFactory.GetRespiratorySignalBreathingHalfPeriod(resp_plots.Item3, resp_plots.Item2);
