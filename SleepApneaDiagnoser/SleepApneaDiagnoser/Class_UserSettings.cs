@@ -133,8 +133,8 @@ namespace SleepApneaDiagnoser
   {
     #region Shared Properties and Functions
 
-    private ModelView p_modelview;
-    public ModelView modelview
+    private CommonModelView p_modelview;
+    public CommonModelView common_data
     {
       get
       {
@@ -168,14 +168,14 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return modelview.IsEDFLoaded;
+        return common_data.IsEDFLoaded;
       }
     }
     public EDFFile LoadedEDFFile
     {
       get
       {
-        return modelview.LoadedEDFFile;
+        return common_data.LoadedEDFFile;
       }
     }
     public DateTime EDFStartTime
@@ -208,7 +208,7 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return modelview.LoadedEDFFileName;
+        return common_data.LoadedEDFFileName;
       }
     }
 
@@ -216,28 +216,28 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return modelview.EDFAllSignals;
+        return common_data.EDFAllSignals;
       }
     }
     public ReadOnlyCollection<string> AllNonHiddenSignals
     {
       get
       {
-        return modelview.AllNonHiddenSignals;
+        return common_data.AllNonHiddenSignals;
       }
     }
     public ReadOnlyCollection<string> AllSignals
     {
       get
       {
-        return modelview.AllSignals;
+        return common_data.AllSignals;
       }
     }
      
     // Shared Functions
     public LineSeries GetSeriesFromSignalName(out float sample_period, string Signal, DateTime StartTime, DateTime EndTime)
     {
-      return modelview.GetSeriesFromSignalName(out sample_period, Signal, StartTime, EndTime);
+      return common_data.GetSeriesFromSignalName(out sample_period, Signal, StartTime, EndTime);
     }
 
     #endregion
@@ -268,13 +268,19 @@ namespace SleepApneaDiagnoser
       ThemeManager.ChangeAppStyle(application, newAccent, ThemeManager.GetAppTheme(UseDarkTheme ? "BaseDark" : "BaseLight"));
 
       // Update all charts to dark or light theme
-      PropertyInfo[] all_plotmodels = this.GetType().GetProperties().ToList().Where(temp => temp.PropertyType == new PlotModel().GetType()).ToArray();
-      for (int x = 0; x < all_plotmodels.Length; x++)
+      var all_plotmodels = p_window.FindChildren<OxyPlot.Wpf.PlotView>().ToList();
+        
+      for (int x = 0; x < all_plotmodels.Count; x++)
       {
-        PlotModel model = (PlotModel)all_plotmodels[x].GetValue(this);
+        OxyPlot.Wpf.PlotView plot = all_plotmodels[x];
 
-        all_plotmodels[x].SetValue(this, null);
-        all_plotmodels[x].SetValue(this, model);
+        PlotModel model = plot.Model;
+        if (model != null)
+        {
+          Utils.ApplyThemeToPlot(model, UseDarkTheme);
+          plot.Model = null;
+          plot.Model = model;
+        }
       }
     }
 
@@ -494,7 +500,6 @@ namespace SleepApneaDiagnoser
 
       PreviewList_Updated();
       OnPropertyChanged(nameof(AllNonHiddenSignals));
-      modelview.OnPropertyChanged(nameof(AllNonHiddenSignals)); // TEMP
     }
     /// <summary>
     /// Opens the Remove Derivative Signal Wizard
@@ -535,7 +540,6 @@ namespace SleepApneaDiagnoser
 
       PreviewList_Updated();
       OnPropertyChanged(nameof(AllNonHiddenSignals));
-      modelview.OnPropertyChanged(nameof(AllNonHiddenSignals)); // TEMP
     }
 
     /// <summary>
@@ -584,7 +588,6 @@ namespace SleepApneaDiagnoser
 
       PreviewList_Updated();
       OnPropertyChanged(nameof(AllNonHiddenSignals));
-      modelview.OnPropertyChanged(nameof(AllNonHiddenSignals)); // TEMP
     }
 
     /// <summary>
@@ -610,7 +613,6 @@ namespace SleepApneaDiagnoser
 
       PreviewList_Updated();
       OnPropertyChanged(nameof(AllNonHiddenSignals));
-      modelview.OnPropertyChanged(nameof(AllNonHiddenSignals)); // TEMP
     }
     /// <summary>
     /// Calls the Remove Filtered Signal Wizard.
@@ -650,7 +652,6 @@ namespace SleepApneaDiagnoser
 
       PreviewList_Updated();
       OnPropertyChanged(nameof(AllNonHiddenSignals));
-      modelview.OnPropertyChanged(nameof(AllNonHiddenSignals)); // TEMP
     }
 
     public void WriteEDFSettings()
@@ -672,8 +673,7 @@ namespace SleepApneaDiagnoser
       sm.SignalCategories = Utils.LoadCategoriesFile(AllSignals.ToArray()).ToList();
 
       PreviewList_Updated();
-      OnPropertyChanged(nameof(AllNonHiddenSignals));
-      modelview.OnPropertyChanged(nameof(AllNonHiddenSignals)); // TEMP     
+      OnPropertyChanged(nameof(AllNonHiddenSignals));   
     }
     public void LoadAppSettings()
     {
@@ -704,9 +704,10 @@ namespace SleepApneaDiagnoser
 
     #endregion
 
-    public SettingsModelView(MainWindow i_window, SettingsModel i_sm)
+    public SettingsModelView(MainWindow i_window, CommonModelView i_common_data, SettingsModel i_sm)
     {
       p_window = i_window;
+      common_data = i_common_data;
       sm = i_sm;
     }
   }

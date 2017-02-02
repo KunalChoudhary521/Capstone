@@ -314,7 +314,7 @@ namespace SleepApneaDiagnoser
   {
     #region Shared Properties and Functions
 
-    private ModelView modelview;
+    private CommonModelView common_data;
 
     // Property Changed Listener
     private void Exterior_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -355,14 +355,14 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return modelview.IsEDFLoaded;
+        return common_data.IsEDFLoaded;
       }
     }
     public EDFFile LoadedEDFFile
     {
       get
       {
-        return modelview.LoadedEDFFile;
+        return common_data.LoadedEDFFile;
       }
     }
     public DateTime EDFStartTime
@@ -396,14 +396,14 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return modelview.EDFAllSignals;
+        return common_data.EDFAllSignals;
       }
     }
     public ReadOnlyCollection<string> AllNonHiddenSignals
     {
       get
       {
-        return modelview.AllNonHiddenSignals;
+        return common_data.AllNonHiddenSignals;
       }
     }
 
@@ -411,28 +411,24 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return modelview.UseDarkTheme;
+        return sm.UseDarkTheme;
       }
     }
 
     // Shared Functions
     public LineSeries GetSeriesFromSignalName(out float sample_period, string Signal, DateTime StartTime, DateTime EndTime)
     {
-      return modelview.GetSeriesFromSignalName(out sample_period, Signal, StartTime, EndTime);
+      return common_data.GetSeriesFromSignalName(out sample_period, Signal, StartTime, EndTime);
     }
     
     #endregion
-
-    #region Members
-
+    
     /// <summary>
     /// Respiratory Model
     /// </summary>
     private RespiratoryModel rm = new RespiratoryModel();
     private SettingsModel sm;
-
-    #endregion
-
+    
     #region Properties
 
     private void RepiratoryPlot_Changed()
@@ -998,11 +994,11 @@ namespace SleepApneaDiagnoser
 
     #endregion
 
-    public RespiratoryModelView(ModelView i_modelview, SettingsModelView i_svm)
+    public RespiratoryModelView(CommonModelView i_common_data, SettingsModelView i_svm)
     {
       sm = i_svm.sm;
-      modelview = i_modelview;
-      modelview.PropertyChanged += Exterior_PropertyChanged;
+      common_data = i_common_data;
+      common_data.PropertyChanged += Exterior_PropertyChanged;
 
       i_svm.PropertyChanged += Exterior_PropertyChanged;
     }

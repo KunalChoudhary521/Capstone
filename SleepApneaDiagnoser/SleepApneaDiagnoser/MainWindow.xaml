@@ -237,7 +237,7 @@
                         </Grid>
                     </mtr:MetroTabItem>
                     <mtr:MetroTabItem Header="EEG" HorizontalAlignment="Left" Margin="0,0,-0.333,0" Width="55" Height="41" VerticalAlignment="Top">
-                        <Grid>
+                        <Grid Name="TabItem_EEG">
                             <Grid Height="125" VerticalAlignment="Top" Margin="10,0,0,0">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="35"/>
