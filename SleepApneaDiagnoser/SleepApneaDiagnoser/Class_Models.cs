@@ -10,61 +10,6 @@ using MathWorks.MATLAB.NET.Arrays;
 namespace SleepApneaDiagnoser
 {
   /// <summary>
-  /// Model for variables used exclusively in the 'Preview' tab
-  /// </summary>
-  public class PreviewModel
-  {
-    /// <summary>
-    /// The index of the current category to be displayed in the signal selection list
-    /// -1 denotes displaying the 'All' category
-    /// </summary>
-    public int PreviewCurrentCategory = -1;
-    /// <summary>
-    /// The list of user selected signals in the signal selection list
-    /// </summary>
-    public List<string> PreviewSelectedSignals = new List<string>();
-
-    /// <summary>
-    /// Signal to show property info for
-    /// </summary>
-    public string PreviewPropertiesSelectedSignal;
-
-    /// <summary>
-    /// If true, the user selection for the start time of the plot should be date and time
-    /// the user selection for the period of the plot should be in seconds
-    /// If false, the user selection for the start time of the plot should be 30s epochs
-    /// the user selection for the period of the plot should be in epochs
-    /// </summary>
-    public bool PreviewUseAbsoluteTime = false;
-    /// <summary>
-    /// The user selected start time of the plot in Date and Time format
-    /// </summary>
-    public DateTime PreviewViewStartTime = new DateTime();
-    /// <summary>
-    /// The user selected start time of the plot in epochs
-    /// </summary>
-    public int PreviewViewStartRecord = 0;
-    /// <summary>
-    /// The user selected period of the plot in seconds
-    /// </summary>
-    public int PreviewViewDuration = 0;
-    /// <summary>
-    /// The currently displayed preview plot
-    /// </summary>
-    public PlotModel PreviewSignalPlot = null;
-    /// <summary>
-    /// If false, the plot is currently being drawn and the tab should be disabled
-    /// If true, the plot is done being drawn
-    /// </summary>
-    public bool PreviewNavigationEnabled = false;
-    /// <summary>
-    /// If false, let the plot auto adjust
-    /// If true, the plot has a constant y axis
-    /// </summary>
-    public bool PreviewUseConstantAxis = true;
-  }
-
-  /// <summary>
   /// Model for variables used exclusively in the 'EEG' sub tab of the 'Analysis' tab
   /// </summary>
   public class EEGModel

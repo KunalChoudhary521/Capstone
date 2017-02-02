@@ -153,7 +153,10 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return DateTime.Parse(modelview.EDFStartTime);
+        if (IsEDFLoaded)
+          return LoadedEDFFile.Header.StartDateTime;
+        else
+          return new DateTime();
       }
     }
     public DateTime EDFEndTime
@@ -161,7 +164,13 @@ namespace SleepApneaDiagnoser
       get
       {
         if (IsEDFLoaded)
-          return DateTime.Parse(modelview.EDFEndTime);
+        {
+          DateTime EndTime = LoadedEDFFile.Header.StartDateTime
+                             + new TimeSpan(
+                               (long)(TimeSpan.TicksPerSecond * LoadedEDFFile.Header.DurationOfDataRecordInSeconds * LoadedEDFFile.Header.NumberOfDataRecords)
+                               );
+          return EndTime;
+        }
         else
           return new DateTime();
       }
@@ -199,7 +208,7 @@ namespace SleepApneaDiagnoser
     #endregion
     
     /// <summary>
-    /// Respiratory Model
+    /// Coherence Model
     /// </summary>
     private CoherenceModel cm = new CoherenceModel();
     /// <summary>

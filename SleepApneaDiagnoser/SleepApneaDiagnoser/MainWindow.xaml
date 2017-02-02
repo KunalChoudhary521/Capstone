@@ -98,7 +98,7 @@
             </mtr:MetroTabItem>
 
             <mtr:MetroTabItem Header="Preview">
-                <Grid>
+                <Grid Name="TabItem_Preview">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition MaxWidth="270" Width="270*" MinWidth="270"/>
                         <ColumnDefinition Width="800*"/>
@@ -143,8 +143,8 @@
                                 <Label Content="Start" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="29" Width="60" FontSize="14"/>
                                 <Label Content="End" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="29" Width="60" FontSize="14"/>
                                 <Label Content="# Epochs" HorizontalAlignment="Left" Margin="10,72,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="29" Width="70" FontSize="14"/>
-                                <TextBox x:Name="textBox_StartTime" Height="23" Margin="90,13,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True" Text="{Binding EDFStartTime, Mode=OneWay}" FontSize="14"/>
-                                <TextBox x:Name="textBox_EndTime" Height="23" Margin="90,44,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True" Text="{Binding EDFEndTime, Mode=OneWay}" FontSize="14"/>
+                                <TextBox x:Name="textBox_StartTime" Height="23" Margin="90,13,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True" Text="{Binding EDFStart, Mode=OneWay}" FontSize="14"/>
+                                <TextBox x:Name="textBox_EndTime" Height="23" Margin="90,44,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True" Text="{Binding EDFEnd, Mode=OneWay}" FontSize="14"/>
                                 <TextBox x:Name="textBox_EndEpoch" Height="23" Margin="90,75,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True" Text="{Binding EDFEndEpoch, Mode=OneWay}" FontSize="14"/>
                             </Grid>
                             <Label Content="Patient Information" HorizontalAlignment="Left" Margin="10,136,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="26" Width="136" FontSize="14"/>

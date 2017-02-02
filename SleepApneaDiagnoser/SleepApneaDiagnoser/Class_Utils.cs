@@ -790,5 +790,22 @@ namespace SleepApneaDiagnoser
 
       return new_series;
     }
-   }
+
+    // Export
+    public static void ExportImage(PlotModel plot, string fileName)
+    {
+      var export = new OxyPlot.Wpf.PngExporter();
+      export.Width = 1280;
+      export.Height = 720;
+      export.Background = OxyColors.White;
+
+      MemoryStream stream = new MemoryStream();
+      FileStream file = new FileStream(fileName, FileMode.Create);
+
+      export.Export(plot, stream);
+      stream.WriteTo(file);
+      file.Close();
+      stream.Close();
+    }
+  }
 }
