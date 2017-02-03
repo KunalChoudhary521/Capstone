@@ -258,6 +258,14 @@
                                 <Label Content="- Peak" HorizontalAlignment="Left" Margin="10,11,0,0" VerticalAlignment="Top" Grid.Column="5"/>
                                 <TextBox Height="23" Margin="10,45,9,0" TextWrapping="Wrap" Text="{Binding RespiratoryNegativePeakMean}" VerticalAlignment="Top" Grid.Column="5"/>
                                 <TextBox Height="23" Margin="10,74,9,0" TextWrapping="Wrap" Text="{Binding RespiratoryNegativePeakCoeffVar}" VerticalAlignment="Top" Grid.Column="5"/>
+                                <!-- Positive Peak Volume -->
+                                <Label Content="+ Volume" HorizontalAlignment="Left" Margin="10,11,0,0" VerticalAlignment="Top" Grid.Column="6"/>
+                                <TextBox Height="23" Margin="10,45,9,0" TextWrapping="Wrap" Text="{Binding RespiratoryInspirationVolumeMean}" VerticalAlignment="Top" Grid.Column="6"/>
+                                <TextBox Height="23" Margin="10,74,9,0" TextWrapping="Wrap" Text="{Binding RespiratoryInspirationVolumeCoeffVar}" VerticalAlignment="Top" Grid.Column="6"/>
+                                <!-- Negative Peak Volume -->
+                                <Label Content="- Volume" HorizontalAlignment="Left" Margin="10,11,0,0" VerticalAlignment="Top" Grid.Column="7"/>
+                                <TextBox Height="23" Margin="10,45,9,0" TextWrapping="Wrap" Text="{Binding RespiratoryExpirationVolumeMean}" VerticalAlignment="Top" Grid.Column="7"/>
+                                <TextBox Height="23" Margin="10,74,9,0" TextWrapping="Wrap" Text="{Binding RespiratoryExpirationVolumeCoeffVar}" VerticalAlignment="Top" Grid.Column="7"/>
                             </Grid>
 
                             <mtr:ProgressRing IsActive="{Binding RespiratoryProgressRingEnabled}"/>
