@@ -921,7 +921,7 @@ namespace SleepApneaDiagnoser
       {
         return;
       }
-      String fromToDir = "Epoch-" + ExportEpochStart.ToString() + "-" + ExportEpochEnd.ToString();
+      String fromToDir = EEGEDFSelectedSignal.ToString()+ "-" + ExportEpochStart.ToString() + "-" + ExportEpochEnd.ToString();
       double[] signalToAnalyze;
       float sample_period;
 
