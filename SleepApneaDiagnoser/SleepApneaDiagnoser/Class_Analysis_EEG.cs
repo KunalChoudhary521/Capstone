@@ -852,8 +852,20 @@ namespace SleepApneaDiagnoser
       CategoryAxis absbandLabels = new CategoryAxis { Position = AxisPosition.Bottom };
 
       absbandLabels.Labels.AddRange(bandFrqs);
+      double maxY = 0.0, minY = 0.0;
+      for(int i = 0; i < bandItems.Length; i++)
+      {
+        if(bandItems[i].Value > maxY)//y axis does not cutoff immediately when highest bar ends off
+        {
+          maxY = bandItems[i].Value;
+        }
+        if (bandItems[i].Value < minY)//y axis does not cutoff immediately when lowest bar ends off
+        {
+          minY = bandItems[i].Value;
+        }
+      }
 
-      LinearAxis absYAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Power (db)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8 };
+      LinearAxis absYAxis = new LinearAxis { Position = AxisPosition.Left, Title = "Power (db)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8, Maximum = maxY * 1.3, Minimum = minY * 1.3 };
       tempAbsPwr.Series.Add(absPlotbars);
       tempAbsPwr.Axes.Add(absbandLabels);
       tempAbsPwr.Axes.Add(absYAxis);
@@ -897,8 +909,8 @@ namespace SleepApneaDiagnoser
         psdSeries.Points.Add(new DataPoint(frqVal[i], psdVal[i]));
       }
       tempPSD.Series.Add(psdSeries);
-      tempPSD.Axes.Add(new LinearAxis() { Position = AxisPosition.Left, Title = "Power (dB)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold });
-      tempPSD.Axes.Add(new LinearAxis() { Position = AxisPosition.Bottom, Title = "Frequency (Hz)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8 });
+      tempPSD.Axes.Add(new LinearAxis() { Position = AxisPosition.Left, Title = "Power (dB)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, Maximum = psdVal.Max() * 1.2 });
+      tempPSD.Axes.Add(new LinearAxis() { Position = AxisPosition.Bottom, Title = "Frequency (Hz)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8, Maximum = frqVal.Max() * 1.02 });
 
       PlotPSD = tempPSD;
     }
@@ -909,7 +921,7 @@ namespace SleepApneaDiagnoser
       {
         return;
       }
-      String fromToDir = "Epoch-" + ExportEpochStart.ToString() + "-" + ExportEpochEnd.ToString();
+      String fromToDir = EEGEDFSelectedSignal.ToString()+ "-" + ExportEpochStart.ToString() + "-" + ExportEpochEnd.ToString();
       double[] signalToAnalyze;
       float sample_period;
 
