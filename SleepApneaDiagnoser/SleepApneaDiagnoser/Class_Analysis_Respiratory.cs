@@ -332,6 +332,131 @@ namespace SleepApneaDiagnoser
         return new Tuple<double, double>(0, 0);
       }
     }
+    public static void SaveRespiratoryAnalysisToExcel(string fileName, string SignalName, List<string[]> signalProperties, DateTime StartTime, PlotModel plot)
+    {
+      List<DataPoint> series = ((LineSeries)plot.Series[0]).Points;
+      List<ScatterPoint> insets = ((ScatterSeries)plot.Series[1]).Points;
+      List<ScatterPoint> onsets = ((ScatterSeries)plot.Series[2]).Points;
+      List<ScatterPoint> negpeaks = ((ScatterSeries)plot.Series[3]).Points;
+      List<ScatterPoint> pospeaks = ((ScatterSeries)plot.Series[4]).Points;
+      #region Get Points
+
+      int count_in = 0, count_on = 0, count_pos = 0, count_neg = 0;
+      object[,] signal_points = new object[series.Count + 1, 7];
+      signal_points[0, 0] = "Epoch";
+      signal_points[0, 1] = "Date Time";
+      signal_points[0, 2] = "Value";
+      signal_points[0, 3] = "Inspiration";
+      signal_points[0, 4] = "Exspiration";
+      signal_points[0, 5] = "Pos. Peaks";
+      signal_points[0, 6] = "Neg. Peaks";
+
+      for (int x = 1; x < series.Count + 1; x++)
+      {
+        signal_points[x, 0] = Utils.DateTimetoEpoch(DateTimeAxis.ToDateTime(series[x - 1].X), StartTime);
+        signal_points[x, 1] = DateTimeAxis.ToDateTime(series[x - 1].X).ToString("MM/dd/yyyy hh:mm:ss.fff tt");
+        signal_points[x, 2] = series[x - 1].Y;
+
+        if (count_in < insets.Count && insets[count_in].X == series[x].X)
+        {
+          signal_points[x, 3] = series[x - 1].Y;
+          count_in++;
+        }
+        if (count_on < onsets.Count && onsets[count_on].X == series[x].X)
+        {
+          signal_points[x, 4] = series[x - 1].Y;
+          count_on++;
+        }
+        if (count_neg < negpeaks.Count && negpeaks[count_neg].X == series[x].X)
+        {
+          signal_points[x, 5] = series[x - 1].Y;
+          count_neg++;
+        }
+        if (count_pos < pospeaks.Count && pospeaks[count_pos].X == series[x].X)
+        {
+          signal_points[x, 6] = series[x - 1].Y;
+          count_pos++;
+        }
+      }
+
+      #endregion 
+
+      Application app = new Application();
+
+      if (app == null)
+        return;
+
+      Workbook wb = app.Workbooks.Add(System.Reflection.Missing.Value);
+      Worksheet ws2 = (Worksheet)wb.Sheets.Add();
+      Worksheet ws1 = (Worksheet)wb.Sheets.Add();
+      
+      #region Sheet 1
+
+      ws1.Name = "Analysis";
+
+      ws1.Cells[1, 2].Value = "Signal";
+      ws1.Cells[1, 3].Value = SignalName;
+
+      ws1.Cells[3, 2].Value = "Property";
+      ws1.Cells[3, 3].Value = "Mean";
+      ws1.Cells[3, 4].Value = "% Variance";
+
+      for (int x = 0; x < signalProperties.Count; x++)
+      {
+        ws1.Cells[4 + x, 2].Value = signalProperties[x][0];
+        ws1.Cells[4 + x, 3].Value = signalProperties[x][1];
+        ws1.Cells[4 + x, 4].Value = signalProperties[x][2];
+      }
+
+      ws1.Columns["A:F"].AutoFit();
+
+      #endregion
+
+      #region Sheet 2
+
+      ws2.Name = "SignalValues";
+
+      Range range = ws2.Range[ws2.Cells[3, 2], ws2.Cells[2 + signal_points.Length / 7, 8]];
+      range.Value = signal_points;
+      ws2.ListObjects.Add(XlListObjectSourceType.xlSrcRange, range, System.Reflection.Missing.Value, XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = "SignalValues";
+      ws2.ListObjects["SignalValues"].TableStyle = "TableStyleLight9";
+      ws2.Columns["A:H"].AutoFit();
+
+      var excel_chart = ((ChartObject)((ChartObjects)ws2.ChartObjects()).Add(500, 100, 900, 300)).Chart;
+      excel_chart.SetSourceData(range.Columns["B:G"]);
+      excel_chart.ChartType = Microsoft.Office.Interop.Excel.XlChartType.xlXYScatterLines;
+      excel_chart.ChartWizard(
+          Source: range.Columns["B:G"],
+          Title: SignalName,
+          CategoryTitle: "Time",
+          ValueTitle: SignalName);
+      ((Microsoft.Office.Interop.Excel.Series)excel_chart.SeriesCollection(1)).ChartType = XlChartType.xlXYScatterLinesNoMarkers;
+
+      #endregion
+
+      #region Save and Close
+
+      try
+      {
+        if (File.Exists(fileName))
+          File.Delete(fileName);
+        wb.SaveAs(fileName);
+      }
+      catch
+      {
+        return;
+      }
+
+      wb.Close(true);
+      app.Quit();
+
+      System.Runtime.InteropServices.Marshal.ReleaseComObject(range);
+      System.Runtime.InteropServices.Marshal.ReleaseComObject(ws2);
+      System.Runtime.InteropServices.Marshal.ReleaseComObject(wb);
+      System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
+
+      #endregion
+    }
     #endregion
   }
 
@@ -1107,160 +1232,51 @@ namespace SleepApneaDiagnoser
 
     #region Actions
 
-    public string ExportRespiratoryCalculations(string fileName)
+    // Exporting Respiratory Analysis to Excel 
+    /// <summary>
+    /// Background process for exporting respiratory analysis
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    public void BW_ExportAnalysis_DoWork(object sender, DoWorkEventArgs e)
+    {
+      string SignalName = IsAnalysisFromBinary ? resp_bin_signal_name : RespiratoryEDFSelectedSignal;
+      DateTime StartTime = IsAnalysisFromBinary ? DateTime.Parse(resp_bin_date_time_from) : EDFStartTime;
+      List<string[]> properties = new List<string[]>();
+      properties.Add(new string[] { "Breathing Period", RespiratoryBreathingPeriodMean, RespiratoryBreathingPeriodCoeffVar });
+      properties.Add(new string[] { "Inspiration Period", RespiratoryInspirationPeriodMean, RespiratoryInspirationPeriodCoeffVar });
+      properties.Add(new string[] { "Exspiration Period", RespiratoryExspirationPeriodMean, RespiratoryExspirationPeriodCoeffVar });
+      properties.Add(new string[] { "Positive Peak", RespiratoryPositivePeakMean, RespiratoryPositivePeakCoeffVar });
+      properties.Add(new string[] { "Negative Peak", RespiratoryNegativePeakMean, RespiratoryNegativePeakCoeffVar });
+      properties.Add(new string[] { "Inspiration Volume", RespiratoryInspirationVolumeMean, RespiratoryInspirationVolumeCoeffVar });
+      properties.Add(new string[] { "Inspiration Volume", RespiratoryExpirationVolumeMean, RespiratoryExpirationVolumeCoeffVar });
+
+      RespiratoryFactory.SaveRespiratoryAnalysisToExcel(e.Argument.ToString(), SignalName, properties, StartTime, RespiratorySignalPlot);
+    }
+    /// <summary>
+    /// Called when exporting respiratory analysis finishes
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void BW__ExportAnalysis_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+    {
+      RespiratoryProgressRingEnabled = false;
+    }
+    /// <summary>
+    /// Exports Respiratory Calculation to Excel file
+    /// </summary>
+    /// <param name="fileName"> The filename of the excel file to be created </param>
+    /// <returns></returns>
+    public void ExportRespiratoryCalculations(string fileName)
     {
       RespiratoryProgressRingEnabled = true;
 
-      List<DataPoint> series = ((LineSeries)RespiratorySignalPlot.Series[0]).Points;
-      List<ScatterPoint> insets = ((ScatterSeries)RespiratorySignalPlot.Series[1]).Points;
-      List<ScatterPoint> onsets = ((ScatterSeries)RespiratorySignalPlot.Series[2]).Points;
-      List<ScatterPoint> negpeaks = ((ScatterSeries)RespiratorySignalPlot.Series[3]).Points;
-      List<ScatterPoint> pospeaks = ((ScatterSeries)RespiratorySignalPlot.Series[4]).Points;
-      #region Get Points
-
-      int count_in = 0, count_on = 0, count_pos = 0, count_neg = 0;
-      object[,] signal_points = new object[series.Count + 1, 7];
-      signal_points[0, 0] = "Epoch";
-      signal_points[0, 1] = "Date Time";
-      signal_points[0, 2] = "Value";
-      signal_points[0, 3] = "Inspiration";
-      signal_points[0, 4] = "Exspiration";
-      signal_points[0, 5] = "Pos. Peaks";
-      signal_points[0, 6] = "Neg. Peaks";
-
-      for (int x = 1; x < series.Count + 1; x++)
-      {
-        signal_points[x, 0] = Utils.DateTimetoEpoch(DateTimeAxis.ToDateTime(series[x-1].X), IsAnalysisFromBinary ? DateTime.Parse(resp_bin_date_time_from) : EDFStartTime);
-        signal_points[x, 1] = DateTimeAxis.ToDateTime(series[x-1].X).ToString("MM/dd/yyyy hh:mm:ss.fff tt");
-        signal_points[x, 2] = series[x-1].Y;
-
-        if (count_in < insets.Count && insets[count_in].X == series[x].X)
-        {
-          signal_points[x, 3] = series[x - 1].Y;
-          count_in++;
-        }
-        if (count_on < onsets.Count && onsets[count_on].X == series[x].X)
-        {
-          signal_points[x, 4] = series[x - 1].Y;
-          count_on++;
-        }
-        if (count_neg < negpeaks.Count && negpeaks[count_neg].X == series[x].X)
-        {
-          signal_points[x, 5] = series[x - 1].Y;
-          count_neg++;
-        }
-        if (count_pos < pospeaks.Count && pospeaks[count_pos].X == series[x].X)
-        {
-          signal_points[x, 6] = series[x - 1].Y;
-          count_pos++;
-        }
-      }
-
-      #endregion 
-
-      Application app = new Application();
-
-      if (app == null)
-        return "Error: Microsoft Excel must be installed on this computer for export to excel functionality to work";
-
-      Workbook wb = app.Workbooks.Add(System.Reflection.Missing.Value);
-      Worksheet ws2 = (Worksheet) wb.Sheets.Add();
-      Worksheet ws1 = (Worksheet)wb.Sheets.Add();
-
-      string SignalName = IsAnalysisFromBinary ? resp_bin_signal_name : RespiratoryEDFSelectedSignal;
-
-      #region Sheet 1
-
-      ws1.Name = "Analysis";
-
-      ws1.Cells[1, 2].Value = "Signal";
-      ws1.Cells[1, 3].Value = SignalName;
-
-      ws1.Cells[3, 3].Value = "Mean";
-      ws1.Cells[3, 4].Value = "% Variance";
-
-      ws1.Cells[4, 2].Value = "Breathing Period";
-      ws1.Cells[4, 3].Value = RespiratoryBreathingPeriodMean.Split(' ')[0];
-      ws1.Cells[4, 4].Value = RespiratoryBreathingPeriodCoeffVar;
-
-      ws1.Cells[5, 2].Value = "Ti";
-      ws1.Cells[5, 3].Value = RespiratoryInspirationPeriodMean.Split(' ')[0];
-      ws1.Cells[5, 4].Value = RespiratoryInspirationPeriodCoeffVar;
-
-      ws1.Cells[6, 2].Value = "Te";
-      ws1.Cells[6, 3].Value = RespiratoryExspirationPeriodMean.Split(' ')[0];
-      ws1.Cells[6, 4].Value = RespiratoryExspirationPeriodCoeffVar;
-
-      ws1.Cells[7, 2].Value = "+ Peak";
-      ws1.Cells[7, 3].Value = RespiratoryPositivePeakMean;
-      ws1.Cells[7, 4].Value = RespiratoryPositivePeakCoeffVar;
-
-      ws1.Cells[8, 2].Value = "- Peak";
-      ws1.Cells[8, 3].Value = RespiratoryNegativePeakMean;
-      ws1.Cells[8, 4].Value = RespiratoryNegativePeakCoeffVar;
-
-      ws1.Cells[9, 2].Value = "+ Volume";
-      ws1.Cells[9, 3].Value = RespiratoryInspirationVolumeMean;
-      ws1.Cells[9, 4].Value = RespiratoryInspirationVolumeCoeffVar;
-
-      ws1.Cells[10, 2].Value = "- Volume";
-      ws1.Cells[10, 3].Value = RespiratoryExpirationVolumeMean;
-      ws1.Cells[10, 4].Value = RespiratoryExpirationVolumeCoeffVar;
-
-      ws1.Columns["B:E"].AutoFit();
-
-      #endregion
-
-      #region Sheet 2
-
-      ws2.Name = "SignalValues";
-
-      Range range = ws2.Range[ws2.Cells[3, 2], ws2.Cells[2 + signal_points.Length / 7, 8 ]];
-      range.Value = signal_points;
-      ws2.ListObjects.Add(XlListObjectSourceType.xlSrcRange, range, System.Reflection.Missing.Value, XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = "SignalValues";
-      ws2.ListObjects["SignalValues"].TableStyle = "TableStyleLight9";
-      range.Columns.AutoFit();
-      
-      var excel_chart = ((ChartObject)((ChartObjects)ws2.ChartObjects()).Add(500, 100, 900, 300)).Chart;
-      excel_chart.SetSourceData(range.Columns["B:G"]);
-      excel_chart.ChartType = Microsoft.Office.Interop.Excel.XlChartType.xlXYScatterLines;
-      excel_chart.ChartWizard(
-          Source: range.Columns["B:G"],
-          Title: SignalName,
-          CategoryTitle: "Time",
-          ValueTitle: SignalName);
-      ((Microsoft.Office.Interop.Excel.Series)excel_chart.SeriesCollection(1)).ChartType = XlChartType.xlXYScatterLinesNoMarkers;
-
-      #endregion
-
-      #region Save and Close
-
-      try
-      {
-        if (File.Exists(fileName))
-          File.Delete(fileName);
-        wb.SaveAs(fileName);
-      }
-      catch
-      {
-        return "Error: Selected file in use in other process. Export failed.";
-      }
-
-      wb.Close(true);
-      app.Quit();
-
-      System.Runtime.InteropServices.Marshal.ReleaseComObject(range);
-      System.Runtime.InteropServices.Marshal.ReleaseComObject(ws2);
-      System.Runtime.InteropServices.Marshal.ReleaseComObject(wb);
-      System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
-
-      RespiratoryProgressRingEnabled = false;
-
-      #endregion 
-
-      return "Success: Excel file exported.";
+      BackgroundWorker bw = new BackgroundWorker();
+      bw.DoWork += BW_ExportAnalysis_DoWork;
+      bw.RunWorkerCompleted += BW__ExportAnalysis_RunWorkerCompleted;
+      bw.RunWorkerAsync(fileName);
     }
-
+    
     // Respiratory Analysis From Binary File
     /// <summary>
     /// Loads a binary file's contents into memory 
@@ -1338,6 +1354,7 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public void PerformRespiratoryAnalysisBinary()
     {
+      IsAnalysisFromBinary = true;
       RespiratoryProgressRingEnabled = true;
 
       // Finding From 
@@ -1423,6 +1440,7 @@ namespace SleepApneaDiagnoser
       if (RespiratoryEDFSelectedSignal == null)
         return;
 
+      IsAnalysisFromBinary = false;
       RespiratoryProgressRingEnabled = true;
 
       BackgroundWorker bw = new BackgroundWorker();
