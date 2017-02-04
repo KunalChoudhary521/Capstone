@@ -168,6 +168,20 @@ namespace SleepApneaDiagnoser
       return (int)(period.TotalSeconds / (double)EPOCH_SEC);
     }
 
+    /// <summary>
+    /// Converts a DateTime structure into an epoch point in time
+    /// </summary>
+    /// <param name="time"> The DateTime structure to convert </param>
+    /// <param name="start">
+    /// The Start Time of epoch = 1
+    /// </param>
+    /// <returns> The epoch point in time corresponding to the input DateTime </returns>
+    public static int DateTimetoEpoch(DateTime time, DateTime start)
+    {
+      // epoch = (DateTime - StartTime) / EPOCH_SEC
+      return (int)((time - start).TotalSeconds / (double)EPOCH_SEC) + 1;
+    }
+
     // Determining Signal Y Axis Extremes
 
     /// <summary>
@@ -287,7 +301,7 @@ namespace SleepApneaDiagnoser
         float range = values[high_index] - values[low_index];
         float high_value = values[high_index] + range * (100 - (float)percent_high) / 100;
         float low_value = values[low_index] - range * ((float)percent_low) / 100;
-        float av_value = values.Average();
+        float av_value = values.Where(temp => temp >= low_value - 3 * range && temp <= high_value + 3 * range).ToList().Average();
         sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(OrigName) { yMax = high_value, yMin = low_value, yAvr = av_value });
       }
     }

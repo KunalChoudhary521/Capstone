@@ -224,6 +224,7 @@
                             <oxy:PlotView Background="Transparent" Margin="10,160,10,138" Model="{Binding RespiratorySignalPlot}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
 
                             <Label Content="Analysis" FontSize="18" Height="32" VerticalAlignment="Bottom" HorizontalAlignment="Left" Width="200" Margin="10,0,0,106"/>
+                            <Button Content="Export" Margin="0,0,20,100" HorizontalAlignment="Right" Width="101" Height="30" VerticalAlignment="Bottom" IsEnabled="{Binding RespiratorySignalPlotExists}" Click="button_ExportRespiratoryCalculationsClick"/>
                             <Grid Height="106" VerticalAlignment="Bottom" Margin="0,0,10,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="70"/>

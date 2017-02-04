@@ -259,6 +259,17 @@ namespace SleepApneaDiagnoser
     {
       eeg_modelview.PerformEEGAnalysisEDF();
     }
+    private void button_ExportRespiratoryCalculationsClick(object sender, RoutedEventArgs e)
+    {
+      Microsoft.Win32.SaveFileDialog dialog = new Microsoft.Win32.SaveFileDialog();
+      dialog.Filter = ".xlsx|*.xlsx";
+      dialog.Title = "Select a save location";
+
+      if (dialog.ShowDialog() == true)
+      {
+        resp_modelview.ExportRespiratoryCalculations(dialog.FileName);
+      }
+    }
     private void button_ExportEEGCalculations_Click(object sender, RoutedEventArgs e)
     {
       eeg_modelview.ExportEEGCalculations();
