@@ -15,105 +15,6 @@ namespace SleepApneaDiagnoser
 {
   public class CommonModelView : INotifyPropertyChanged
   {
-    #region Helper Functions
-    /// <summary>
-    /// From a signal, returns a series of X,Y values for use with a PlotModel
-    /// Also returns y axis information and the sample_period of the signal
-    /// </summary>
-    /// <param name="sample_period"> Variable to contain the sample period of the signal </param>
-    /// <param name="Signal"> The input signal name </param>
-    /// <param name="StartTime">  The input start time to be contained in the series </param>
-    /// <param name="EndTime"> The input end time to be contained in the series </param>
-    /// <returns> The series of X,Y values to draw on the plot </returns>
-    public LineSeries GetSeriesFromSignalName(out float sample_period, string Signal, DateTime StartTime, DateTime EndTime)
-    {
-      // Variable To Return
-      LineSeries series = new LineSeries();
-
-      // Check if this signal needs filtering 
-      bool filter = false;
-      FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
-      if (filteredSignal != null)
-      {
-        filter = true;
-        Signal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal).OriginalName;
-      }
-
-      // Get Signal
-      if (EDFAllSignals.Contains(Signal))
-      {
-        // Get Signal
-        EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal);
-
-        // Determine Array Portion
-        sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal.NumberOfSamplesPerDataRecord;
-
-        // Get Array
-        List<float> values = Utils.retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal, StartTime, EndTime);
-
-        // Add Points to Series
-        for (int y = 0; y < values.Count; y++)
-        {
-          series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(StartTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values[y]));
-        }
-      }
-      else // Derivative Signal
-      {
-        // Get Signals
-        DerivativeSignal deriv_info = sm.DerivedSignals.Find(temp => temp.DerivativeName == Signal);
-        EDFSignal edfsignal1 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal1Name.Trim());
-        EDFSignal edfsignal2 = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == deriv_info.Signal2Name.Trim());
-
-        // Get Arrays and Perform Resampling if needed
-        List<float> values1;
-        List<float> values2;
-        if (edfsignal1.NumberOfSamplesPerDataRecord == edfsignal2.NumberOfSamplesPerDataRecord) // No resampling
-        {
-          values1 = Utils.retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
-          values2 = Utils.retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
-          sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
-        }
-        else if (edfsignal1.NumberOfSamplesPerDataRecord > edfsignal2.NumberOfSamplesPerDataRecord) // Upsample signal 2
-        {
-          values1 = Utils.retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
-          values2 = Utils.retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
-          values2 = Utils.MATLAB_Resample(values2.ToArray(), edfsignal1.NumberOfSamplesPerDataRecord / edfsignal2.NumberOfSamplesPerDataRecord);
-          sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal1.NumberOfSamplesPerDataRecord;
-        }
-        else // Upsample signal 1
-        {
-          values1 = Utils.retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal1, StartTime, EndTime);
-          values2 = Utils.retrieveSignalSampleValuesMod(LoadedEDFFile, edfsignal2, StartTime, EndTime);
-          values1 = Utils.MATLAB_Resample(values1.ToArray(), edfsignal2.NumberOfSamplesPerDataRecord / edfsignal1.NumberOfSamplesPerDataRecord);
-          sample_period = (float)LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)edfsignal2.NumberOfSamplesPerDataRecord;
-        }
-
-        // Add Points to Series
-        for (int y = 0; y < Math.Min(values1.Count, values2.Count); y++)
-        {
-          series.Points.Add(new DataPoint(DateTimeAxis.ToDouble(StartTime + new TimeSpan(0, 0, 0, 0, (int)(sample_period * (float)y * 1000))), values1[y] - values2[y]));
-        }
-      }
-
-      if (filter == true)
-      {
-        if (filteredSignal.LowPass_Enabled)
-        {
-          series = Utils.ApplyLowPassFilter(series, filteredSignal.LowPassCutoff, sample_period);
-        }
-        if (filteredSignal.WeightedAverage_Enabled)
-        {
-          float LENGTH;
-          LENGTH = Math.Max(filteredSignal.WeightedAverage_Length / (sample_period * 1000), 1);
-
-          series = Utils.ApplyWeightedAverageFilter(series, LENGTH);
-        }
-      }
-
-      return series;
-    }
-    #endregion
-
     #region Actions
 
     // Load EDF File
@@ -199,9 +100,7 @@ namespace SleepApneaDiagnoser
     #endregion
 
     #region Members
-
-    /*********************************************************************************************************************************/
-
+    
     /// <summary>
     /// The Window
     /// </summary>
@@ -214,19 +113,10 @@ namespace SleepApneaDiagnoser
     /// The Loaded EDF Filename
     /// </summary>
     private string p_LoadedEDFFileName = null;
-
-    /// <summary>
-    /// The User Settings
-    /// </summary>
-    private SettingsModel sm;
-
-    /*********************************************************************************************************************************/
-
+    
     #endregion
 
     #region Properties 
-
-    /*********************************************************************************************************************************/
 
     // Update Actions
     private void LoadedEDFFile_Changed()
@@ -243,9 +133,7 @@ namespace SleepApneaDiagnoser
       // Misc
       OnPropertyChanged(nameof(IsEDFLoaded));
     }
-
-    /*********************************************************** GENERAL ************************************************************/
-
+    
     // Loaded EDF Info
     public EDFFile LoadedEDFFile
     {
@@ -304,53 +192,7 @@ namespace SleepApneaDiagnoser
           return new DateTime();
       }
     }
-
-    // Signals
-    public ReadOnlyCollection<string> AllSignals
-    {
-      get
-      {
-        if (IsEDFLoaded)
-        {
-          List<string> output = new List<string>();
-          output.AddRange(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray());
-          output.AddRange(sm.DerivedSignals.Select(temp => temp.DerivativeName.Trim()).ToArray());
-          output.AddRange(sm.FilteredSignals.Select(temp => temp.SignalName));
-          return Array.AsReadOnly(output.ToArray());
-        }
-        else
-        {
-          return Array.AsReadOnly(new string[0]);
-        }
-      }
-    }
-    public ReadOnlyCollection<string> EDFAllSignals
-    {
-      get
-      {
-        if (IsEDFLoaded)
-          return Array.AsReadOnly(LoadedEDFFile.Header.Signals.Select(temp => temp.Label.ToString().Trim()).ToArray());
-        else
-          return Array.AsReadOnly(new string[0]);
-      }
-    }
-    public ReadOnlyCollection<string> AllNonHiddenSignals
-    {
-      get
-      {
-        if (IsEDFLoaded)
-        {
-          List<string> output = new List<string>();
-          output.AddRange(AllSignals.Where(temp => !(EDFAllSignals.Contains(temp) && sm.HiddenSignals.Contains(temp))).ToArray());
-          return Array.AsReadOnly(output.ToArray());
-        }
-        else
-        {
-          return Array.AsReadOnly(new string[0]);
-        }
-      }
-    }
-
+    
     #endregion
 
     #region etc
@@ -364,10 +206,9 @@ namespace SleepApneaDiagnoser
 
     #endregion
 
-    public CommonModelView(MainWindow i_window, SettingsModel i_sm)
+    public CommonModelView(MainWindow i_window)
     {
       p_window = i_window;
-      sm = i_sm;
 
       #region Preload MATLAB functions into memory
       {

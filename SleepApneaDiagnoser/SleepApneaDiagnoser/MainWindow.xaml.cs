@@ -50,12 +50,12 @@ namespace SleepApneaDiagnoser
     {
       SettingsModel settings_model = new SettingsModel();
 
-      common_modelview = new CommonModelView(this, settings_model);
+      common_modelview = new CommonModelView(this);
       settings_modelview = new SettingsModelView(this, common_modelview, settings_model);
-      resp_modelview = new RespiratoryModelView(common_modelview, settings_modelview);
-      eeg_modelview = new EEGModelView(common_modelview, settings_modelview);
-      cohere_modelview = new CoherenceModelView(common_modelview, settings_modelview);
-      preview_modelview = new PreviewModelView(common_modelview, settings_modelview);
+      resp_modelview = new RespiratoryModelView(settings_modelview);
+      eeg_modelview = new EEGModelView(settings_modelview);
+      cohere_modelview = new CoherenceModelView(settings_modelview);
+      preview_modelview = new PreviewModelView(settings_modelview);
 
       this.DataContext = common_modelview;
 
