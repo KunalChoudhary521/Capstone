@@ -267,6 +267,29 @@ namespace SleepApneaDiagnoser
 
       if (dialog.ShowDialog() == true)
       {
+        // Delete file if it exists 
+        try
+        {
+          if (File.Exists(dialog.FileName))
+            File.Delete(dialog.FileName);
+        }
+        catch
+        {
+          // Should trigger if file deletion fails
+          this.ShowMessageAsync("Error", "Selected file is currently in use by another process.\nDo you currently have it open in Excel?");
+          return;
+        }
+        
+        // Check if Excel is installed
+        Microsoft.Office.Interop.Excel.Application app = new Microsoft.Office.Interop.Excel.Application();
+        if (app == null)
+        {
+          this.ShowMessageAsync("Error", "Excel installation not detected.\nThis application needs excel installed in order to export data.");
+          return;
+        }
+        app.Quit();
+        System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
+        
         resp_modelview.ExportRespiratoryCalculations(dialog.FileName);
       }
     }
