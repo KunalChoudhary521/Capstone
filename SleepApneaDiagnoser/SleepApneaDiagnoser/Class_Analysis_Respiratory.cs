@@ -339,10 +339,10 @@ namespace SleepApneaDiagnoser
       List<ScatterPoint> onsets = ((ScatterSeries)plot.Series[2]).Points;
       List<ScatterPoint> negpeaks = ((ScatterSeries)plot.Series[3]).Points;
       List<ScatterPoint> pospeaks = ((ScatterSeries)plot.Series[4]).Points;
+      object[,] signal_points = new object[series.Count + 1, 7];
       #region Get Points
 
       int count_in = 0, count_on = 0, count_pos = 0, count_neg = 0;
-      object[,] signal_points = new object[series.Count + 1, 7];
       signal_points[0, 0] = "Epoch";
       signal_points[0, 1] = "Date Time";
       signal_points[0, 2] = "Value";

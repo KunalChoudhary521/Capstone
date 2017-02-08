@@ -193,12 +193,11 @@ namespace SleepApneaDiagnoser
     private void AppliedThemeColor_Changed()
     {
       OnPropertyChanged(nameof(AppliedThemeColor));
+      
+      Accent new_accent = Utils.ThemeColorToAccent(AppliedThemeColor);
 
-      var application = System.Windows.Application.Current;
-      Accent newAccent = Utils.ThemeColorToAccent(AppliedThemeColor);
-
-      ThemeManager.AddAccent(newAccent.Name, newAccent.Resources.Source);
-      ThemeManager.ChangeAppStyle(application, newAccent, ThemeManager.GetAppTheme(UseDarkTheme ? "BaseDark" : "BaseLight"));
+      ThemeManager.AddAccent(new_accent.Name, new_accent.Resources.Source);
+      ThemeManager.ChangeAppStyle(Application.Current, new_accent, ThemeManager.GetAppTheme(UseDarkTheme ? "BaseDark" : "BaseLight"));
 
       // Update all charts to dark or light theme
       var all_plotmodels = p_window.FindChildren<OxyPlot.Wpf.PlotView>().ToList();   
