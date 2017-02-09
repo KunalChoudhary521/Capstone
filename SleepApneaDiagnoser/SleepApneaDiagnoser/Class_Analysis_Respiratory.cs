@@ -1480,7 +1480,7 @@ namespace SleepApneaDiagnoser
       tempPlotModel.Axes.Add(resp_plots.Item7);
       RespiratorySignalPlot = tempPlotModel;
 
-      Tuple<double, double> breathing_periods = RespiratoryFactory.GetRespiratorySignalBreathingPeriod(new ScatterSeries[] { resp_plots.Item2, resp_plots.Item3, resp_plots.Item4, resp_plots.Item5 });
+      Tuple<double, double> breathing_periods = RespiratoryFactory.GetRespiratorySignalBreathingPeriod(new ScatterSeries[] { resp_plots.Item2, resp_plots.Item3 });
       RespiratoryBreathingPeriodMean = breathing_periods.Item1.ToString("0.## sec/breath");
       RespiratoryBreathingPeriodCoeffVar = breathing_periods.Item2.ToString("0.## %");
 
