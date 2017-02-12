@@ -66,7 +66,14 @@ namespace SleepApneaDiagnoser
   {
     #region Shared Properties and Functions
 
-    private CommonModelView common_data;
+    private SettingsModelView svm;
+    private SettingsModel sm
+    {
+      get
+      {
+        return svm.sm;
+      }
+    }
 
     // Property Changed Listener
     private void Exterior_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -109,14 +116,14 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return common_data.IsEDFLoaded;
+        return svm.IsEDFLoaded;
       }
     }
     public EDFFile LoadedEDFFile
     {
       get
       {
-        return common_data.LoadedEDFFile;
+        return svm.LoadedEDFFile;
       }
     }
     public DateTime EDFStartTime
@@ -150,14 +157,14 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return common_data.EDFAllSignals;
+        return svm.EDFAllSignals;
       }
     }
     public ReadOnlyCollection<string> AllNonHiddenSignals
     {
       get
       {
-        return common_data.AllNonHiddenSignals;
+        return svm.AllNonHiddenSignals;
       }
     }
 
@@ -172,7 +179,7 @@ namespace SleepApneaDiagnoser
     // Shared Functions
     public LineSeries GetSeriesFromSignalName(out float sample_period, string Signal, DateTime StartTime, DateTime EndTime)
     {
-      return common_data.GetSeriesFromSignalName(out sample_period, Signal, StartTime, EndTime);
+      return svm.GetSeriesFromSignalName(out sample_period, Signal, StartTime, EndTime);
     }
     
     #endregion
@@ -181,10 +188,6 @@ namespace SleepApneaDiagnoser
     /// Coherence Model
     /// </summary>
     private CoherenceModel cm = new CoherenceModel();
-    /// <summary>
-    /// Settings Model
-    /// </summary>
-    private SettingsModel sm;
 
     #region Properties
 
@@ -608,13 +611,10 @@ namespace SleepApneaDiagnoser
 
     #endregion
 
-    public CoherenceModelView(CommonModelView i_common_data, SettingsModelView i_svm)
+    public CoherenceModelView(SettingsModelView i_svm)
     {
-      sm = i_svm.sm;
-      common_data = i_common_data;
-      common_data.PropertyChanged += Exterior_PropertyChanged;
-
-      i_svm.PropertyChanged += Exterior_PropertyChanged;
+      svm = i_svm;
+      svm.PropertyChanged += Exterior_PropertyChanged;
     }
   }
 }

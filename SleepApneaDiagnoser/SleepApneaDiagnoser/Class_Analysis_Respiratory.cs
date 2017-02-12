@@ -273,7 +273,7 @@ namespace SleepApneaDiagnoser
     }
     public static Tuple<double, double> GetRespiratorySignalPeakHeight(ScatterSeries series_peaks)
     {
-      List<double> peak_heights = series_peaks.Points.Select(temp => Math.Abs(temp.Y)).ToList();
+      List<double> peak_heights = series_peaks.Points.Select(temp => temp.Y).ToList();
       if (peak_heights.Count != 0)
       {
         // Calculate Mean 
@@ -339,17 +339,17 @@ namespace SleepApneaDiagnoser
       List<ScatterPoint> onsets = ((ScatterSeries)plot.Series[2]).Points;
       List<ScatterPoint> negpeaks = ((ScatterSeries)plot.Series[3]).Points;
       List<ScatterPoint> pospeaks = ((ScatterSeries)plot.Series[4]).Points;
+      object[,] signal_points = new object[series.Count + 1, 7];
       #region Get Points
 
       int count_in = 0, count_on = 0, count_pos = 0, count_neg = 0;
-      object[,] signal_points = new object[series.Count + 1, 7];
       signal_points[0, 0] = "Epoch";
       signal_points[0, 1] = "Date Time";
       signal_points[0, 2] = "Value";
       signal_points[0, 3] = "Inspiration";
       signal_points[0, 4] = "Exspiration";
-      signal_points[0, 5] = "Pos. Peaks";
-      signal_points[0, 6] = "Neg. Peaks";
+      signal_points[0, 5] = "Neg. Peaks";
+      signal_points[0, 6] = "Pos. Peaks";
 
       for (int x = 1; x < series.Count + 1; x++)
       {
@@ -357,22 +357,22 @@ namespace SleepApneaDiagnoser
         signal_points[x, 1] = DateTimeAxis.ToDateTime(series[x - 1].X).ToString("MM/dd/yyyy hh:mm:ss.fff tt");
         signal_points[x, 2] = series[x - 1].Y;
 
-        if (count_in < insets.Count && insets[count_in].X == series[x].X)
+        if (count_in < insets.Count && insets[count_in].X == series[x - 1].X)
         {
           signal_points[x, 3] = series[x - 1].Y;
           count_in++;
         }
-        if (count_on < onsets.Count && onsets[count_on].X == series[x].X)
+        if (count_on < onsets.Count && onsets[count_on].X == series[x - 1].X)
         {
           signal_points[x, 4] = series[x - 1].Y;
           count_on++;
         }
-        if (count_neg < negpeaks.Count && negpeaks[count_neg].X == series[x].X)
+        if (count_neg < negpeaks.Count && negpeaks[count_neg].X == series[x - 1].X)
         {
           signal_points[x, 5] = series[x - 1].Y;
           count_neg++;
         }
-        if (count_pos < pospeaks.Count && pospeaks[count_pos].X == series[x].X)
+        if (count_pos < pospeaks.Count && pospeaks[count_pos].X == series[x - 1].X)
         {
           signal_points[x, 6] = series[x - 1].Y;
           count_pos++;
@@ -382,10 +382,7 @@ namespace SleepApneaDiagnoser
       #endregion 
 
       Application app = new Application();
-
-      if (app == null)
-        return;
-
+      
       Workbook wb = app.Workbooks.Add(System.Reflection.Missing.Value);
       Worksheet ws2 = (Worksheet)wb.Sheets.Add();
       Worksheet ws1 = (Worksheet)wb.Sheets.Add();
@@ -396,6 +393,7 @@ namespace SleepApneaDiagnoser
 
       ws1.Cells[1, 2].Value = "Signal";
       ws1.Cells[1, 3].Value = SignalName;
+      ws1.Cells[1, 2].Font.Bold = true;
 
       ws1.Cells[3, 2].Value = "Property";
       ws1.Cells[3, 3].Value = "Mean";
@@ -408,7 +406,10 @@ namespace SleepApneaDiagnoser
         ws1.Cells[4 + x, 4].Value = signalProperties[x][2];
       }
 
-      ws1.Columns["A:F"].AutoFit();
+      ws1.ListObjects.Add(XlListObjectSourceType.xlSrcRange, ws1.Range[ws1.Cells[3, 2], ws1.Cells[3 + signalProperties.Count, 4]], System.Reflection.Missing.Value, XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = "SignalProperties";
+      ws1.ListObjects["SignalProperties"].TableStyle = "TableStyleLight9";
+      ws1.Columns["A:F"].ColumnWidth = 20;
+      ws1.Columns["C:D"].HorizontalAlignment = XlHAlign.xlHAlignCenter;
 
       #endregion
 
@@ -420,32 +421,44 @@ namespace SleepApneaDiagnoser
       range.Value = signal_points;
       ws2.ListObjects.Add(XlListObjectSourceType.xlSrcRange, range, System.Reflection.Missing.Value, XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = "SignalValues";
       ws2.ListObjects["SignalValues"].TableStyle = "TableStyleLight9";
-      ws2.Columns["A:H"].AutoFit();
+      ws2.Columns["A:I"].ColumnWidth = 20;
+      ws2.Columns["E:H"].Hidden = true;
+      ws2.Columns["B:H"].HorizontalAlignment = XlHAlign.xlHAlignCenter;
 
-      var excel_chart = ((ChartObject)((ChartObjects)ws2.ChartObjects()).Add(500, 100, 900, 300)).Chart;
+      Range range2 = ws2.Range[ws2.Cells[4, 2], ws2.Cells[2 + signal_points.Length / 7, 8]];
+      range2.FormatConditions.Add(XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($E4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+      range2.FormatConditions.Add(XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($F4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+      range2.FormatConditions.Add(XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($G4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+      range2.FormatConditions.Add(XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($H4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+      range2.FormatConditions[1].Interior.Color = 5296274;
+      range2.FormatConditions[2].Interior.Color = 255;
+      range2.FormatConditions[3].Interior.Color = 65535;
+      range2.FormatConditions[4].Interior.Color = 15773696;
+
+      var excel_chart = ((ChartObject)((ChartObjects)ws2.ChartObjects()).Add(500, 100, 900, 500)).Chart;
       excel_chart.SetSourceData(range.Columns["B:G"]);
       excel_chart.ChartType = Microsoft.Office.Interop.Excel.XlChartType.xlXYScatterLines;
-      excel_chart.ChartWizard(
-          Source: range.Columns["B:G"],
-          Title: SignalName,
-          CategoryTitle: "Time",
-          ValueTitle: SignalName);
+      excel_chart.ChartWizard(Source: range.Columns["B:G"], Title: SignalName, CategoryTitle: "Time", ValueTitle: SignalName);
+      excel_chart.PlotVisibleOnly = false;
       ((Microsoft.Office.Interop.Excel.Series)excel_chart.SeriesCollection(1)).ChartType = XlChartType.xlXYScatterLinesNoMarkers;
+      ((Microsoft.Office.Interop.Excel.Series)excel_chart.SeriesCollection(2)).MarkerStyle = XlMarkerStyle.xlMarkerStyleSquare;
+      ((Microsoft.Office.Interop.Excel.Series)excel_chart.SeriesCollection(3)).MarkerStyle = XlMarkerStyle.xlMarkerStyleSquare;
+      ((Microsoft.Office.Interop.Excel.Series)excel_chart.SeriesCollection(4)).MarkerStyle = XlMarkerStyle.xlMarkerStyleSquare;
+      ((Microsoft.Office.Interop.Excel.Series)excel_chart.SeriesCollection(5)).MarkerStyle = XlMarkerStyle.xlMarkerStyleSquare;
+      ((Microsoft.Office.Interop.Excel.Series)excel_chart.SeriesCollection(2)).Format.Fill.ForeColor.RGB = 5296274;
+      ((Microsoft.Office.Interop.Excel.Series)excel_chart.SeriesCollection(3)).Format.Fill.ForeColor.RGB = 255;
+      ((Microsoft.Office.Interop.Excel.Series)excel_chart.SeriesCollection(4)).Format.Fill.ForeColor.RGB = 65535;
+      ((Microsoft.Office.Interop.Excel.Series)excel_chart.SeriesCollection(5)).Format.Fill.ForeColor.RGB = 15773696;
+      ((Microsoft.Office.Interop.Excel.Series)excel_chart.SeriesCollection(2)).Format.Line.ForeColor.RGB = 5296274;
+      ((Microsoft.Office.Interop.Excel.Series)excel_chart.SeriesCollection(3)).Format.Line.ForeColor.RGB = 255;
+      ((Microsoft.Office.Interop.Excel.Series)excel_chart.SeriesCollection(4)).Format.Line.ForeColor.RGB = 65535;
+      ((Microsoft.Office.Interop.Excel.Series)excel_chart.SeriesCollection(5)).Format.Line.ForeColor.RGB = 15773696;
 
       #endregion
 
       #region Save and Close
-
-      try
-      {
-        if (File.Exists(fileName))
-          File.Delete(fileName);
-        wb.SaveAs(fileName);
-      }
-      catch
-      {
-        return;
-      }
+      
+      wb.SaveAs(fileName);
 
       wb.Close(true);
       app.Quit();
@@ -601,7 +614,14 @@ namespace SleepApneaDiagnoser
   {
     #region Shared Properties and Functions
 
-    private CommonModelView common_data;
+    private SettingsModelView svm;
+    private SettingsModel sm
+    {
+      get
+      {
+        return svm.sm;
+      }
+    }
 
     // Property Changed Listener
     private void Exterior_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -642,7 +662,7 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return common_data.LoadedEDFFile;
+        return svm.LoadedEDFFile;
       }
     }
     public DateTime EDFStartTime
@@ -676,14 +696,14 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return common_data.IsEDFLoaded;
+        return svm.IsEDFLoaded;
       }
     }
     public ReadOnlyCollection<string> AllNonHiddenSignals
     {
       get
       {
-        return common_data.AllNonHiddenSignals;
+        return svm.AllNonHiddenSignals;
       }
     }
 
@@ -698,7 +718,7 @@ namespace SleepApneaDiagnoser
     // Shared Functions
     public LineSeries GetSeriesFromSignalName(out float sample_period, string Signal, DateTime StartTime, DateTime EndTime)
     {
-      return common_data.GetSeriesFromSignalName(out sample_period, Signal, StartTime, EndTime);
+      return svm.GetSeriesFromSignalName(out sample_period, Signal, StartTime, EndTime);
     }
     
     #endregion
@@ -707,7 +727,6 @@ namespace SleepApneaDiagnoser
     /// Respiratory Model
     /// </summary>
     private RespiratoryModel rm = new RespiratoryModel();
-    private SettingsModel sm;
     
     #region Properties
 
@@ -1249,7 +1268,7 @@ namespace SleepApneaDiagnoser
       properties.Add(new string[] { "Positive Peak", RespiratoryPositivePeakMean, RespiratoryPositivePeakCoeffVar });
       properties.Add(new string[] { "Negative Peak", RespiratoryNegativePeakMean, RespiratoryNegativePeakCoeffVar });
       properties.Add(new string[] { "Inspiration Volume", RespiratoryInspirationVolumeMean, RespiratoryInspirationVolumeCoeffVar });
-      properties.Add(new string[] { "Inspiration Volume", RespiratoryExpirationVolumeMean, RespiratoryExpirationVolumeCoeffVar });
+      properties.Add(new string[] { "Exspiration Volume", RespiratoryExpirationVolumeMean, RespiratoryExpirationVolumeCoeffVar });
 
       RespiratoryFactory.SaveRespiratoryAnalysisToExcel(e.Argument.ToString(), SignalName, properties, StartTime, RespiratorySignalPlot);
     }
@@ -1461,7 +1480,7 @@ namespace SleepApneaDiagnoser
       tempPlotModel.Axes.Add(resp_plots.Item7);
       RespiratorySignalPlot = tempPlotModel;
 
-      Tuple<double, double> breathing_periods = RespiratoryFactory.GetRespiratorySignalBreathingPeriod(new ScatterSeries[] { resp_plots.Item2, resp_plots.Item3, resp_plots.Item4, resp_plots.Item5 });
+      Tuple<double, double> breathing_periods = RespiratoryFactory.GetRespiratorySignalBreathingPeriod(new ScatterSeries[] { resp_plots.Item2, resp_plots.Item3 });
       RespiratoryBreathingPeriodMean = breathing_periods.Item1.ToString("0.## sec/breath");
       RespiratoryBreathingPeriodCoeffVar = breathing_periods.Item2.ToString("0.## %");
 
@@ -1504,13 +1523,10 @@ namespace SleepApneaDiagnoser
 
     #endregion
 
-    public RespiratoryModelView(CommonModelView i_common_data, SettingsModelView i_svm)
+    public RespiratoryModelView(SettingsModelView i_svm)
     {
-      sm = i_svm.sm;
-      common_data = i_common_data;
-
-      i_svm.PropertyChanged += Exterior_PropertyChanged;
-      common_data.PropertyChanged += Exterior_PropertyChanged;
+      svm = i_svm;
+      svm.PropertyChanged += Exterior_PropertyChanged;
     }
   }
 }

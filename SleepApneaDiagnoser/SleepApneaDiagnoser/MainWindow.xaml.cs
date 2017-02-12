@@ -50,12 +50,12 @@ namespace SleepApneaDiagnoser
     {
       SettingsModel settings_model = new SettingsModel();
 
-      common_modelview = new CommonModelView(this, settings_model);
+      common_modelview = new CommonModelView(this);
       settings_modelview = new SettingsModelView(this, common_modelview, settings_model);
-      resp_modelview = new RespiratoryModelView(common_modelview, settings_modelview);
-      eeg_modelview = new EEGModelView(common_modelview, settings_modelview);
-      cohere_modelview = new CoherenceModelView(common_modelview, settings_modelview);
-      preview_modelview = new PreviewModelView(common_modelview, settings_modelview);
+      resp_modelview = new RespiratoryModelView(settings_modelview);
+      eeg_modelview = new EEGModelView(settings_modelview);
+      cohere_modelview = new CoherenceModelView(settings_modelview);
+      preview_modelview = new PreviewModelView(settings_modelview);
 
       this.DataContext = common_modelview;
 
@@ -267,6 +267,29 @@ namespace SleepApneaDiagnoser
 
       if (dialog.ShowDialog() == true)
       {
+        // Delete file if it exists 
+        try
+        {
+          if (File.Exists(dialog.FileName))
+            File.Delete(dialog.FileName);
+        }
+        catch
+        {
+          // Should trigger if file deletion fails
+          this.ShowMessageAsync("Error", "Selected file is currently in use by another process.\nDo you currently have it open in Excel?");
+          return;
+        }
+        
+        // Check if Excel is installed
+        Microsoft.Office.Interop.Excel.Application app = new Microsoft.Office.Interop.Excel.Application();
+        if (app == null)
+        {
+          this.ShowMessageAsync("Error", "Excel installation not detected.\nThis application needs excel installed in order to export data.");
+          return;
+        }
+        app.Quit();
+        System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
+        
         resp_modelview.ExportRespiratoryCalculations(dialog.FileName);
       }
     }
