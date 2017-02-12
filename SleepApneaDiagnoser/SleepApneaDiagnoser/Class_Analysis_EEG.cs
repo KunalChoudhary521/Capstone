@@ -694,44 +694,10 @@ namespace SleepApneaDiagnoser
       PSDAnalysis(out psdValues, out frqValues, mLabsignalSeries, sampleFreq);
 
       /****************************Computation for Spectrogram**************************/
-      Spectrogram computeForspec = new Spectrogram();
-      MWArray[] mLabSpec = null;
-      mLabSpec = computeForspec.eeg_specgram(3, mLabsignalSeries, sampleFreq);//[colorData,f,t]
-      MWNumericArray tempSpec = (MWNumericArray)mLabSpec[0];//already multiplied by 10*log10()
-      MWNumericArray tempFrq = (MWNumericArray)mLabSpec[1];
-      MWNumericArray tempTime = (MWNumericArray)mLabSpec[2];
+      double[] specTime;  double[] specFrq;
+      double[,] specMatrixtranspose;
+      SpecGramAnalysis(out specTime, out specFrq, out specMatrixtranspose, mLabsignalSeries, sampleFreq);      
 
-      //# of rows = mLabSpec[0].Dimensions[0]
-      double[,] specMatrix = new double[mLabSpec[0].Dimensions[0], mLabSpec[0].Dimensions[1]];
-      double[] specTime = new double[tempTime.NumberOfElements + 1];
-      double[] specFrq = new double[tempFrq.NumberOfElements];
-      int idx = 0;
-      //MATLAB matrix are column-major order
-      for (int i = 0; i < mLabSpec[0].Dimensions[0]; i++)
-      {
-        for (int j = 0; j < mLabSpec[0].Dimensions[1]; j++)
-        {
-          idx = (mLabSpec[0].Dimensions[0] * j) + i + 1;//(total_rows * curr_col) + curr_row
-          specMatrix[i, j] = (double)tempSpec[idx];
-        }
-      }
-      double[,] specMatrixtranspose = new double[mLabSpec[0].Dimensions[1], mLabSpec[0].Dimensions[0]];
-      for (int j = 0; j < mLabSpec[0].Dimensions[1]; j++)//need to combine this loop with the loop above 
-      {
-        for (int i = 0; i < mLabSpec[0].Dimensions[0]; i++)
-        {
-          specMatrixtranspose[j, i] = specMatrix[i, j];
-        }
-      }
-
-      for (int i = 1; i < specTime.Length; i++)
-      {
-        specTime[i] = (double)tempTime[i];
-      }
-      for (int i = 1; i < specFrq.Length; i++)
-      {
-        specFrq[i - 1] = (double)tempFrq[i];
-      }
 
 
       //order of bands MUST match the order of bands in fqRange array (see above)
@@ -747,23 +713,7 @@ namespace SleepApneaDiagnoser
       PlotPowerSpectralDensity(psdValues, frqValues);
 
       /********************Plotting a heatmap for spectrogram (line 820, 2133 - PSG_viewer_v7.m)*********************/
-      PlotModel tempSpectGram = new PlotModel()
-      {
-        Title = "Spectrogram",
-      };
-      LinearColorAxis specLegend = new LinearColorAxis() { Position = AxisPosition.Right, Palette = OxyPalettes.Jet(500) };
-      LinearAxis specYAxis = new LinearAxis() { Position = AxisPosition.Left, Title = "Frequency (Hz)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8 };
-      LinearAxis specXAxis = new LinearAxis() { Position = AxisPosition.Bottom, Title = "Time (s)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold };
-
-      tempSpectGram.Axes.Add(specLegend);
-      tempSpectGram.Axes.Add(specXAxis);
-      tempSpectGram.Axes.Add(specYAxis);
-
-      double minTime = specTime.Min(), maxTime = specTime.Max(), minFreq = specFrq.Min(), maxFreq = specFrq.Max();
-      HeatMapSeries specGram = new HeatMapSeries() { X0 = minTime, X1 = maxTime, Y0 = minFreq, Y1 = maxFreq, Data = specMatrixtranspose };
-      tempSpectGram.Series.Add(specGram);
-
-      PlotSpecGram = tempSpectGram;
+      PlotSpectrogram(specTime, specFrq, specMatrixtranspose);
 
 
       /*************************Exporting to .tiff format**************************/
@@ -833,7 +783,50 @@ namespace SleepApneaDiagnoser
         frqValues[i] = (double)tempFrq[i];
       }
     }
+    public void SpecGramAnalysis(out double[] specTime, out double[] specFrq, out double[,] specMatTPose, 
+                                MWNumericArray signalArray, MWNumericArray sampleFreq)
+    {
+      Spectrogram computeForspec = new Spectrogram();
+      MWArray[] mLabSpec = null;
+      mLabSpec = computeForspec.eeg_specgram(3, signalArray, sampleFreq);//[colorData,f,t]
+      MWNumericArray tempSpec = (MWNumericArray)mLabSpec[0];//already multiplied by 10*log10()
+      MWNumericArray tempFrq = (MWNumericArray)mLabSpec[1];
+      MWNumericArray tempTime = (MWNumericArray)mLabSpec[2];
 
+      //# of rows = mLabSpec[0].Dimensions[0]
+      double[,] specMatrix = new double[mLabSpec[0].Dimensions[0], mLabSpec[0].Dimensions[1]];
+      specTime = new double[tempTime.NumberOfElements + 1];
+      specFrq = new double[tempFrq.NumberOfElements];
+      int idx = 0;
+      //MATLAB matrix are column-major order
+      for (int i = 0; i < mLabSpec[0].Dimensions[0]; i++)
+      {
+        for (int j = 0; j < mLabSpec[0].Dimensions[1]; j++)
+        {
+          idx = (mLabSpec[0].Dimensions[0] * j) + i + 1;//(total_rows * curr_col) + curr_row
+          specMatrix[i, j] = (double)tempSpec[idx];
+        }
+      }
+
+      specMatTPose = new double[mLabSpec[0].Dimensions[1], mLabSpec[0].Dimensions[0]];
+      for (int j = 0; j < mLabSpec[0].Dimensions[1]; j++)//need to combine this loop with the loop above 
+      {
+        for (int i = 0; i < mLabSpec[0].Dimensions[0]; i++)
+        {
+          specMatTPose[j, i] = specMatrix[i, j];
+        }
+      }
+
+      for (int i = 1; i < specTime.Length; i++)
+      {
+        specTime[i] = (double)tempTime[i];
+      }
+      for (int i = 1; i < specFrq.Length; i++)
+      {
+        specFrq[i - 1] = (double)tempFrq[i];
+      }
+
+    }
     public void PlotAbsolutePower(ColumnItem[] bandItems, String[] bandFrqs)
     {
       PlotModel tempAbsPwr = new PlotModel()
@@ -913,6 +906,26 @@ namespace SleepApneaDiagnoser
       tempPSD.Axes.Add(new LinearAxis() { Position = AxisPosition.Bottom, Title = "Frequency (Hz)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8, Maximum = frqVal.Max() * 1.02 });
 
       PlotPSD = tempPSD;
+    }
+    public void PlotSpectrogram(double[] specTime, double[] specFrq, double[,] specMatTPose)
+    {
+      PlotModel tempSpectGram = new PlotModel()
+      {
+        Title = "Spectrogram",
+      };
+      LinearColorAxis specLegend = new LinearColorAxis() { Position = AxisPosition.Right, Palette = OxyPalettes.Jet(500) };
+      LinearAxis specYAxis = new LinearAxis() { Position = AxisPosition.Left, Title = "Frequency (Hz)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold, AxisTitleDistance = 8 };
+      LinearAxis specXAxis = new LinearAxis() { Position = AxisPosition.Bottom, Title = "Time (s)", TitleFontSize = 14, TitleFontWeight = OxyPlot.FontWeights.Bold };
+
+      tempSpectGram.Axes.Add(specLegend);
+      tempSpectGram.Axes.Add(specXAxis);
+      tempSpectGram.Axes.Add(specYAxis);
+
+      double minTime = specTime.Min(), maxTime = specTime.Max(), minFreq = specFrq.Min(), maxFreq = specFrq.Max();
+      HeatMapSeries specGram = new HeatMapSeries() { X0 = minTime, X1 = maxTime, Y0 = minFreq, Y1 = maxFreq, Data = specMatTPose};
+      tempSpectGram.Series.Add(specGram);
+
+      PlotSpecGram = tempSpectGram;
     }
 
     public void ExportEEGCalculations()//add signal title in the analysisDir name
