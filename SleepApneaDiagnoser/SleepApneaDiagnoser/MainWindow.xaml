@@ -110,7 +110,7 @@
                     <Button x:Name="button_Next" Content="&gt;" HorizontalAlignment="Right" Margin="0,52,10,0" VerticalAlignment="Top" Width="32" Height="23" IsEnabled="{Binding IsEDFLoaded}" Click="button_Next_Click"/>
                     <ListBox x:Name="listBox_SignalSelect" Margin="10,90,10,47.333" SelectionMode="Multiple" SelectionChanged="listBox_SignalSelect_SelectionChanged" ItemsSource="{Binding PreviewSignals}" FontSize="14" IsEnabled="{Binding PreviewNavigationEnabled}"/>
                     <Button x:Name="export_button" Margin="10,0,0,10.333" Content="Export to Binary" IsEnabled="{Binding IsEDFLoaded}" Click="button_ExportBinary_Click" HorizontalAlignment="Left" Width="122" Height="32" VerticalAlignment="Bottom"/>
-                    <Button x:Name="button_ExportImage" Margin="140,0,0,10.333" Content="Export to Image" IsEnabled="{Binding IsEDFLoaded}" Click="button_ExportImage_Click" HorizontalAlignment="Left" Width="122" Height="32" VerticalAlignment="Bottom"/>
+                    <Button x:Name="button_ExportImage" Margin="140,0,0,10.333" Content="Export to Excel" IsEnabled="{Binding IsEDFLoaded}" Click="button_PreviewExportExcel_Click" HorizontalAlignment="Left" Width="122" Height="32" VerticalAlignment="Bottom"/>
 
                     <!-- Navigation and Plot -->
                     <Grid Grid.Column="1">
@@ -129,7 +129,7 @@
                             <ToggleButton x:Name="toggleButton_UseConstantAxis" Content="CONSTANT AXIS" IsChecked="{Binding PreviewUseConstantAxis}" IsEnabled="{Binding PreviewNavigationEnabled}" Grid.Column="1" Margin="10,38,2,0" Height="32" VerticalAlignment="Top" />
                         </Grid>
                         <oxy:PlotView Background="Transparent" x:Name="PlotView_signalPlot" Margin="10,137,10,10" Model="{Binding PreviewSignalPlot}" IsEnabled="{Binding PreviewNavigationEnabled}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Grid.Column="1"/>
-                        <mtr:ProgressRing Name="ProgressRing_PreviewTab" IsActive="{Binding PreviewProgressRingEnabled}" Grid.Column="1" Margin="368,305,338.667,304.333"></mtr:ProgressRing>
+                        <mtr:ProgressRing Name="ProgressRing_PreviewTab" IsActive="{Binding PreviewProgressRingEnabled}" Grid.Column="1"/>
                     </Grid>
 
                     <!-- EDF Header -->

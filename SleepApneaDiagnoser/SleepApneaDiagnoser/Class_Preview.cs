@@ -10,9 +10,84 @@ using OxyPlot;
 using OxyPlot.Series;
 using OxyPlot.Axes;
 using System.Windows.Forms;
+using Excel = Microsoft.Office.Interop.Excel;
 
 namespace SleepApneaDiagnoser
 {
+  /// <summary>
+  /// Factory containing business logic used exclusively in the 'Preview' tab
+  /// </summary>
+  public static class PreviewFactory
+  {
+    #region Static Functions
+    public static void SavePreviewPlotToExcel(string fileName, PlotModel PreviewPlot, DateTime StartTime)
+    {
+      if (PreviewPlot != null)
+      {
+        Excel.Application app = new Excel.Application();
+
+        Excel.Workbook wb = app.Workbooks.Add(System.Reflection.Missing.Value);
+        List<Excel.Worksheet> ws = new List<Excel.Worksheet>();
+        for (int x = 0; x < PreviewPlot.Series.Count; x++)
+          ws.Add((Excel.Worksheet)wb.Sheets.Add());
+
+        for (int x = 0; x < ws.Count; x++)
+        {
+          LineSeries series = (LineSeries)PreviewPlot.Series[x];
+          object[,] signal_points = new object[series.Points.Count + 1, 3];
+          #region Get Points
+
+          signal_points[0, 0] = "Epoch";
+          signal_points[0, 1] = "Date Time";
+          signal_points[0, 2] = "Value";
+
+          for (int y = 1; y < series.Points.Count + 1; y++)
+          {
+            signal_points[y, 0] = Utils.DateTimetoEpoch(DateTimeAxis.ToDateTime(series.Points[y - 1].X), StartTime);
+            signal_points[y, 1] = DateTimeAxis.ToDateTime(series.Points[y - 1].X).ToString("MM/dd/yyyy hh:mm:ss.fff tt");
+            signal_points[y, 2] = series.Points[y - 1].Y;
+          }
+
+          #endregion
+
+          #region Add Points to Sheet and Draw Plot
+
+          ws[x].Name = series.YAxis.Title;
+
+          Excel.Range range = ws[x].Range[ws[x].Cells[3, 2], ws[x].Cells[2 + signal_points.Length / 3, 4]];
+          range.Value = signal_points;
+          ws[x].ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, range, System.Reflection.Missing.Value, Excel.XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = "SignalValues" + x.ToString();
+          ws[x].ListObjects["SignalValues" + x.ToString()].TableStyle = "TableStyleLight9";
+          ws[x].Columns["A:I"].ColumnWidth = 20;
+          ws[x].Columns["B:H"].HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
+
+          var excel_chart = ((Excel.ChartObject)((Excel.ChartObjects)ws[x].ChartObjects()).Add(500, 100, 900, 500)).Chart;
+          excel_chart.SetSourceData(range.Columns["B:C"]);
+          excel_chart.ChartType = Microsoft.Office.Interop.Excel.XlChartType.xlXYScatterLines;
+          excel_chart.ChartWizard(Source: range.Columns["B:C"], Title: series.YAxis.Title, CategoryTitle: "Time", ValueTitle: series.YAxis.Title);
+
+          #endregion
+          System.Runtime.InteropServices.Marshal.ReleaseComObject(excel_chart);
+          System.Runtime.InteropServices.Marshal.ReleaseComObject(range);
+        }
+
+        #region Save and Close
+
+        wb.SaveAs(fileName);
+
+        wb.Close(true);
+        app.Quit();
+
+        for (int x = 0; x < ws.Count; x++)
+          System.Runtime.InteropServices.Marshal.ReleaseComObject(ws[x]);
+        System.Runtime.InteropServices.Marshal.ReleaseComObject(wb);
+        System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
+
+        #endregion
+      }
+    }
+    #endregion
+  }
 
   /// <summary>
   /// Model for variables used exclusively in the 'Preview' tab
@@ -1148,25 +1223,37 @@ namespace SleepApneaDiagnoser
     }
 
     /// <summary>
+    /// Background process for exporting preview plot
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void BW_ExportExcel_DoWork(object sender, DoWorkEventArgs e)
+    {
+      PreviewFactory.SavePreviewPlotToExcel(e.Argument.ToString(), PreviewSignalPlot, EDFStartTime);
+    }
+    /// <summary>
+    /// Called when exporting preview plot finishes
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    private void BW_ExportExcel_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+    {
+      PreviewNavigationEnabled = true;
+    }
+    /// <summary>
     /// Exports chart to image
     /// </summary>
-    public void ExportImage(string fileName)
+    public void ExportExcel(string fileName)
     {
-      var export = new OxyPlot.Wpf.PngExporter();
-      export.Width = 1280;
-      export.Height = 720;
-      export.Background = OxyColors.White;
+      PreviewNavigationEnabled = false;
 
-      MemoryStream stream = new MemoryStream();
-      FileStream file = new FileStream(fileName, FileMode.Create);
-
-      export.Export(PreviewSignalPlot, stream);
-      stream.WriteTo(file);
-      file.Close();
-      stream.Close();
+      BackgroundWorker bw = new BackgroundWorker();
+      bw.DoWork += BW_ExportExcel_DoWork;
+      bw.RunWorkerCompleted += BW_ExportExcel_RunWorkerCompleted;
+      bw.RunWorkerAsync(fileName);
     }
-    
-    #endregion 
+
+    #endregion
 
     #region etc
 
