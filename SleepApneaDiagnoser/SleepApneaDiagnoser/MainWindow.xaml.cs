@@ -278,10 +278,6 @@ namespace SleepApneaDiagnoser
     }
 
     // Analysis Tab Events 
-    private void button_EDFEEGAnalysis_Click(object sender, RoutedEventArgs e)
-    {
-      eeg_modelview.PerformEEGAnalysisEDF();
-    }
     private void button_ExportRespiratoryCalculationsClick(object sender, RoutedEventArgs e)
     {
       Microsoft.Win32.SaveFileDialog dialog = new Microsoft.Win32.SaveFileDialog();

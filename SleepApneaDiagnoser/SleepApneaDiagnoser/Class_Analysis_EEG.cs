@@ -216,6 +216,8 @@ namespace SleepApneaDiagnoser
       {
         eegm.EEGEDFSelectedSignal = value;
         OnPropertyChanged(nameof(EEGEDFSelectedSignal));
+        if (EEGEDFSelectedSignal != null && EpochForAnalysis != null)
+          PerformEEGAnalysisEDF();
       }
     }
     public int? EpochForAnalysis
@@ -228,6 +230,8 @@ namespace SleepApneaDiagnoser
       {
         eegm.EpochForAnalysis = value ?? 1;
         OnPropertyChanged(nameof(EpochForAnalysis));
+        if (EEGEDFSelectedSignal != null && EpochForAnalysis != null)
+          PerformEEGAnalysisEDF();
       }
     }
 
