@@ -64,6 +64,13 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public String[] EEGExportOptions = null;
 
+    // Freeze UI when Performing Analysis 
+
+    /// <summary>
+    /// True if the program is performing analysis and a progress ring should be shown
+    /// </summary>
+    public bool EEGProgressRingEnabled = false;
+
     #endregion 
   }
 
@@ -105,6 +112,7 @@ namespace SleepApneaDiagnoser
           }
           EEGView_Changed();
           OnPropertyChanged(nameof(IsEDFLoaded));
+          OnPropertyChanged(nameof(EEGEDFNavigationEnabled));
           break;
         default:
           OnPropertyChanged(e.PropertyName);
@@ -446,76 +454,36 @@ namespace SleepApneaDiagnoser
     private DateTime eeg_bind_curr_from;
     private int eeg_bin_max_epochs;
 
+    // Freeze UI when Performing Analysis 
+    public bool EEGProgressRingEnabled
+    {
+      get
+      {
+        return eegm.EEGProgressRingEnabled;
+      }
+      set
+      {
+        eegm.EEGProgressRingEnabled = value;
+        OnPropertyChanged(nameof(EEGProgressRingEnabled));
+        OnPropertyChanged(nameof(EEGEDFNavigationEnabled));
+      }
+    }
+    public bool EEGEDFNavigationEnabled
+    {
+      get
+      {
+        if (!IsEDFLoaded)
+          return false;
+        else
+          return !EEGProgressRingEnabled;
+      }
+    }
+
     #endregion
 
     #region Actions
-
-
+    
     //EEG Analysis From Binary File
-    public void PerformEEGAnalysisBinary()
-    {
-      this.EEGAnalysisBinaryFileLoaded = 1;
-      OnPropertyChanged(nameof(IsEEGBinaryLoaded));
-      System.Windows.Forms.OpenFileDialog dialog = new System.Windows.Forms.OpenFileDialog();
-
-      dialog.Filter = "|*.bin";
-
-      if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-      {
-        // select the binary file
-        FileStream bin_file = new FileStream(dialog.FileName, FileMode.Open);
-        BinaryReader reader = new BinaryReader(bin_file);
-
-        byte[] value = new byte[4];
-        bool didReachEnd = false;
-        eeg_bin_signal_values = new List<float>();
-        // read the whole binary file and build the signal values
-        while (reader.BaseStream.Position != reader.BaseStream.Length)
-        {
-          try
-          {
-            value = reader.ReadBytes(4);
-            float myFloat = System.BitConverter.ToSingle(value, 0);
-            eeg_bin_signal_values.Add(myFloat);
-          }
-          catch (Exception ex)
-          {
-            didReachEnd = true;
-            break;
-          }
-        }
-
-        // close the binary file
-        bin_file.Close();
-
-        // get the file metadata from the header file
-        bin_file = new FileStream(dialog.FileName.Remove(dialog.FileName.Length - 4, 4) + ".hdr", FileMode.Open);
-
-        StreamReader file_reader = new StreamReader(bin_file);
-        // get the signal name
-        eeg_bin_signal_name = file_reader.ReadLine();
-        eeg_bin_subject_id = file_reader.ReadLine();
-        eeg_bin_date_time_from = file_reader.ReadLine();
-        eeg_bin_date_time_to = file_reader.ReadLine();
-        eeg_bin_sample_frequency_s = file_reader.ReadLine();
-
-        eeg_bin_max_epochs = (int)(DateTime.Parse(eeg_bin_date_time_to).Subtract(DateTime.Parse(eeg_bin_date_time_from)).TotalSeconds) / 30;
-        OnPropertyChanged(nameof(EEGBinaryMaxEpoch));
-
-        bin_file.Close();
-
-        float sample_period = 1 / float.Parse(eeg_bin_sample_frequency_s);
-
-        DateTime epochs_from_datetime = DateTime.Parse(eeg_bin_date_time_from);
-        DateTime epochs_to_datetime = DateTime.Parse(eeg_bin_date_time_to);
-
-        // perform all of the respiratory analysis
-        BW_EEGAnalysisBin(eeg_bin_signal_name, eeg_bin_signal_values, epochs_from_datetime, epochs_from_datetime, epochs_from_datetime.AddSeconds(30), sample_period);
-      }
-      else
-      {
-      }
-    }
     private void BW_EEGAnalysisBin(string Signal, List<float> values, DateTime binary_start, DateTime epochs_from, DateTime epochs_to, float sample_period)
     {
       // Variable To Return
@@ -647,6 +615,77 @@ namespace SleepApneaDiagnoser
 
       return;//for debugging only
     }
+    private void BW_FinishEEGAnalysisBin(object sender, RunWorkerCompletedEventArgs e)
+    {
+      EEGProgressRingEnabled = false;
+    }
+    public void PerformEEGAnalysisBinary()
+    {
+      EEGProgressRingEnabled = true;
+
+      this.EEGAnalysisBinaryFileLoaded = 1;
+      OnPropertyChanged(nameof(IsEEGBinaryLoaded));
+      System.Windows.Forms.OpenFileDialog dialog = new System.Windows.Forms.OpenFileDialog();
+
+      dialog.Filter = "|*.bin";
+
+      if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+      {
+        // select the binary file
+        FileStream bin_file = new FileStream(dialog.FileName, FileMode.Open);
+        BinaryReader reader = new BinaryReader(bin_file);
+
+        byte[] value = new byte[4];
+        bool didReachEnd = false;
+        eeg_bin_signal_values = new List<float>();
+        // read the whole binary file and build the signal values
+        while (reader.BaseStream.Position != reader.BaseStream.Length)
+        {
+          try
+          {
+            value = reader.ReadBytes(4);
+            float myFloat = System.BitConverter.ToSingle(value, 0);
+            eeg_bin_signal_values.Add(myFloat);
+          }
+          catch (Exception ex)
+          {
+            didReachEnd = true;
+            break;
+          }
+        }
+
+        // close the binary file
+        bin_file.Close();
+
+        // get the file metadata from the header file
+        bin_file = new FileStream(dialog.FileName.Remove(dialog.FileName.Length - 4, 4) + ".hdr", FileMode.Open);
+
+        StreamReader file_reader = new StreamReader(bin_file);
+        // get the signal name
+        eeg_bin_signal_name = file_reader.ReadLine();
+        eeg_bin_subject_id = file_reader.ReadLine();
+        eeg_bin_date_time_from = file_reader.ReadLine();
+        eeg_bin_date_time_to = file_reader.ReadLine();
+        eeg_bin_sample_frequency_s = file_reader.ReadLine();
+
+        eeg_bin_max_epochs = (int)(DateTime.Parse(eeg_bin_date_time_to).Subtract(DateTime.Parse(eeg_bin_date_time_from)).TotalSeconds) / 30;
+        OnPropertyChanged(nameof(EEGBinaryMaxEpoch));
+
+        bin_file.Close();
+
+        float sample_period = 1 / float.Parse(eeg_bin_sample_frequency_s);
+
+        DateTime epochs_from_datetime = DateTime.Parse(eeg_bin_date_time_from);
+        DateTime epochs_to_datetime = DateTime.Parse(eeg_bin_date_time_to);
+
+        // perform all of the respiratory analysis
+        BW_EEGAnalysisBin(eeg_bin_signal_name, eeg_bin_signal_values, epochs_from_datetime, epochs_from_datetime, epochs_from_datetime.AddSeconds(30), sample_period);
+        BW_FinishEEGAnalysisBin(null, null);
+      }
+      else
+      {
+      }
+    }
 
     //EEG Analysis From EDF File
     /* Note to self:
@@ -734,7 +773,20 @@ namespace SleepApneaDiagnoser
 
       return;//for debugging only
     }
+    private void BW_FinishEEGAnalysisEDF(object sender, RunWorkerCompletedEventArgs e)
+    {
+      EEGProgressRingEnabled = false;
+    }
+    public void PerformEEGAnalysisEDF()
+    {
+      EEGProgressRingEnabled = true;
 
+      BackgroundWorker bw = new BackgroundWorker();
+      bw.DoWork += BW_EEGAnalysisEDF;
+      bw.RunWorkerCompleted += BW_FinishEEGAnalysisEDF;
+      bw.RunWorkerAsync();
+    }
+    
     public void setFreqBands(out MWNumericArray[] fRange, int numberOfBands)
     {
       fRange = new MWNumericArray[numberOfBands];
@@ -1056,19 +1108,7 @@ namespace SleepApneaDiagnoser
       }
       fileStream.Close();
     }
-
-    private void BW_FinishEEGAnalysisEDF(object sender, RunWorkerCompletedEventArgs e)
-    {
-
-    }
-    public void PerformEEGAnalysisEDF()
-    {
-      BackgroundWorker bw = new BackgroundWorker();
-      bw.DoWork += BW_EEGAnalysisEDF;
-      bw.RunWorkerCompleted += BW_FinishEEGAnalysisEDF;
-      bw.RunWorkerAsync();
-    }
-
+    
     #endregion
 
     #region etc
