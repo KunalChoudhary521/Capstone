@@ -604,14 +604,13 @@ namespace SleepApneaDiagnoser
       PlotSpecGram = tempSpectGram;
 
 
-      /*************************Exporting to .tiff format**************************/
+      /*************************Exporting to .png format**************************/      
       String plotsDir = "EEGPlots//Epoch-" + ((int)EpochForAnalysis).ToString() + "//";
       Directory.CreateDirectory(plotsDir);//if directory already exist, this line will be ignored
       ExportEEGPlot(PlotAbsPwr, plotsDir + "AbsPower.png");
       ExportEEGPlot(PlotRelPwr, plotsDir + "RelPower.png");
       ExportEEGPlot(PlotPSD, plotsDir + "PSD-Epoch.png");
-
-      //GenericExportImage(PlotSpecGram, "Spectrogram.png");//Need to review implementation
+      ExportEEGPlot(PlotSpecGram, plotsDir +"Spectrogram.png");
 
       return;//for debugging only
     }
@@ -761,15 +760,6 @@ namespace SleepApneaDiagnoser
       /********************Plotting a heatmap for spectrogram (line 820, 2133 - PSG_viewer_v7.m)*********************/
       PlotSpectrogram(specTime, specFrq, specMatrixtranspose);
 
-
-      /*************************Exporting to .png format**************************/
-      String plotsDir = "EEGPlots//" + EEGEDFSelectedSignal.ToString() + "-"
-                         + ((int)EpochForAnalysis).ToString() + "//";
-      Directory.CreateDirectory(plotsDir);//if directory already exist, this line will be ignored
-      ExportEEGPlot(PlotAbsPwr, plotsDir + "AbsPower.png");
-      ExportEEGPlot(PlotRelPwr, plotsDir + "RelPower.png");
-      ExportEEGPlot(PlotPSD, plotsDir + "PSD.png");
-      ExportEEGPlot(PlotSpecGram, plotsDir + "Spectrogram.png");
 
       return;//for debugging only
     }
@@ -987,6 +977,42 @@ namespace SleepApneaDiagnoser
 
       PlotSpecGram = tempSpectGram;
     }
+    /*************************Exporting to .png format**************************/
+    public void ExportEEGPlots()//add signal title in the analysisDir name
+    {
+      String plotsDir = null;
+      try
+      {
+        plotsDir = ChooseDirectory();
+        if (plotsDir == null)
+        {
+          return;//user did not choose a valid directory
+        }
+        else
+        {
+          plotsDir += "EEGPlots\\" + EEGEDFSelectedSignal.ToString() + "-"
+                           + ((int)EpochForAnalysis).ToString() + "\\";
+        }
+      }
+      catch (Exception ex)
+      {
+        return;//user did not choose a signal
+      }     
+
+      /*  If any of the plots is null, then EEG calculation was unsuccessful.
+       *  In that event, plots are not exported.
+      */
+      if ((PlotAbsPwr == null) || (PlotRelPwr == null)
+          || (PlotPSD == null) || (PlotSpecGram == null))
+      {
+        return;
+      }
+      Directory.CreateDirectory(plotsDir);//if directory already exist, this line will be ignored
+      ExportEEGPlot(PlotAbsPwr, plotsDir + "AbsPower.png");
+      ExportEEGPlot(PlotRelPwr, plotsDir + "RelPower.png");
+      ExportEEGPlot(PlotPSD, plotsDir + "PSD.png");
+      ExportEEGPlot(PlotSpecGram, plotsDir + "Spectrogram.png");
+    }
 
     public void ExportEEGCalculations()//add signal title in the analysisDir name
     {
@@ -1020,7 +1046,17 @@ namespace SleepApneaDiagnoser
       LineSeries signalPerEpoch = null;
 
       //Setup data to be entered in each file
-      String analysisDir = "EEGAnalysis//" + fromToDir + "//";
+      String analysisDir = ChooseDirectory();
+      if(analysisDir == null)
+      {
+        //Do not export calculations if user did not select a valid directory
+        return;
+      }
+      else
+      {
+        analysisDir += "EEGAnalysis\\" + fromToDir + "\\";
+      }
+      
       Directory.CreateDirectory(analysisDir);//if directory already exist, this line will be ignored
 
       StreamWriter fileSetup = new StreamWriter(analysisDir + "EEGSignal.csv");
@@ -1078,9 +1114,39 @@ namespace SleepApneaDiagnoser
 
       return;//for debugging only
     }
-    //Plots are exported to SleepApneaDiagnoser\SleepApneaDiagnoser\bin\Debug\EEGPlots location
-    public void ExportEEGPlot(PlotModel pModel, String fileName)
+    public String ChooseDirectory()
     {
+      String userDir = null;
+      Thread exportTh = new Thread(() => { userDir = ChooseDirectoryHelper(); });
+      exportTh.SetApartmentState(ApartmentState.STA);
+      exportTh.Start();
+      exportTh.Join();
+
+      return userDir;
+    }
+    //Allows user to choose the location where they would like to export Calculations or Plots
+    //Dialog box in WPF: WpfDialog.txt
+    public String ChooseDirectoryHelper()
+    {
+      String directory = null;
+
+      using (var dialog = new System.Windows.Forms.FolderBrowserDialog())
+      {
+        System.Windows.Forms.DialogResult result = dialog.ShowDialog();
+        directory = dialog.SelectedPath;
+      }
+      if(String.IsNullOrEmpty(directory))
+      {
+        return null;
+      }
+      else
+      {
+        return (directory + "\\");
+      }
+      
+    }
+    public void ExportEEGPlot(PlotModel pModel, String fileName)
+    {      
       Thread exportTh = new Thread(() => Utils.ExportImage(pModel, fileName));
       exportTh.SetApartmentState(ApartmentState.STA);
       exportTh.Start();
@@ -1088,8 +1154,6 @@ namespace SleepApneaDiagnoser
     }
 
     /*  Export Calculations to .csv format (this can be opened in MS Excel)
-     *  Calculations are exported to SleepApneaDiagnoser\SleepApneaDiagnoser\bin\Debug\EEGAnalysis location
-     *
      */
     public void AbsPwrToCSV(double[] absPwrData, int epoch, String fileName)
     {
