@@ -89,12 +89,31 @@ namespace SleepApneaDiagnoser
           column_EDFHeader.Width = new GridLength(0);
           column_EDFHeader.MaxWidth = 0;
           column_EDFHeader.MinWidth = 0;
+
+          column_RespAnalysis.Width = new GridLength(0);
+          column_RespAnalysis.MaxWidth = 0;
+          column_RespAnalysis.MinWidth = 0;
         }
         else
         {
           column_EDFHeader.Width = new GridLength(300);
           column_EDFHeader.MaxWidth = 300;
           column_EDFHeader.MinWidth = 300;
+
+          column_RespAnalysis.Width = new GridLength(475);
+          column_RespAnalysis.MaxWidth = 475;
+          column_RespAnalysis.MinWidth = 475;
+        }
+
+        if (this.Height < 700)
+        {
+          RespSignalPropertiesPlotHeader.Visibility = Visibility.Hidden;
+          RespSignalPropertiesPlot.Visibility = Visibility.Hidden;
+        }
+        else
+        {
+          RespSignalPropertiesPlotHeader.Visibility = Visibility.Visible;
+          RespSignalPropertiesPlot.Visibility = Visibility.Visible;
         }
       }
     }
@@ -106,6 +125,11 @@ namespace SleepApneaDiagnoser
           column_EDFHeader.Width = new GridLength(300);
           column_EDFHeader.MaxWidth = 300;
           column_EDFHeader.MinWidth = 300;
+          column_RespAnalysis.Width = new GridLength(475);
+          column_RespAnalysis.MaxWidth = 475;
+          column_RespAnalysis.MinWidth = 475;
+          RespSignalPropertiesPlotHeader.Visibility = Visibility.Visible;
+          RespSignalPropertiesPlot.Visibility = Visibility.Visible;
           break;
       }
     }
