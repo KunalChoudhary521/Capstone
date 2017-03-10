@@ -340,6 +340,10 @@ namespace SleepApneaDiagnoser
     {
       eeg_modelview.ExportEEGCalculations();
     }
+    private void button_ExportEEGPlots_Click(object sender, RoutedEventArgs e)
+    {
+      eeg_modelview.ExportEEGPlots();
+    }
     private void button_BINRespiratoryAnalysis_Click(object sender, RoutedEventArgs e)
     {
       resp_modelview.LoadRespiratoryAnalysisBinary();

@@ -604,14 +604,13 @@ namespace SleepApneaDiagnoser
       PlotSpecGram = tempSpectGram;
 
 
-      /*************************Exporting to .tiff format**************************/
+      /*************************Exporting to .png format**************************/      
       String plotsDir = "EEGPlots//Epoch-" + ((int)EpochForAnalysis).ToString() + "//";
       Directory.CreateDirectory(plotsDir);//if directory already exist, this line will be ignored
       ExportEEGPlot(PlotAbsPwr, plotsDir + "AbsPower.png");
       ExportEEGPlot(PlotRelPwr, plotsDir + "RelPower.png");
       ExportEEGPlot(PlotPSD, plotsDir + "PSD-Epoch.png");
-
-      //GenericExportImage(PlotSpecGram, "Spectrogram.png");//Need to review implementation
+      ExportEEGPlot(PlotSpecGram, plotsDir +"Spectrogram.png");
 
       return;//for debugging only
     }
@@ -688,7 +687,7 @@ namespace SleepApneaDiagnoser
     }
 
     //EEG Analysis From EDF File
-    /* Note to self:
+    /* Note:
      * 1  AbsPwrAnalysis returns absPower in V^2/R, so multiply absPower in by 10*Math.Log10() when 
      *    plotting absolute power or exporting absolute power calculations because 
      *    rel power = abs power(V^2/R) / totalPower(V^2/R)
@@ -761,15 +760,6 @@ namespace SleepApneaDiagnoser
       /********************Plotting a heatmap for spectrogram (line 820, 2133 - PSG_viewer_v7.m)*********************/
       PlotSpectrogram(specTime, specFrq, specMatrixtranspose);
 
-
-      /*************************Exporting to .tiff format**************************/
-      String plotsDir = "EEGPlots//" + EEGEDFSelectedSignal.ToString() + "-"
-                         + ((int)EpochForAnalysis).ToString() + "//";
-      Directory.CreateDirectory(plotsDir);//if directory already exist, this line will be ignored
-      ExportEEGPlot(PlotAbsPwr, plotsDir + "AbsPower.png");
-      ExportEEGPlot(PlotRelPwr, plotsDir + "RelPower.png");
-      ExportEEGPlot(PlotPSD, plotsDir + "PSD.png");
-      ExportEEGPlot(PlotSpecGram, plotsDir + "Spectrogram.png");
 
       return;//for debugging only
     }
@@ -854,7 +844,7 @@ namespace SleepApneaDiagnoser
 
       //# of rows = mLabSpec[0].Dimensions[0]
       double[,] specMatrix = new double[mLabSpec[0].Dimensions[0], mLabSpec[0].Dimensions[1]];
-      specTime = new double[tempTime.NumberOfElements + 1];
+      specTime = new double[tempTime.NumberOfElements];
       specFrq = new double[tempFrq.NumberOfElements];
       int idx = 0;
       //MATLAB matrix are column-major order
@@ -876,14 +866,15 @@ namespace SleepApneaDiagnoser
         }
       }
 
-      for (int i = 1; i < specTime.Length; i++)
+      for (int i = 1; i <= specTime.Length; i++)
       {
-        specTime[i] = (double)tempTime[i];
+        specTime[i - 1] = (double)tempTime[i];
       }
-      for (int i = 1; i < specFrq.Length; i++)
+      for (int i = 1; i <= specFrq.Length; i++)
       {
         specFrq[i - 1] = (double)tempFrq[i];
       }
+      return;//for debugging
 
     }
     public void PlotAbsolutePower(ColumnItem[] bandItems, String[] bandFrqs)
@@ -986,6 +977,42 @@ namespace SleepApneaDiagnoser
 
       PlotSpecGram = tempSpectGram;
     }
+    /*************************Exporting to .png format**************************/
+    public void ExportEEGPlots()//add signal title in the analysisDir name
+    {
+      String plotsDir = null;
+      try
+      {
+        plotsDir = ChooseDirectory();
+        if (plotsDir == null)
+        {
+          return;//user did not choose a valid directory
+        }
+        else
+        {
+          plotsDir += "EEGPlots\\" + EEGEDFSelectedSignal.ToString() + "-"
+                           + ((int)EpochForAnalysis).ToString() + "\\";
+        }
+      }
+      catch (Exception ex)
+      {
+        return;//user did not choose a signal
+      }     
+
+      /*  If any of the plots is null, then EEG calculation was unsuccessful.
+       *  In that event, plots are not exported.
+      */
+      if ((PlotAbsPwr == null) || (PlotRelPwr == null)
+          || (PlotPSD == null) || (PlotSpecGram == null))
+      {
+        return;
+      }
+      Directory.CreateDirectory(plotsDir);//if directory already exist, this line will be ignored
+      ExportEEGPlot(PlotAbsPwr, plotsDir + "AbsPower.png");
+      ExportEEGPlot(PlotRelPwr, plotsDir + "RelPower.png");
+      ExportEEGPlot(PlotPSD, plotsDir + "PSD.png");
+      ExportEEGPlot(PlotSpecGram, plotsDir + "Spectrogram.png");
+    }
 
     public void ExportEEGCalculations()//add signal title in the analysisDir name
     {
@@ -1008,6 +1035,10 @@ namespace SleepApneaDiagnoser
       double[] absPower;
       ColumnItem[] absPlotbandItems;
 
+      double[] specTime;
+      double[] specFrq;
+      double[,] specMatrix;
+
       const int totalFreqBands = 7;
       MWNumericArray[] fqRange;
       setFreqBands(out fqRange, totalFreqBands);
@@ -1015,7 +1046,17 @@ namespace SleepApneaDiagnoser
       LineSeries signalPerEpoch = null;
 
       //Setup data to be entered in each file
-      String analysisDir = "EEGAnalysis//" + fromToDir + "//";
+      String analysisDir = ChooseDirectory();
+      if(analysisDir == null)
+      {
+        //Do not export calculations if user did not select a valid directory
+        return;
+      }
+      else
+      {
+        analysisDir += "EEGAnalysis\\" + fromToDir + "\\";
+      }
+      
       Directory.CreateDirectory(analysisDir);//if directory already exist, this line will be ignored
 
       StreamWriter fileSetup = new StreamWriter(analysisDir + "EEGSignal.csv");
@@ -1028,6 +1069,10 @@ namespace SleepApneaDiagnoser
 
       fileSetup = new StreamWriter(analysisDir + "EEGAbsPwr.csv");
       fileSetup.WriteLine(String.Format("Epoch#, delta, theta, alpha, beta1, beta2, gamma1, gamma2"));
+      fileSetup.Close();
+
+      fileSetup = new StreamWriter(analysisDir + "Spectrogram.csv");
+      fileSetup.WriteLine(String.Format("Epoch#,Frequency(Hz), , , ,Time(s)"));
       fileSetup.Close();
 
       int currentEpoch = ExportEpochStart ?? 1;
@@ -1058,20 +1103,58 @@ namespace SleepApneaDiagnoser
 
         //perform PSD calculations
         PSDAnalysis(out psdValue, out frqValue, signalToMatlab, sampleFreq);
-        //output PSD calculations to file
+        //output PSD calculations to a file
         PSDToCSV(psdValue, frqValue, i, analysisDir + "EEGPSD.csv");
+
+        //perform Spectrogram calculations
+        SpecGramAnalysis(out specTime, out specFrq, out specMatrix, signalToMatlab, sampleFreq);
+        //output Spectrogram calculations to a file
+        SpecGramToCSV(specTime, specFrq, specMatrix, i, analysisDir + "Spectrogram.csv");
       }
 
       return;//for debugging only
     }
-    public void ExportEEGPlot(PlotModel pModel, String fileName)
+    public String ChooseDirectory()
     {
+      String userDir = null;
+      Thread exportTh = new Thread(() => { userDir = ChooseDirectoryHelper(); });
+      exportTh.SetApartmentState(ApartmentState.STA);
+      exportTh.Start();
+      exportTh.Join();
+
+      return userDir;
+    }
+    //Allows user to choose the location where they would like to export Calculations or Plots
+    //Dialog box in WPF: WpfDialog.txt
+    public String ChooseDirectoryHelper()
+    {
+      String directory = null;
+
+      using (var dialog = new System.Windows.Forms.FolderBrowserDialog())
+      {
+        System.Windows.Forms.DialogResult result = dialog.ShowDialog();
+        directory = dialog.SelectedPath;
+      }
+      if(String.IsNullOrEmpty(directory))
+      {
+        return null;
+      }
+      else
+      {
+        return (directory + "\\");
+      }
+      
+    }
+    public void ExportEEGPlot(PlotModel pModel, String fileName)
+    {      
       Thread exportTh = new Thread(() => Utils.ExportImage(pModel, fileName));
       exportTh.SetApartmentState(ApartmentState.STA);
       exportTh.Start();
       exportTh.Join();
     }
 
+    /*  Export Calculations to .csv format (this can be opened in MS Excel)
+     */
     public void AbsPwrToCSV(double[] absPwrData, int epoch, String fileName)
     {
       StreamWriter absPwrStream = File.AppendText(fileName);
@@ -1094,6 +1177,38 @@ namespace SleepApneaDiagnoser
         psdStream.WriteLine(String.Format("{0},{1:0.000},{2:0.000}", epoch, psdVal[j], frqVal[j]));
       }
       psdStream.Close();
+    }
+    //Specgram values are written to file longitudinally, where as Spectrogram graph is latitudinally
+    public void SpecGramToCSV(double[] specTime, double[] specFrq, double[,] specMatrix,
+                              int epoch, String fileName)
+    {
+      StreamWriter specStream = File.AppendText(fileName);
+      String dataLine = null;
+      specStream.Write(epoch.ToString());
+
+      dataLine += String.Format(",");//skip 2 cells for (epoch#, times)
+      for (int i = 0; i < specTime.Length; i++)
+      {
+        dataLine += String.Format(",{0:0.000}", specTime[i]);
+      }
+
+      specStream.WriteLine(dataLine);
+
+
+      for (int i = 0; i < specFrq.Length; i++)
+      {
+        dataLine = String.Format(",{0:0.000}", specFrq[i]);//skip 1 cell for epoch
+
+        for (int j = 0; j < specMatrix.GetLength(0); j++)
+        {
+          dataLine += String.Format(",{0:0.000}", specMatrix[j,i]);
+        }
+
+        specStream.WriteLine(dataLine);
+      }      
+
+      specStream.WriteLine();//to differentiate between spctrogram values of 2 or more epochs
+      specStream.Close();
     }
 
     /**************************Exporting EEG Signal to .csv*************************/
