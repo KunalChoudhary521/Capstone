@@ -38,8 +38,8 @@ namespace SleepApneaDiagnoser
 
         if (checkBox_ApplySmoothing.IsChecked == true)
         {
-          filteredSignal.WeightedAverage_Length = float.Parse(textBox_SmoothingLength.Text);
-          filteredSignal.WeightedAverage_Enabled = true;
+          filteredSignal.Average_Length = float.Parse(textBox_SmoothingLength.Text);
+          filteredSignal.Average_Enabled = true;
         }
 
         return filteredSignal;

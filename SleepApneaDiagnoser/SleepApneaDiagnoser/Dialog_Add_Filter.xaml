@@ -17,11 +17,11 @@
         <Label Content="Low Pass Filter" HorizontalAlignment="Left" Margin="0,77,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.016,0.235"/>
         <CheckBox x:Name="checkBox_ApplyLowPass" Content="Apply" HorizontalAlignment="Left" Margin="10,110,0,0" VerticalAlignment="Top" Unchecked="checkBox_ApplyLowPass_Unchecked" Checked="checkBox_ApplyLowPass_Checked"/>
         <Label Content="Cutoff (Hz): " HorizontalAlignment="Left" Margin="10,133,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.016,0.235"/>
-        <TextBox x:Name="textBox_LowPassCutoff" HorizontalAlignment="Left" Text="2.5" Height="23" Margin="88,134,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
-        <Label Content="Triangle Moving Average Filter" HorizontalAlignment="Left" Margin="0,169,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.016,0.235"/>
+        <TextBox x:Name="textBox_LowPassCutoff" HorizontalAlignment="Left" Text="2.5" Height="23" Margin="97,134,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
+        <Label Content="Moving Average Filter" HorizontalAlignment="Left" Margin="0,169,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.016,0.235"/>
         <CheckBox x:Name="checkBox_ApplySmoothing" Content="Apply" HorizontalAlignment="Left" Margin="10,202,0,0" VerticalAlignment="Top" Unchecked="checkBox_ApplySmoothing_Unchecked" Checked="checkBox_ApplySmoothing_Checked"/>
-        <Label Content="Length (ms): " HorizontalAlignment="Left" Margin="10,225,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.016,0.235"/>
-        <TextBox x:Name="textBox_SmoothingLength" HorizontalAlignment="Left" Height="23" Margin="88,226,0,0" TextWrapping="Wrap" Text="10" VerticalAlignment="Top" Width="120"/>
+        <Label Content="Length/2 (ms): " HorizontalAlignment="Left" Margin="10,225,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.016,0.235"/>
+        <TextBox x:Name="textBox_SmoothingLength" HorizontalAlignment="Left" Height="23" Margin="97,226,0,0" TextWrapping="Wrap" Text="10" VerticalAlignment="Top" Width="120"/>
         <Label Content="Filtered Signal Name" HorizontalAlignment="Left" Margin="0,274,0,0" VerticalAlignment="Top" RenderTransformOrigin="1.016,0.235"/>
         <TextBox x:Name="textBox_SignalName" Margin="10,300,10,0" VerticalAlignment="Top"/>
         <Button x:Name="button_Cancel" Content="Cancel" Margin="0,0,10,10" HorizontalAlignment="Right" Width="75" VerticalAlignment="Bottom" Click="button_Cancel_Click"/>

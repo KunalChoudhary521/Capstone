@@ -75,8 +75,8 @@ namespace SleepApneaDiagnoser
     public bool LowPass_Enabled = false;
     public float LowPassCutoff = 0;
 
-    public bool WeightedAverage_Enabled = false;
-    public float WeightedAverage_Length = 0;
+    public bool Average_Enabled = false;
+    public float Average_Length = 0;
   }
 
   #endregion
@@ -513,12 +513,12 @@ namespace SleepApneaDiagnoser
         {
           series = Utils.ApplyLowPassFilter(series, filteredSignal.LowPassCutoff, sample_period);
         }
-        if (filteredSignal.WeightedAverage_Enabled)
+        if (filteredSignal.Average_Enabled)
         {
           float LENGTH;
-          LENGTH = Math.Max(filteredSignal.WeightedAverage_Length / (sample_period * 1000), 1);
+          LENGTH = Math.Max(filteredSignal.Average_Length / (sample_period * 1000), 1);
 
-          series = Utils.ApplyWeightedAverageFilter(series, LENGTH);
+          series = Utils.ApplyAverageFilter(series, (int)LENGTH);
         }
       }
 

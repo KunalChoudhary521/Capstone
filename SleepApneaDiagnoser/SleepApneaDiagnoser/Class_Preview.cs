@@ -560,8 +560,8 @@ namespace SleepApneaDiagnoser
           string Signal = PreviewPropertiesSelectedSignal;
           FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
 
-          if (filteredSignal != null && filteredSignal.WeightedAverage_Enabled)
-            return filteredSignal.WeightedAverage_Length.ToString("0.## ms");
+          if (filteredSignal != null && filteredSignal.Average_Enabled)
+            return filteredSignal.Average_Length.ToString("0.## ms");
           else
             return "NA";
         }
