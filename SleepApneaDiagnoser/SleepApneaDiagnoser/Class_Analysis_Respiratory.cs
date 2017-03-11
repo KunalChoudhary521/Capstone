@@ -579,19 +579,10 @@ namespace SleepApneaDiagnoser
 
     // Output Analysis
     /// <summary>
-    /// The analyzed epochs in the respiratory tab
-    /// </summary>
-    public string[] RespiratoryAnalyzedEpochs;
-    /// <summary>
     /// Epoch to provide detailed analysis on
     /// </summary>
     public string RespiratoryAnalysisSelectedEpoch;
-
-    /// <summary>
-    /// Sample Period of Analyzed Respiratory Signal
-    /// </summary>
-    public float RespiratorySamplePeriod;
-
+    
     /// <summary>
     /// The calculated mean average of the periods of the respiratory signal
     /// </summary>
@@ -680,7 +671,8 @@ namespace SleepApneaDiagnoser
     /// True if the program is performing analysis and a progress ring should be shown
     /// </summary>
     public bool RespiratoryProgressRingEnabled = false;
-    
+    internal PlotModel RespiratoryPropertiesSignalPlot;
+
     #endregion
   }
 
@@ -833,7 +825,7 @@ namespace SleepApneaDiagnoser
     }
     private void RespiratoryAnalysisSelectedEpoch_Changed()
     {
-      UpdateRespAnalysisInfo(RespiratorySignalPlot);
+      UpdateRespAnalysisInfo();
     }
 
     // Settings and Options
@@ -1006,12 +998,25 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return rm.RespiratoryAnalyzedEpochs;
-      }
-      set
-      {
-        rm.RespiratoryAnalyzedEpochs = value;
-        OnPropertyChanged(nameof(RespiratoryAnalyzedEpochs));
+        if (!RespiratorySignalPlotExists)
+          return null;
+        else
+        {
+          if (IsAnalysisFromBinary)
+          {
+            List<string> return_value = new List<string>();
+            for (int x = 1; x <= resp_bin_max_epoch; x++)
+              return_value.Add(x.ToString());
+            return return_value.ToArray();
+          }
+          else
+          {
+            List<string> return_value = new List<string>();
+            for (int x = 1; x <= RespiratoryEDFStartRecordMax; x++)
+              return_value.Add(x.ToString());
+            return return_value.ToArray();
+          }
+        }
       }
     }
     public string RespiratoryAnalysisSelectedEpoch
@@ -1025,18 +1030,6 @@ namespace SleepApneaDiagnoser
         rm.RespiratoryAnalysisSelectedEpoch = value;
         OnPropertyChanged(nameof(RespiratoryAnalysisSelectedEpoch));
         RespiratoryAnalysisSelectedEpoch_Changed();
-      }
-    }
-    public float RespiratorySamplePeriod
-    {
-      get
-      {
-        return rm.RespiratorySamplePeriod;
-      }
-      set
-      {
-        rm.RespiratorySamplePeriod = value;
-        OnPropertyChanged(nameof(RespiratorySamplePeriod));
       }
     }
     public string RespiratoryBreathingPeriodMean
@@ -1205,6 +1198,19 @@ namespace SleepApneaDiagnoser
       {
         rm.RespiratoryInspirationVolumeCoeffVar = value;
         OnPropertyChanged(nameof(RespiratoryInspirationVolumeCoeffVar));
+      }
+    }
+    public PlotModel RespiratoryPropertiesSignalPlot
+    {
+      get
+      {
+        return rm.RespiratoryPropertiesSignalPlot;
+      }
+      set
+      {
+        Utils.ApplyThemeToPlot(value, UseDarkTheme);
+        rm.RespiratoryPropertiesSignalPlot = value;
+        OnPropertyChanged(nameof(RespiratoryPropertiesSignalPlot));
       }
     }
 
@@ -1481,6 +1487,7 @@ namespace SleepApneaDiagnoser
         OnPropertyChanged(nameof(RespiratoryBinaryStartRecordMax));
 
         PerformRespiratoryAnalysisBinary();
+        UpdateRespAnalysisInfoPlot();
       }
       else
       {
@@ -1491,6 +1498,8 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public void PerformRespiratoryAnalysisBinary()
     {
+      bool updatePropertiesPlot = !IsAnalysisFromBinary;
+      
       IsAnalysisFromBinary = true;
       RespiratoryProgressRingEnabled = true;
 
@@ -1526,9 +1535,16 @@ namespace SleepApneaDiagnoser
       );
 
       UpdateRespAnalysisPlot(resp_plots, resp_bin_sample_period, modelStartRecord, modelStartRecord + modelLength - 1);
+
+      if (updatePropertiesPlot)
+        UpdateRespAnalysisInfoPlot();
     }
 
     // Respiratory Analysis From EDF File
+    /// <summary>
+    /// To know whether the signal is changing
+    /// </summary>
+    private string old_signal_name = null;
     /// <summary>
     /// Background process for performing respiratory analysis
     /// </summary>
@@ -1536,6 +1552,11 @@ namespace SleepApneaDiagnoser
     /// <param name="e"></param>
     private void BW_RespiratoryAnalysisEDF(object sender, DoWorkEventArgs e)
     {
+      bool updatePropertiesPlot = IsAnalysisFromBinary || RespiratoryEDFSelectedSignal != old_signal_name;
+      old_signal_name = RespiratoryEDFSelectedSignal;
+
+      IsAnalysisFromBinary = false;
+
       PlotModel temp_SignalPlot = new PlotModel();
 
       temp_SignalPlot.Series.Clear();
@@ -1568,6 +1589,9 @@ namespace SleepApneaDiagnoser
       }
 
       UpdateRespAnalysisPlot(resp_plots, sample_period, RespiratoryEDFStartRecord ?? 1, (RespiratoryEDFStartRecord ?? 1) + (RespiratoryEDFDuration ?? 1) - 1);
+
+      if (updatePropertiesPlot)
+        UpdateRespAnalysisInfoPlot();
     }
     /// <summary>
     /// Peforms respiratory analysis 
@@ -1577,7 +1601,6 @@ namespace SleepApneaDiagnoser
       if (RespiratoryEDFSelectedSignal == null)
         return;
 
-      IsAnalysisFromBinary = false;
       RespiratoryProgressRingEnabled = true;
 
       BackgroundWorker bw = new BackgroundWorker();
@@ -1596,37 +1619,86 @@ namespace SleepApneaDiagnoser
       tempPlotModel.Series.Add(resp_plots.Item5);
       tempPlotModel.Axes.Add(resp_plots.Item6);
       tempPlotModel.Axes.Add(resp_plots.Item7);
+
       RespiratorySignalPlot = tempPlotModel;
 
-      List<string> temp = new List<string>();
-      for (int x = start_record; x <= end_record; x++)
-        temp.Add(x.ToString());
-      RespiratoryAnalyzedEpochs = temp.ToArray();
-
-      RespiratorySamplePeriod = sample_period;
-
-      for (int x = 0; x < RespiratoryAnalyzedEpochs.Length; x++)
-      {
-        DateTime start;
-        if (IsAnalysisFromBinary)
-          start = DateTime.Parse(resp_bin_date_time_from).AddSeconds(30 * (Int32.Parse(RespiratoryAnalyzedEpochs[x]) - 1));
-        else
-          start = Utils.EpochtoDateTime(Int32.Parse(RespiratoryAnalyzedEpochs[x]), LoadedEDFFile);
-
-        double[] output = RespiratoryFactory.GetRespAnalysisInfo(RespiratorySignalPlot, start, RespiratorySamplePeriod);
-      }
+      OnPropertyChanged(nameof(RespiratoryAnalyzedEpochs));
+      UpdateRespAnalysisInfo();  
     }
-    private void UpdateRespAnalysisInfo(PlotModel model)
+    private double[] GetRespAnalysisInfo(int epoch)
+    {
+      DateTime start;
+      float sample_period;
+      PlotModel model = new PlotModel();
+
+      if (IsAnalysisFromBinary)
+      {
+        start = DateTime.Parse(resp_bin_date_time_from).AddSeconds(30 * (epoch - 1));
+
+        int start_index = (int)(((double)(start - DateTime.Parse(resp_bin_date_time_from)).TotalSeconds) / ((double)resp_bin_sample_period));
+        int end_index = (int)(((double)(start.AddSeconds(30) - DateTime.Parse(resp_bin_date_time_from)).TotalSeconds) / ((double)resp_bin_sample_period));
+        start_index = Math.Max(start_index, 0);
+        end_index = Math.Min(end_index, resp_signal_values.Count - 1);
+
+        sample_period = resp_bin_sample_period;
+
+        Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> resp_plots = RespiratoryFactory.GetRespiratoryAnalysisPlot(
+          resp_bin_signal_name,
+          resp_signal_values.GetRange(start_index, end_index - start_index + 1),
+          resp_bin_sample_period,
+          resp_signal_values.Average(),
+          true,
+          RespiratoryMinimumPeakWidth,
+          start,
+          start.AddSeconds(30)
+        );
+
+        model.Series.Add(resp_plots.Item1);
+        model.Series.Add(resp_plots.Item2);
+        model.Series.Add(resp_plots.Item3);
+        model.Series.Add(resp_plots.Item4);
+        model.Series.Add(resp_plots.Item5);
+        model.Axes.Add(resp_plots.Item6);
+        model.Axes.Add(resp_plots.Item7);
+      }
+      else
+      {
+        start = Utils.EpochtoDateTime(epoch, LoadedEDFFile);
+
+        LineSeries series = GetSeriesFromSignalName(out sample_period,
+                                                    RespiratoryEDFSelectedSignal,
+                                                    start,
+                                                    start.AddSeconds(30)
+                                                    );
+
+        Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> resp_plots = RespiratoryFactory.GetRespiratoryAnalysisPlot(
+          RespiratoryEDFSelectedSignal,
+          series.Points.Select(temp => (float)temp.Y).ToList(),
+          sample_period,
+          (float)(Utils.GetMaxSignalValue(RespiratoryEDFSelectedSignal, false, LoadedEDFFile, sm) - Utils.GetMaxSignalValue(RespiratoryEDFSelectedSignal, true, LoadedEDFFile, sm)),
+          true,
+          RespiratoryMinimumPeakWidth,
+          start,
+          start.AddSeconds(30)
+        );
+
+        model.Series.Add(resp_plots.Item1);
+        model.Series.Add(resp_plots.Item2);
+        model.Series.Add(resp_plots.Item3);
+        model.Series.Add(resp_plots.Item4);
+        model.Series.Add(resp_plots.Item5);
+        model.Axes.Add(resp_plots.Item6);
+        model.Axes.Add(resp_plots.Item7);
+      }
+
+      return RespiratoryFactory.GetRespAnalysisInfo(model, start, sample_period);
+    }
+    private void UpdateRespAnalysisInfo()
     {
       if (RespiratoryAnalysisSelectedEpoch != null)
       {
-        DateTime start;
-        if (IsAnalysisFromBinary)
-          start = DateTime.Parse(resp_bin_date_time_from).AddSeconds(30 * (Int32.Parse(RespiratoryAnalysisSelectedEpoch) - 1));
-        else
-          start = Utils.EpochtoDateTime(Int32.Parse(RespiratoryAnalysisSelectedEpoch), LoadedEDFFile);
+        double[] output = GetRespAnalysisInfo(Int32.Parse(RespiratoryAnalysisSelectedEpoch));
 
-        double[] output = RespiratoryFactory.GetRespAnalysisInfo(model, start, RespiratorySamplePeriod);
         RespiratoryBreathingPeriodMean = output[0].ToString("0.## sec/breath");
         RespiratoryBreathingPeriodCoeffVar = output[1].ToString("0.## %");
         RespiratoryNegativePeakMean = output[2].ToString("0.##");
@@ -1658,6 +1730,55 @@ namespace SleepApneaDiagnoser
         RespiratoryInspirationVolumeCoeffVar = null;
         RespiratoryExpirationVolumeMean = null;
         RespiratoryExpirationVolumeCoeffVar = null;
+      }
+    }
+    private void UpdateRespAnalysisInfoPlot()
+    {
+      if (RespiratorySignalPlotExists)
+      {
+        PlotModel temp_PlotModel = new PlotModel();
+        LinearAxis x_axis = new LinearAxis();
+        LinearAxis y_axis = new LinearAxis();
+        x_axis.Position = AxisPosition.Bottom;
+        x_axis.Key = "X";
+        y_axis.Key = "Y";
+        List<LineSeries> series = new List<LineSeries>();
+        for (int y = 0; y < 7; y++)
+        {
+          series.Add(new LineSeries());
+          series[y].XAxisKey = "X";
+          series[y].YAxisKey = "Y";
+        }
+
+        for (int x = 0; x < RespiratoryAnalyzedEpochs.Length; x++)
+        {
+          DateTime start;
+          if (IsAnalysisFromBinary)
+            start = DateTime.Parse(resp_bin_date_time_from).AddSeconds(30 * (Int32.Parse(RespiratoryAnalyzedEpochs[x]) - 1));
+          else
+            start = Utils.EpochtoDateTime(Int32.Parse(RespiratoryAnalyzedEpochs[x]), LoadedEDFFile);
+
+          double[] output = GetRespAnalysisInfo(Int32.Parse(RespiratoryAnalyzedEpochs[x]));
+
+          for (int y = 0; y < output.Length; y += 2)
+          {
+            series[y / 2].Points.Add(new DataPoint(Int32.Parse(RespiratoryAnalyzedEpochs[x]), output[y]));
+          }
+        }
+
+        for (int x = 0; x < series.Count; x++)
+        {
+          temp_PlotModel.Series.Add(series[x]);
+        }
+        temp_PlotModel.Axes.Add(x_axis);
+        temp_PlotModel.Axes.Add(y_axis);
+
+        RespiratoryPropertiesSignalPlot = temp_PlotModel;
+      }
+      else
+      {
+        old_signal_name = null;
+        RespiratoryPropertiesSignalPlot = null;
       }
     }
 
