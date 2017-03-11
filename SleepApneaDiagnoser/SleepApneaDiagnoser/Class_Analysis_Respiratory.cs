@@ -305,9 +305,9 @@ namespace SleepApneaDiagnoser
       for (int y = 0; y < ((LineSeries)model.Series[0]).Points.Count; y++)
       {
         DateTime curr = DateTimeAxis.ToDateTime(((LineSeries)model.Series[0]).Points[y].X);
-        if (curr > start)
+        if (curr >= start)
         {
-          if (curr < end)
+          if (curr <= end)
           {
             ((LineSeries)series[0]).Points.Add(((LineSeries)model.Series[0]).Points[y]);
           }
@@ -319,9 +319,9 @@ namespace SleepApneaDiagnoser
         for (int y = 0; y < ((ScatterSeries)model.Series[x]).Points.Count; y++)
         {
           DateTime curr = DateTimeAxis.ToDateTime(((ScatterSeries)model.Series[x]).Points[y].X);
-          if (curr > start)
+          if (curr >= start)
           {
-            if (curr < end)
+            if (curr <= end)
             {
               ((ScatterSeries)series[x]).Points.Add(((ScatterSeries)model.Series[x]).Points[y]);
             }
@@ -1805,18 +1805,18 @@ namespace SleepApneaDiagnoser
         
         RespiratoryBreathingPeriodMean = output[0].ToString("0.## s");
         RespiratoryBreathingPeriodCoeffVar = output[1].ToString("0.## %");
-        RespiratoryInspirationPeriodMean = output[2].ToString("0.## s");
-        RespiratoryInspirationPeriodCoeffVar = output[3].ToString("0.## %");
-        RespiratoryExspirationPeriodMean = output[4].ToString("0.## s");
-        RespiratoryExspirationPeriodCoeffVar = output[5].ToString("0.## %");
+        RespiratoryExspirationPeriodMean = output[2].ToString("0.## s");
+        RespiratoryExspirationPeriodCoeffVar = output[3].ToString("0.## %");
+        RespiratoryInspirationPeriodMean = output[4].ToString("0.## s");
+        RespiratoryInspirationPeriodCoeffVar = output[5].ToString("0.## %");
         RespiratoryNegativePeakMean = output[6].ToString("0.##");
         RespiratoryNegativePeakCoeffVar = output[7].ToString("0.## %");
         RespiratoryPositivePeakMean = output[8].ToString("0.##");
         RespiratoryPositivePeakCoeffVar = output[9].ToString("0.## %");
-        RespiratoryInspirationVolumeMean = output[10].ToString("0.##");
-        RespiratoryInspirationVolumeCoeffVar = output[11].ToString("0.## %");
-        RespiratoryExpirationVolumeMean = output[12].ToString("0.##");
-        RespiratoryExpirationVolumeCoeffVar = output[13].ToString("0.## %");
+        RespiratoryExpirationVolumeMean = output[10].ToString("0.##");
+        RespiratoryExpirationVolumeCoeffVar = output[11].ToString("0.## %");
+        RespiratoryInspirationVolumeMean = output[12].ToString("0.##");
+        RespiratoryInspirationVolumeCoeffVar = output[13].ToString("0.## %");
       }
       else
       {
