@@ -627,7 +627,7 @@ namespace SleepApneaDiagnoser
         DateTime epochs_from_datetime = DateTime.Parse(eeg_bin_date_time_from);
         DateTime epochs_to_datetime = DateTime.Parse(eeg_bin_date_time_to);
 
-        // perform all of the respiratory analysis
+        // perform all of the eeg analysis
         BW_EEGAnalysisBin(eeg_bin_signal_name, eeg_bin_signal_values, epochs_from_datetime, epochs_from_datetime, epochs_from_datetime.AddSeconds(30), sample_period);
         BW_FinishEEGAnalysisBin(null, null);
       }
@@ -883,6 +883,20 @@ namespace SleepApneaDiagnoser
     /*************************Exporting to .png format**************************/
     public void ExportEEGPlots()//add signal title in the analysisDir name
     {
+      String name = EEGEDFSelectedSignal.ToString();
+      String epoch = ((int)EpochForAnalysis).ToString();
+
+      BW_ExportEEGPlots(name, epoch);    
+    }
+
+    public void ExportEEGPlotsBin() {
+      String name = eeg_bin_signal_name;
+      String epoch = ((int)EEGEpochForAnalysisBinary).ToString();
+
+      BW_ExportEEGPlots(name, epoch);
+    }
+
+    public void BW_ExportEEGPlots(String name, String epoch) {
       String plotsDir = null;
       try
       {
@@ -893,14 +907,14 @@ namespace SleepApneaDiagnoser
         }
         else
         {
-          plotsDir += "EEGPlots\\" + EEGEDFSelectedSignal.ToString() + "-"
-                           + ((int)EpochForAnalysis).ToString() + "\\";
+          plotsDir += "EEGPlots\\" + name + "-"
+                           + epoch + "\\";
         }
       }
       catch (Exception ex)
       {
         return;//user did not choose a signal
-      }     
+      }
 
       /*  If any of the plots is null, then EEG calculation was unsuccessful.
        *  In that event, plots are not exported.
@@ -915,6 +929,78 @@ namespace SleepApneaDiagnoser
       ExportEEGPlot(PlotRelPwr, plotsDir + "RelPower.png");
       ExportEEGPlot(PlotPSD, plotsDir + "PSD.png");
       ExportEEGPlot(PlotSpecGram, plotsDir + "Spectrogram.png");
+    }
+
+    public void ExportEEGCalculationsBin()
+    {
+      String fromToDir = eeg_bin_signal_name + "-" + "0-" + (eeg_bin_max_epochs-1);
+
+      //Setup data to be entered in each file
+      String analysisDir = ChooseDirectory();
+      if (analysisDir == null)
+      {
+        //Do not export calculations if user did not select a valid directory
+        return;
+      }
+      else
+      {
+        analysisDir += "EEGAnalysis\\" + fromToDir + "\\";
+      }
+      BW_ExportCalcDir(fromToDir, analysisDir);
+
+      double[] signalToAnalyze;
+      float sample_period = 1/float.Parse(eeg_bin_sample_frequency_s);
+
+      MWNumericArray signalToMatlab;
+      MWNumericArray sampleFreq;
+
+      double[] psdValue;
+      double[] frqValue;
+
+      double totalPower;
+      double[] absPower;
+      ColumnItem[] absPlotbandItems;
+
+      double[] specTime;
+      double[] specFrq;
+      double[,] specMatrix;
+
+      const int totalFreqBands = 7;
+      MWNumericArray[] fqRange;
+      setFreqBands(out fqRange, totalFreqBands);
+
+      for (int i = 0; i < (eeg_bin_max_epochs); i++) {
+        float startIndex = i * (1 / sample_period);
+        float endIndex = startIndex + 30 * (1 / sample_period);
+        signalToAnalyze = new double[(int)(endIndex - startIndex)];
+        for (int j = 0; j < signalToAnalyze.Length; j++)
+        {
+          signalToAnalyze[j] = eeg_bin_signal_values[j + (int)startIndex];
+        }
+
+        signalToMatlab = new MWNumericArray(signalToAnalyze);
+        sampleFreq = new MWNumericArray(1 / sample_period);
+
+        //perform Absolute power calculations
+        AbsPwrAnalysis(out totalPower, out absPower, out absPlotbandItems, signalToMatlab, fqRange, sample_period);
+        //output Absolute power calculations to file
+        AbsPwrToCSV(absPower, i, analysisDir + "EEGAbsPwr.csv");
+
+        //No need to perform Relative power calculations, as it is not exported. It can be derived from Absolute Power.
+
+        //perform PSD calculations
+        PSDAnalysis(out psdValue, out frqValue, signalToMatlab, sampleFreq);
+        //output PSD calculations to a file
+        PSDToCSV(psdValue, frqValue, i, analysisDir + "EEGPSD.csv");
+
+        //perform Spectrogram calculations
+        SpecGramAnalysis(out specTime, out specFrq, out specMatrix, signalToMatlab, sampleFreq);
+        //output Spectrogram calculations to a file
+        SpecGramToCSV(specTime, specFrq, specMatrix, i, analysisDir + "Spectrogram.csv");        
+      }
+
+      //debugging purposes only
+      return;
     }
 
     public void ExportEEGCalculations()//add signal title in the analysisDir name
@@ -950,7 +1036,7 @@ namespace SleepApneaDiagnoser
 
       //Setup data to be entered in each file
       String analysisDir = ChooseDirectory();
-      if(analysisDir == null)
+      if (analysisDir == null)
       {
         //Do not export calculations if user did not select a valid directory
         return;
@@ -959,24 +1045,7 @@ namespace SleepApneaDiagnoser
       {
         analysisDir += "EEGAnalysis\\" + fromToDir + "\\";
       }
-      
-      Directory.CreateDirectory(analysisDir);//if directory already exist, this line will be ignored
-
-      StreamWriter fileSetup = new StreamWriter(analysisDir + "EEGSignal.csv");
-      fileSetup.WriteLine(String.Format("Epoch#, X(time), Y(SigVal)"));
-      fileSetup.Close();
-
-      fileSetup = new StreamWriter(analysisDir + "EEGPSD.csv");
-      fileSetup.WriteLine(String.Format("Epoch#, Power(db),Frequency(Hz)"));
-      fileSetup.Close();
-
-      fileSetup = new StreamWriter(analysisDir + "EEGAbsPwr.csv");
-      fileSetup.WriteLine(String.Format("Epoch#, delta, theta, alpha, beta1, beta2, gamma1, gamma2"));
-      fileSetup.Close();
-
-      fileSetup = new StreamWriter(analysisDir + "Spectrogram.csv");
-      fileSetup.WriteLine(String.Format("Epoch#,Frequency(Hz), , , ,Time(s)"));
-      fileSetup.Close();
+      BW_ExportCalcDir(fromToDir, analysisDir);
 
       int currentEpoch = ExportEpochStart ?? 1;
 
@@ -1016,6 +1085,26 @@ namespace SleepApneaDiagnoser
       }
 
       return;//for debugging only
+    }
+
+    public void BW_ExportCalcDir(String fromToDir, String analysisDir) {
+      Directory.CreateDirectory(analysisDir);//if directory already exist, this line will be ignored
+
+      StreamWriter fileSetup = new StreamWriter(analysisDir + "EEGSignal.csv");
+      fileSetup.WriteLine(String.Format("Epoch#, X(time), Y(SigVal)"));
+      fileSetup.Close();
+
+      fileSetup = new StreamWriter(analysisDir + "EEGPSD.csv");
+      fileSetup.WriteLine(String.Format("Epoch#, Power(db),Frequency(Hz)"));
+      fileSetup.Close();
+
+      fileSetup = new StreamWriter(analysisDir + "EEGAbsPwr.csv");
+      fileSetup.WriteLine(String.Format("Epoch#, delta, theta, alpha, beta1, beta2, gamma1, gamma2"));
+      fileSetup.Close();
+
+      fileSetup = new StreamWriter(analysisDir + "Spectrogram.csv");
+      fileSetup.WriteLine(String.Format("Epoch#,Frequency(Hz), , , ,Time(s)"));
+      fileSetup.Close();
     }
     public String ChooseDirectory()
     {
