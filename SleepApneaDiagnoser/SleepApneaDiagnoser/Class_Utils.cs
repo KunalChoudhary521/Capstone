@@ -236,7 +236,7 @@ namespace SleepApneaDiagnoser
         float range = values[high_index] - values[low_index];
         float high_value = values[high_index] + range * (100 - (float)percent_high) / 100;
         float low_value = values[low_index] - range * ((float)percent_low) / 100;
-        float av_value = values.Where(temp => temp >= low_value - 3 * range && temp <= high_value + 3 * range).ToList().Average();
+        float av_value = values.Average();
         sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(OrigName) { yMax = high_value, yMin = low_value, yAvr = av_value });
       }
     }

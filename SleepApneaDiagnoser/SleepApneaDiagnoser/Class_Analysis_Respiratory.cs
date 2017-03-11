@@ -18,18 +18,8 @@ namespace SleepApneaDiagnoser
   public class RespiratoryFactory
   {
     #region Static Functions 
-    public static double GetVarianceCoefficient(double[] values)
-    {
-      double mean = values.Average();
-      double variance = 0;
-      for (int x = 0; x < values.Length; x++)
-      {
-        variance += Math.Abs(values[x] - mean);
-      }
-      variance /= values.Length;
-      return variance / Math.Abs(mean);
-    }
-    public static LineSeries RemoveBiasFromSignal(LineSeries series, double bias)
+
+    private static LineSeries RemoveBiasFromSignal(LineSeries series, double bias)
     {
       // Normalization
       LineSeries series_norm = new LineSeries();
@@ -40,7 +30,7 @@ namespace SleepApneaDiagnoser
 
       return series_norm;
     }
-    public static Tuple<ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries> GetPeaksAndOnsets(LineSeries series, bool RemoveMultiplePeaks, int min_spike_length)
+    private static Tuple<ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries> GetPeaksAndOnsets(LineSeries series, bool RemoveMultiplePeaks, int min_spike_length)
     {
       int spike_length = 0;
       int maxima = 0;
@@ -160,7 +150,219 @@ namespace SleepApneaDiagnoser
 
       return new Tuple<ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries>(series_insets, series_onsets, series_neg_peaks, series_pos_peaks);
     }
-    public static Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> GetRespiratoryAnalysisPlot(string SignalName, List<float> yValues, float sample_period, float bias, bool RemoveMultiplePeaks, float MinimumPeakWidth, DateTime ViewStartTime, DateTime ViewEndTime)
+    
+    private static double GetVarianceCoefficient(double[] values)
+    {
+      double mean = values.Average();
+      double variance = 0;
+      for (int x = 0; x < values.Length; x++)
+      {
+        variance += Math.Abs(values[x] - mean);
+      }
+      variance /= values.Length;
+      return variance / Math.Abs(mean);
+    }
+    private static Tuple<double, double> GetRespiratorySignalBreathingPeriod(ScatterSeries[] series)
+    {
+      // Find Breathing Rates
+      List<double> breathing_periods = new List<double>();
+      for (int x = 0; x < series.Length; x++)
+      {
+        for (int y = 1; y < series[x].Points.Count; y++)
+          breathing_periods.Add((DateTimeAxis.ToDateTime(series[x].Points[y].X) - DateTimeAxis.ToDateTime(series[x].Points[y - 1].X)).TotalSeconds);
+      }
+
+      if (breathing_periods.Count != 0) // Non-Zero Breathing Rates
+      {
+        // Calculate Mean 
+        double mean = breathing_periods.Average();
+
+        // Calculate Variance
+        double coeff_variance = GetVarianceCoefficient(breathing_periods.ToArray());
+
+        return new Tuple<double, double>(mean, coeff_variance);
+      }
+      else
+      {
+        return new Tuple<double, double>(0, 0);
+      }
+    }
+    private static Tuple<double, double> GetRespiratorySignalBreathingHalfPeriod(ScatterSeries series_1, ScatterSeries series_2)
+    {
+      if (series_1.Points.Count > 0 && series_2.Points.Count > 0)
+      {
+        int index_1 = 0;
+        int index_2;
+        if (DateTimeAxis.ToDateTime(series_1.Points[0].X) < DateTimeAxis.ToDateTime(series_2.Points[0].X))
+          index_2 = 0;
+        else
+          index_2 = 1;
+
+        List<double> half_periods = new List<double>();
+        while (index_2 < series_2.Points.Count && index_1 < series_1.Points.Count)
+        {
+          half_periods.Add((DateTimeAxis.ToDateTime(series_2.Points[index_2].X) - DateTimeAxis.ToDateTime(series_1.Points[index_1].X)).TotalSeconds);
+
+          index_1++;
+          index_2++;
+        }
+
+        if (half_periods.Count != 0)
+        {
+          // Calculate Mean 
+          double mean = half_periods.Average();
+
+          // Calculate Variance
+          double coeff_variance = GetVarianceCoefficient(half_periods.ToArray());
+
+          return new Tuple<double, double>(mean, coeff_variance);
+        }
+        else
+        {
+          return new Tuple<double, double>(0, 0);
+        }
+      }
+      else
+      {
+        return new Tuple<double, double>(0, 0);
+      }
+    }
+    private static Tuple<double, double> GetRespiratorySignalPeakHeight(ScatterSeries series_peaks)
+    {
+      List<double> peak_heights = series_peaks.Points.Select(temp => temp.Y).ToList();
+      if (peak_heights.Count != 0)
+      {
+        // Calculate Mean 
+        double mean = peak_heights.Average();
+
+        // Calculate Variance
+        double coeff_variance = GetVarianceCoefficient(peak_heights.ToArray());
+
+        return new Tuple<double, double>(mean, coeff_variance);
+      }
+      else
+      {
+        return new Tuple<double, double>(0, 0);
+      }
+    }
+    private static Tuple<double, double> GetRespiratorySignalFlowVolume(LineSeries series, ScatterSeries series_1, ScatterSeries series_2, float sample_period)
+    {
+      if (series_1.Points.Count > 0 && series_2.Points.Count > 0)
+      {
+        int index_1 = 0;
+        int index_2;
+        if (DateTimeAxis.ToDateTime(series_1.Points[0].X) < DateTimeAxis.ToDateTime(series_2.Points[0].X))
+          index_2 = 0;
+        else
+          index_2 = 1;
+
+        List<double> integral_sums = new List<double>();
+        while (index_2 < series_2.Points.Count && index_1 < series_1.Points.Count)
+        {
+          DateTime EndTime = DateTimeAxis.ToDateTime(series_2.Points[index_2].X);
+          DateTime StartTime = DateTimeAxis.ToDateTime(series_1.Points[index_1].X);
+
+          double integral_sum = 0;
+          int start_index = series.Points.IndexOf(series.Points.Find(temp => temp.X == DateTimeAxis.ToDouble(StartTime)));
+          int end_index = series.Points.IndexOf(series.Points.Find(temp => temp.X == DateTimeAxis.ToDouble(EndTime)));
+          for (int x = start_index; x <= end_index; x++)
+          {
+            integral_sum += series.Points[x].Y * sample_period;
+          }
+          integral_sums.Add(integral_sum);
+
+          index_1++;
+          index_2++;
+        }
+
+        if (integral_sums.Count != 0)
+        {
+          // Calculate Mean 
+          double mean = integral_sums.Average();
+
+          // Calculate Variance
+          double coeff_variance = GetVarianceCoefficient(integral_sums.ToArray());
+
+          return new Tuple<double, double>(mean, coeff_variance);
+        }
+        else
+        {
+          return new Tuple<double, double>(0, 0);
+        }
+      }
+      else
+      {
+        return new Tuple<double, double>(0, 0);
+      }
+    }
+    public static double[] GetRespAnalysisInfo(PlotModel model, DateTime start_time, int epoch, float sample_period)
+    {
+      DateTime start = start_time.AddSeconds(30 * (epoch - 1));
+      DateTime end = start + Utils.EpochPeriodtoTimeSpan(1);
+
+      List<Series> series = new List<Series>();
+      series.Add(new LineSeries());
+      for (int y = 0; y < ((LineSeries)model.Series[0]).Points.Count; y++)
+      {
+        DateTime curr = DateTimeAxis.ToDateTime(((LineSeries)model.Series[0]).Points[y].X);
+        if (curr > start)
+        {
+          if (curr < end)
+          {
+            ((LineSeries)series[0]).Points.Add(((LineSeries)model.Series[0]).Points[y]);
+          }
+        }
+      }
+      for (int x = 1; x < model.Series.Count; x++)
+      {
+        series.Add(new ScatterSeries());
+        for (int y = 0; y < ((ScatterSeries)model.Series[x]).Points.Count; y++)
+        {
+          DateTime curr = DateTimeAxis.ToDateTime(((ScatterSeries)model.Series[x]).Points[y].X);
+          if (curr > start)
+          {
+            if (curr < end)
+            {
+              ((ScatterSeries)series[x]).Points.Add(((ScatterSeries)model.Series[x]).Points[y]);
+            }
+          }
+        }
+      }
+
+      double[] output = new double[14];
+
+      Tuple<double, double> breathing_periods = RespiratoryFactory.GetRespiratorySignalBreathingPeriod(new ScatterSeries[] { (ScatterSeries)series[1], (ScatterSeries)series[2] });
+      output[0] = breathing_periods.Item1;
+      output[1] = breathing_periods.Item2;
+
+      Tuple<double, double> inspir_periods = RespiratoryFactory.GetRespiratorySignalBreathingHalfPeriod((ScatterSeries)series[2], (ScatterSeries)series[1]);
+      output[2] = inspir_periods.Item1;
+      output[3] = inspir_periods.Item2;
+
+      Tuple<double, double> exspir_periods = RespiratoryFactory.GetRespiratorySignalBreathingHalfPeriod((ScatterSeries)series[1], (ScatterSeries)series[2]);
+      output[4] = exspir_periods.Item1;
+      output[5] = exspir_periods.Item2;
+
+      Tuple<double, double> neg_peaks = RespiratoryFactory.GetRespiratorySignalPeakHeight((ScatterSeries)series[3]);
+      output[6] = neg_peaks.Item1;
+      output[7] = neg_peaks.Item2;
+
+      Tuple<double, double> pos_peaks = RespiratoryFactory.GetRespiratorySignalPeakHeight((ScatterSeries)series[4]);
+      output[8] = pos_peaks.Item1;
+      output[9] = pos_peaks.Item2;
+
+      Tuple<double, double> inspir_volume = RespiratoryFactory.GetRespiratorySignalFlowVolume((LineSeries)series[0], (ScatterSeries)series[2], (ScatterSeries)series[1], sample_period);
+      output[10] = inspir_volume.Item1;
+      output[11] = inspir_volume.Item2;
+
+      Tuple<double, double> exspir_volume = RespiratoryFactory.GetRespiratorySignalFlowVolume((LineSeries)series[0], (ScatterSeries)series[1], (ScatterSeries)series[2], sample_period);
+      output[12] = exspir_volume.Item1;
+      output[13] = exspir_volume.Item2;
+
+      return output;
+    }
+    
+    public static PlotModel GetRespiratorySignalPlot(string SignalName, List<float> yValues, float sample_period, float bias, bool RemoveMultiplePeaks, float MinimumPeakWidth, DateTime ViewStartTime, DateTime ViewEndTime)
     {
       // Variable To Return
       LineSeries series = new LineSeries();
@@ -211,8 +413,103 @@ namespace SleepApneaDiagnoser
       yAxis.Title = SignalName;
       yAxis.Key = SignalName;
 
-      return new Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis>(series_norm, series_insets, series_onsets, series_neg_peaks, series_pos_peaks, xAxis, yAxis);
+      PlotModel tempPlotModel = new PlotModel();
+
+      tempPlotModel.Series.Add(series_norm);
+      tempPlotModel.Series.Add(series_onsets);
+      tempPlotModel.Series.Add(series_insets);
+      tempPlotModel.Series.Add(series_neg_peaks);
+      tempPlotModel.Series.Add(series_pos_peaks);
+      tempPlotModel.Axes.Add(xAxis);
+      tempPlotModel.Axes.Add(yAxis);
+
+      return tempPlotModel;
     }
+    public static PlotModel GetRespiratoryAnalyticsPlot(PlotModel resp_plot, string[] epochs, DateTime start, float sample_period)
+    {
+      // Create Series
+      List<LineSeries> all_series = new List<LineSeries>();
+      for (int y = 0; y < 7; y++)
+      {
+        all_series.Add(new LineSeries());
+        all_series[y].XAxisKey = "X";
+      }
+      all_series[0].Title = "Breathing Period";
+      all_series[1].Title = "Inspiration Period";
+      all_series[2].Title = "Expiration Period";
+      all_series[3].Title = "Negative Peak";
+      all_series[4].Title = "Positive Peak";
+      all_series[5].Title = "Inspiration Volume";
+      all_series[6].Title = "Expiration Volume";
+
+      // Link Series to Axes
+      all_series[0].YAxisKey = "Y0";
+      all_series[1].YAxisKey = "Y0";
+      all_series[2].YAxisKey = "Y0";
+      all_series[3].YAxisKey = "Y1";
+      all_series[4].YAxisKey = "Y1";
+      all_series[5].YAxisKey = "Y2";
+      all_series[6].YAxisKey = "Y2";
+
+      // Populate Series with Points
+      for (int x = 0; x < epochs.Length; x++)
+      {
+        double[] output;
+        output = RespiratoryFactory.GetRespAnalysisInfo(resp_plot, start, Int32.Parse(epochs[x]), sample_period);
+       
+        for (int y = 0; y < output.Length; y += 2)
+        {
+          all_series[y / 2].Points.Add(new DataPoint(Int32.Parse(epochs[x]), output[y]));
+        }
+      }
+
+      // Create Y Axes 
+      List<LinearAxis> y_axis = new List<LinearAxis>();
+      y_axis.Add(new LinearAxis());
+      y_axis.Add(new LinearAxis());
+      y_axis.Add(new LinearAxis());
+      y_axis[0].Key = "Y0";
+      y_axis[0].Title = "Periods";
+      y_axis[0].StartPosition = 0;
+      y_axis[0].EndPosition = 0.333;
+      y_axis[0].MajorGridlineStyle = LineStyle.Solid;
+      y_axis[0].MinorGridlineStyle = LineStyle.Dot;
+      y_axis[1].Key = "Y1";
+      y_axis[1].Title = "Peaks";
+      y_axis[1].StartPosition = 0.333;
+      y_axis[1].EndPosition = 0.666;
+      y_axis[1].MajorGridlineStyle = LineStyle.Solid;
+      y_axis[1].MinorGridlineStyle = LineStyle.Dot;
+      y_axis[2].Key = "Y2";
+      y_axis[2].Title = "Volumes";
+      y_axis[2].StartPosition = 0.666;
+      y_axis[2].EndPosition = 1;
+      y_axis[2].MajorGridlineStyle = LineStyle.Solid;
+      y_axis[2].MinorGridlineStyle = LineStyle.Dot;
+
+      // Create X Axis
+      LinearAxis x_axis = new LinearAxis();
+      x_axis.Key = "X";
+      x_axis.Position = AxisPosition.Bottom;
+      x_axis.Minimum = Int32.Parse(epochs[0]);
+      x_axis.Maximum = Int32.Parse(epochs[epochs.Length - 1]);
+
+      // Create Plot Model 
+      PlotModel temp_PlotModel = new PlotModel();
+
+      for (int x = 0; x < all_series.Count; x++)
+      {
+        temp_PlotModel.Series.Add(all_series[x]);
+      }
+      temp_PlotModel.Axes.Add(x_axis);
+      temp_PlotModel.Axes.Add(y_axis[0]);
+      temp_PlotModel.Axes.Add(y_axis[1]);
+      temp_PlotModel.Axes.Add(y_axis[2]);
+      temp_PlotModel.IsLegendVisible = false;
+
+      return temp_PlotModel;
+    }
+
     public static void SaveRespiratoryAnalysisToExcel(string fileName, string SignalName, List<string[]> signalProperties, DateTime StartTime, PlotModel plot)
     {
       List<DataPoint> series = ((LineSeries)plot.Series[0]).Points;
@@ -263,277 +560,122 @@ namespace SleepApneaDiagnoser
       #endregion 
 
       Excel.Application app = new Excel.Application();
-      
+
       Excel.Workbook wb = app.Workbooks.Add(System.Reflection.Missing.Value);
-      Excel.Worksheet ws2 = (Excel.Worksheet)wb.Sheets.Add();
-      Excel.Worksheet ws1 = (Excel.Worksheet)wb.Sheets.Add();
       
-      #region Sheet 1
-
-      ws1.Name = "Analysis";
-
-      ws1.Cells[1, 2].Value = "Signal";
-      ws1.Cells[1, 3].Value = SignalName;
-      ws1.Cells[1, 2].Font.Bold = true;
-
-      ws1.Cells[3, 2].Value = "Property";
-      ws1.Cells[3, 3].Value = "Mean";
-      ws1.Cells[3, 4].Value = "% Variance";
-
-      for (int x = 0; x < signalProperties.Count; x++)
+      #region Sheet 2
       {
-        ws1.Cells[4 + x, 2].Value = signalProperties[x][0];
-        ws1.Cells[4 + x, 3].Value = signalProperties[x][1];
-        ws1.Cells[4 + x, 4].Value = signalProperties[x][2];
+        Excel.Worksheet ws = (Excel.Worksheet)wb.Sheets.Add();
+
+        ws.Name = "SignalValues";
+
+        Excel.Range range = ws.Range[ws.Cells[3, 2], ws.Cells[2 + signal_points.Length / 7, 8]];
+        range.Value = signal_points;
+        ws.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, range, System.Reflection.Missing.Value, Excel.XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = "SignalValues";
+        ws.ListObjects["SignalValues"].TableStyle = "TableStyleLight9";
+        ws.Columns["A:I"].ColumnWidth = 20;
+        ws.Columns["E:H"].Hidden = true;
+        ws.Columns["B:H"].HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
+
+        Excel.Range range2 = ws.Range[ws.Cells[4, 2], ws.Cells[2 + signal_points.Length / 7, 8]];
+        range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($E4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+        range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($F4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+        range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($G4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+        range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($H4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+        range2.FormatConditions[1].Interior.Color = 5296274;
+        range2.FormatConditions[2].Interior.Color = 255;
+        range2.FormatConditions[3].Interior.Color = 65535;
+        range2.FormatConditions[4].Interior.Color = 15773696;
+
+        var excel_chart = ((Excel.ChartObject)((Excel.ChartObjects)ws.ChartObjects()).Add(500, 100, 900, 500)).Chart;
+        excel_chart.SetSourceData(range.Columns["B:G"]);
+        excel_chart.ChartType = Microsoft.Office.Interop.Excel.XlChartType.xlXYScatterLines;
+        excel_chart.ChartWizard(Source: range.Columns["B:G"], Title: SignalName, CategoryTitle: "Time", ValueTitle: SignalName);
+        excel_chart.PlotVisibleOnly = false;
+        ((Excel.Series)excel_chart.SeriesCollection(1)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
+        ((Excel.Series)excel_chart.SeriesCollection(2)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
+        ((Excel.Series)excel_chart.SeriesCollection(3)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
+        ((Excel.Series)excel_chart.SeriesCollection(4)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
+        ((Excel.Series)excel_chart.SeriesCollection(5)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
+        ((Excel.Series)excel_chart.SeriesCollection(2)).Format.Fill.ForeColor.RGB = 5296274;
+        ((Excel.Series)excel_chart.SeriesCollection(3)).Format.Fill.ForeColor.RGB = 255;
+        ((Excel.Series)excel_chart.SeriesCollection(4)).Format.Fill.ForeColor.RGB = 65535;
+        ((Excel.Series)excel_chart.SeriesCollection(5)).Format.Fill.ForeColor.RGB = 15773696;
+        ((Excel.Series)excel_chart.SeriesCollection(2)).Format.Line.ForeColor.RGB = 5296274;
+        ((Excel.Series)excel_chart.SeriesCollection(3)).Format.Line.ForeColor.RGB = 255;
+        ((Excel.Series)excel_chart.SeriesCollection(4)).Format.Line.ForeColor.RGB = 65535;
+        ((Excel.Series)excel_chart.SeriesCollection(5)).Format.Line.ForeColor.RGB = 15773696;
+
+        System.Runtime.InteropServices.Marshal.ReleaseComObject(range);
+        System.Runtime.InteropServices.Marshal.ReleaseComObject(ws);
       }
-
-      ws1.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, ws1.Range[ws1.Cells[3, 2], ws1.Cells[3 + signalProperties.Count, 4]], System.Reflection.Missing.Value, Excel.XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = "SignalProperties";
-      ws1.ListObjects["SignalProperties"].TableStyle = "TableStyleLight9";
-      ws1.Columns["A:F"].ColumnWidth = 20;
-      ws1.Columns["C:D"].HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
-
       #endregion
 
-      #region Sheet 2
+      #region Sheet 1
+      {
+        Excel.Worksheet ws = (Excel.Worksheet)wb.Sheets.Add();
 
-      ws2.Name = "SignalValues";
+        ws.Name = "Analysis";
 
-      Excel.Range range = ws2.Range[ws2.Cells[3, 2], ws2.Cells[2 + signal_points.Length / 7, 8]];
-      range.Value = signal_points;
-      ws2.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, range, System.Reflection.Missing.Value, Excel.XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = "SignalValues";
-      ws2.ListObjects["SignalValues"].TableStyle = "TableStyleLight9";
-      ws2.Columns["A:I"].ColumnWidth = 20;
-      ws2.Columns["E:H"].Hidden = true;
-      ws2.Columns["B:H"].HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
+        ws.Cells[1, 2].Value = "Signal";
+        ws.Cells[1, 3].Value = SignalName;
+        ws.Cells[1, 2].Font.Bold = true;
 
-      Excel.Range range2 = ws2.Range[ws2.Cells[4, 2], ws2.Cells[2 + signal_points.Length / 7, 8]];
-      range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($E4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
-      range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($F4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
-      range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($G4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
-      range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($H4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
-      range2.FormatConditions[1].Interior.Color = 5296274;
-      range2.FormatConditions[2].Interior.Color = 255;
-      range2.FormatConditions[3].Interior.Color = 65535;
-      range2.FormatConditions[4].Interior.Color = 15773696;
+        ws.Cells[3, 2].Value = "Epoch";
+        ws.Cells[3, 3].Value = "Breathing Period";
+        ws.Cells[3, 4].Value = "Inspiration Period";
+        ws.Cells[3, 5].Value = "Exspiration Period";
+        ws.Cells[3, 6].Value = "Negative Peak";
+        ws.Cells[3, 7].Value = "Positive Peak";
+        ws.Cells[3, 8].Value = "Negative Volume";
+        ws.Cells[3, 9].Value = "Positive Volume";
 
-      var excel_chart = ((Excel.ChartObject)((Excel.ChartObjects)ws2.ChartObjects()).Add(500, 100, 900, 500)).Chart;
-      excel_chart.SetSourceData(range.Columns["B:G"]);
-      excel_chart.ChartType = Microsoft.Office.Interop.Excel.XlChartType.xlXYScatterLines;
-      excel_chart.ChartWizard(Source: range.Columns["B:G"], Title: SignalName, CategoryTitle: "Time", ValueTitle: SignalName);
-      excel_chart.PlotVisibleOnly = false;
-      ((Excel.Series)excel_chart.SeriesCollection(1)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
-      ((Excel.Series)excel_chart.SeriesCollection(2)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
-      ((Excel.Series)excel_chart.SeriesCollection(3)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
-      ((Excel.Series)excel_chart.SeriesCollection(4)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
-      ((Excel.Series)excel_chart.SeriesCollection(5)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
-      ((Excel.Series)excel_chart.SeriesCollection(2)).Format.Fill.ForeColor.RGB = 5296274;
-      ((Excel.Series)excel_chart.SeriesCollection(3)).Format.Fill.ForeColor.RGB = 255;
-      ((Excel.Series)excel_chart.SeriesCollection(4)).Format.Fill.ForeColor.RGB = 65535;
-      ((Excel.Series)excel_chart.SeriesCollection(5)).Format.Fill.ForeColor.RGB = 15773696;
-      ((Excel.Series)excel_chart.SeriesCollection(2)).Format.Line.ForeColor.RGB = 5296274;
-      ((Excel.Series)excel_chart.SeriesCollection(3)).Format.Line.ForeColor.RGB = 255;
-      ((Excel.Series)excel_chart.SeriesCollection(4)).Format.Line.ForeColor.RGB = 65535;
-      ((Excel.Series)excel_chart.SeriesCollection(5)).Format.Line.ForeColor.RGB = 15773696;
+        for (int x = 0; x < signalProperties.Count; x++)
+        {
+          ws.Cells[4 + x, 2].Value = signalProperties[x][0];
+          ws.Cells[4 + x, 3].Value = signalProperties[x][1];
+          ws.Cells[4 + x, 4].Value = signalProperties[x][2];
+          ws.Cells[4 + x, 5].Value = signalProperties[x][3];
+          ws.Cells[4 + x, 6].Value = signalProperties[x][4];
+          ws.Cells[4 + x, 7].Value = signalProperties[x][5];
+          ws.Cells[4 + x, 8].Value = signalProperties[x][6];
+          ws.Cells[4 + x, 9].Value = signalProperties[x][7];
+        }
 
+        ws.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, ws.Range[ws.Cells[3, 2], ws.Cells[3 + signalProperties.Count, 9]], System.Reflection.Missing.Value, Excel.XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = "SignalProperties";
+        ws.ListObjects["SignalProperties"].TableStyle = "TableStyleLight9";
+        ws.Columns["A:J"].ColumnWidth = 20;
+        ws.Columns["B:I"].HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
+
+        var excel_chart = ((Excel.ChartObject)((Excel.ChartObjects)ws.ChartObjects()).Add(1000, 50, 900, 500)).Chart;
+        excel_chart.SetSourceData(ws.Range[ws.Cells[3, 2], ws.Cells[3 + signalProperties.Count, 9]]);
+        excel_chart.ChartType = Microsoft.Office.Interop.Excel.XlChartType.xlXYScatterLines;
+        excel_chart.ChartWizard(Source: ws.Range[ws.Cells[3, 2], ws.Cells[3 + signalProperties.Count, 9]], Title: "Flow Signal Analytics", CategoryTitle: "Epoch", ValueTitle: "");
+        excel_chart.PlotVisibleOnly = false;
+        ((Excel.Series)excel_chart.SeriesCollection(1)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
+        ((Excel.Series)excel_chart.SeriesCollection(2)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
+        ((Excel.Series)excel_chart.SeriesCollection(3)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
+        ((Excel.Series)excel_chart.SeriesCollection(4)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
+        ((Excel.Series)excel_chart.SeriesCollection(5)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
+        ((Excel.Series)excel_chart.SeriesCollection(6)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
+        ((Excel.Series)excel_chart.SeriesCollection(7)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
+
+        System.Runtime.InteropServices.Marshal.ReleaseComObject(ws);
+      }
       #endregion
 
       #region Save and Close
-      
-      wb.SaveAs(fileName);
 
+      wb.SaveAs(fileName);
       wb.Close(true);
       app.Quit();
-
-      System.Runtime.InteropServices.Marshal.ReleaseComObject(range);
-      System.Runtime.InteropServices.Marshal.ReleaseComObject(ws2);
+      
       System.Runtime.InteropServices.Marshal.ReleaseComObject(wb);
       System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
 
       #endregion
     }
-    public static Tuple<double, double> GetRespiratorySignalBreathingPeriod(ScatterSeries[] series)
-    {
-      // Find Breathing Rates
-      List<double> breathing_periods = new List<double>();
-      for (int x = 0; x < series.Length; x++)
-      {
-        for (int y = 1; y < series[x].Points.Count; y++)
-          breathing_periods.Add((DateTimeAxis.ToDateTime(series[x].Points[y].X) - DateTimeAxis.ToDateTime(series[x].Points[y - 1].X)).TotalSeconds);
-      }
 
-      if (breathing_periods.Count != 0) // Non-Zero Breathing Rates
-      {
-        // Calculate Mean 
-        double mean = breathing_periods.Average();
-
-        // Calculate Variance
-        double coeff_variance = GetVarianceCoefficient(breathing_periods.ToArray());
-
-        return new Tuple<double, double>(mean, coeff_variance);
-      }
-      else
-      {
-        return new Tuple<double, double>(0, 0);
-      }
-    }
-    public static Tuple<double, double> GetRespiratorySignalBreathingHalfPeriod(ScatterSeries series_1, ScatterSeries series_2)
-    {
-      if (series_1.Points.Count > 0 && series_2.Points.Count > 0)
-      {
-        int index_1 = 0;
-        int index_2;
-        if (DateTimeAxis.ToDateTime(series_1.Points[0].X) < DateTimeAxis.ToDateTime(series_2.Points[0].X))
-          index_2 = 0;
-        else
-          index_2 = 1;
-
-        List<double> half_periods = new List<double>();
-        while (index_2 < series_2.Points.Count && index_1 < series_1.Points.Count)
-        {
-          half_periods.Add((DateTimeAxis.ToDateTime(series_2.Points[index_2].X) - DateTimeAxis.ToDateTime(series_1.Points[index_1].X)).TotalSeconds);
-
-          index_1++;
-          index_2++;
-        }
-
-        // Calculate Mean 
-        double mean = half_periods.Average();
-
-        // Calculate Variance
-        double coeff_variance = GetVarianceCoefficient(half_periods.ToArray());
-
-        return new Tuple<double, double>(mean, coeff_variance);
-      }
-      else
-      {
-        return new Tuple<double, double>(0, 0);
-      }
-    }
-    public static Tuple<double, double> GetRespiratorySignalPeakHeight(ScatterSeries series_peaks)
-    {
-      List<double> peak_heights = series_peaks.Points.Select(temp => temp.Y).ToList();
-      if (peak_heights.Count != 0)
-      {
-        // Calculate Mean 
-        double mean = peak_heights.Average();
-
-        // Calculate Variance
-        double coeff_variance = GetVarianceCoefficient(peak_heights.ToArray());
-
-        return new Tuple<double, double>(mean, coeff_variance);
-      }
-      else
-      {
-        return new Tuple<double, double>(0, 0);
-      }
-    }
-    public static Tuple<double, double> GetRespiratorySignalFlowVolume(LineSeries series, ScatterSeries series_1, ScatterSeries series_2, float sample_period)
-    {
-      if (series_1.Points.Count > 0 && series_2.Points.Count > 0)
-      {
-        int index_1 = 0;
-        int index_2;
-        if (DateTimeAxis.ToDateTime(series_1.Points[0].X) < DateTimeAxis.ToDateTime(series_2.Points[0].X))
-          index_2 = 0;
-        else
-          index_2 = 1;
-
-        List<double> integral_sums = new List<double>();
-        while (index_2 < series_2.Points.Count && index_1 < series_1.Points.Count)
-        {
-          DateTime EndTime = DateTimeAxis.ToDateTime(series_2.Points[index_2].X);
-          DateTime StartTime = DateTimeAxis.ToDateTime(series_1.Points[index_1].X);
-
-          double integral_sum = 0;
-          int start_index = series.Points.IndexOf(series.Points.Find(temp => temp.X == DateTimeAxis.ToDouble(StartTime)));
-          int end_index = series.Points.IndexOf(series.Points.Find(temp => temp.X == DateTimeAxis.ToDouble(EndTime)));
-          for (int x = start_index; x <= end_index; x++)
-          {
-            integral_sum += series.Points[x].Y * sample_period;
-          }
-          integral_sums.Add(integral_sum);
-
-          index_1++;
-          index_2++;
-        }
-
-        // Calculate Mean 
-        double mean = integral_sums.Average();
-
-        // Calculate Variance
-        double coeff_variance = GetVarianceCoefficient(integral_sums.ToArray());
-
-        return new Tuple<double, double>(mean, coeff_variance);
-      }
-      else
-      {
-        return new Tuple<double, double>(0, 0);
-      }
-    }
-    public static double[] GetRespAnalysisInfo(PlotModel model, DateTime start, float sample_period)
-    {
-      DateTime end = start + Utils.EpochPeriodtoTimeSpan(1);
-      
-      List<Series> series = new List<Series>();
-      series.Add(new LineSeries());
-      for (int y = 0; y < ((LineSeries)model.Series[0]).Points.Count; y++)
-      {
-        if (((LineSeries)model.Series[0]).Points[y].X >= DateTimeAxis.ToDouble(start))
-        {
-          if (((LineSeries)model.Series[0]).Points[y].X <= DateTimeAxis.ToDouble(end))
-          {
-            ((LineSeries)series[0]).Points.Add(((LineSeries)model.Series[0]).Points[y]);
-          }
-        }
-      }
-      for (int x = 1; x < model.Series.Count; x++)
-      {
-        series.Add(new ScatterSeries());
-        for (int y = 0; y < ((ScatterSeries)model.Series[x]).Points.Count; y++)
-        {
-          if (((ScatterSeries)model.Series[x]).Points[y].X >= DateTimeAxis.ToDouble(start))
-          {
-            if (((ScatterSeries)model.Series[x]).Points[y].X <= DateTimeAxis.ToDouble(end))
-            {
-              ((ScatterSeries)series[x]).Points.Add(((ScatterSeries)model.Series[x]).Points[y]);
-            }
-          }
-        }
-      }
-      
-
-      double[] output = new double[14];
-
-      Tuple<double, double> breathing_periods = RespiratoryFactory.GetRespiratorySignalBreathingPeriod(new ScatterSeries[] { (ScatterSeries)series[1], (ScatterSeries)series[2] });
-      output[0] = breathing_periods.Item1;
-      output[1] = breathing_periods.Item2;
-
-      Tuple<double, double> neg_peaks = RespiratoryFactory.GetRespiratorySignalPeakHeight((ScatterSeries)series[3]);
-      output[2] = neg_peaks.Item1;
-      output[3] = neg_peaks.Item2;
-
-      Tuple<double, double> pos_peaks = RespiratoryFactory.GetRespiratorySignalPeakHeight((ScatterSeries)series[4]);
-      output[4] = pos_peaks.Item1;
-      output[5] = pos_peaks.Item2;
-
-      Tuple<double, double> inspir_periods = RespiratoryFactory.GetRespiratorySignalBreathingHalfPeriod((ScatterSeries)series[2], (ScatterSeries)series[1]);
-      output[6] = inspir_periods.Item1;
-      output[7] = inspir_periods.Item2;
-
-      Tuple<double, double> exspir_periods = RespiratoryFactory.GetRespiratorySignalBreathingHalfPeriod((ScatterSeries)series[1], (ScatterSeries)series[2]);
-      output[8] = exspir_periods.Item1;
-      output[9] = exspir_periods.Item2;
-
-      Tuple<double, double> inspir_volume = RespiratoryFactory.GetRespiratorySignalFlowVolume((LineSeries)series[0], (ScatterSeries)series[2], (ScatterSeries)series[1], sample_period);
-      output[10] = inspir_volume.Item1;
-      output[11] = inspir_volume.Item2;
-
-      Tuple<double, double> exspir_volume = RespiratoryFactory.GetRespiratorySignalFlowVolume((LineSeries)series[0], (ScatterSeries)series[1], (ScatterSeries)series[2], sample_period);
-      output[12] = exspir_volume.Item1;
-      output[13] = exspir_volume.Item2;
-
-      return output;
-    }
     #endregion
   }
 
@@ -564,24 +706,28 @@ namespace SleepApneaDiagnoser
     /// <summary>
     /// The user selected start time for the respiratory analysis in 30s epochs
     /// </summary>
-    internal int? RespiratoryBinaryStart;
+    internal int? RespiratoryBinaryStartRecord;
     /// <summary>
     /// The user selected period for the respiratory analysis in 30s epochs
     /// </summary>
     internal int? RespiratoryBinaryDuration;
 
     // Output Plot
-
+    public bool RespiratoryDisplayAnalytics;
     /// <summary>
-    /// The respiratory analysis plot to be displayed
+    /// The respiratory signal plot to be displayed
     /// </summary>
     public PlotModel RespiratorySignalPlot = null;
+    /// <summary>
+    /// The respiratory analytic plot to be displayed
+    /// </summary>
+    public PlotModel RespiratoryAnalyticsPlot;
 
     // Output Analysis
     /// <summary>
     /// Epoch to provide detailed analysis on
     /// </summary>
-    public string RespiratoryAnalysisSelectedEpoch;
+    public string RespiratoryAnalyticsSelectedEpoch;
     
     /// <summary>
     /// The calculated mean average of the periods of the respiratory signal
@@ -666,13 +812,11 @@ namespace SleepApneaDiagnoser
     public bool IsAnalysisFromBinary = false;
 
     // Freeze UI when Performing Analysis 
-
     /// <summary>
     /// True if the program is performing analysis and a progress ring should be shown
     /// </summary>
     public bool RespiratoryProgressRingEnabled = false;
-    internal PlotModel RespiratoryPropertiesSignalPlot;
-
+    
     #endregion
   }
 
@@ -703,6 +847,8 @@ namespace SleepApneaDiagnoser
             RespiratoryBreathingPeriodMean = "";
             RespiratoryBreathingPeriodCoeffVar = "";
             RespiratorySignalPlot = null;
+            RespiratoryAnalyticsPlot = null;
+            RespiratoryAnalyticsSelectedEpoch = null;
             RespiratoryEDFSelectedSignal = null;
             RespiratoryEDFDuration = null;
             RespiratoryEDFStartRecord = null;
@@ -713,6 +859,8 @@ namespace SleepApneaDiagnoser
             RespiratoryBreathingPeriodCoeffVar = "";
             RespiratoryEDFSelectedSignal = null;
             RespiratorySignalPlot = null;
+            RespiratoryAnalyticsPlot = null;
+            RespiratoryAnalyticsSelectedEpoch = null;
             RespiratoryEDFStartRecord = 1;
             RespiratoryEDFDuration = 1;
           }
@@ -789,7 +937,13 @@ namespace SleepApneaDiagnoser
     {
       return svm.GetSeriesFromSignalName(out sample_period, Signal, StartTime, EndTime);
     }
-    
+    public float GetSamplePeriod(string Signal)
+    {
+      float sample_period;
+      GetSeriesFromSignalName(out sample_period, Signal, EDFStartTime, EDFStartTime);
+      return sample_period;
+    }
+
     #endregion
     
     /// <summary>
@@ -806,6 +960,10 @@ namespace SleepApneaDiagnoser
     }
     private void RespiratoryEDFView_Changed()
     {
+      IsAnalysisFromBinary = false;
+
+      OnPropertyChanged(nameof(RespiratoryEDFSelectedSignal));
+
       OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
       OnPropertyChanged(nameof(RespiratoryEDFStartTime));
       OnPropertyChanged(nameof(RespiratoryEDFDuration));
@@ -814,18 +972,24 @@ namespace SleepApneaDiagnoser
       OnPropertyChanged(nameof(RespiratoryEDFStartRecordMin));
       OnPropertyChanged(nameof(RespiratoryEDFDurationMax));
       OnPropertyChanged(nameof(RespiratoryEDFDurationMin));
+
+      PerformRespiratoryAnalysisEDF();
     }
     private void RespiratoryBinaryView_Changed()
     {
-      OnPropertyChanged(nameof(RespiratoryBinaryStart));
+      IsAnalysisFromBinary = true;
+
+      OnPropertyChanged(nameof(RespiratoryBinaryStartRecord));
       OnPropertyChanged(nameof(RespiratoryBinaryDuration));
 
       OnPropertyChanged(nameof(RespiratoryBinaryStartRecordMax));
       OnPropertyChanged(nameof(RespiratoryBinaryDurationMax));
+
+      PerformRespiratoryAnalysisBinary();
     }
     private void RespiratoryAnalysisSelectedEpoch_Changed()
     {
-      UpdateRespAnalysisInfo();
+      UpdateRespAnalysisInfo(RespiratorySignalPlot);
     }
 
     // Settings and Options
@@ -863,7 +1027,11 @@ namespace SleepApneaDiagnoser
       {
         rm.RespiratoryUseConstantAxis = value;
         OnPropertyChanged(nameof(RespiratoryUseConstantAxis));
-        PerformRespiratoryAnalysisEDF();
+
+        if (IsAnalysisFromBinary)
+          PerformRespiratoryAnalysisBinary();
+        else
+          PerformRespiratoryAnalysisEDF();
       }
     }
 
@@ -877,8 +1045,7 @@ namespace SleepApneaDiagnoser
       set
       {
         rm.RespiratoryEDFSelectedSignal = value;
-        OnPropertyChanged(nameof(RespiratoryEDFSelectedSignal));
-        PerformRespiratoryAnalysisEDF();
+        RespiratoryEDFView_Changed();
       }
     }
     public int? RespiratoryEDFStartRecord
@@ -895,9 +1062,7 @@ namespace SleepApneaDiagnoser
         if (IsEDFLoaded && rm.RespiratoryEDFStartRecord != (value ?? 1))
         {
           rm.RespiratoryEDFStartRecord = value ?? 1;
-          OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
           RespiratoryEDFView_Changed();
-          PerformRespiratoryAnalysisEDF();
         }
       }
     }
@@ -915,28 +1080,24 @@ namespace SleepApneaDiagnoser
         if (IsEDFLoaded && rm.RespiratoryEDFDuration != (value ?? 1))
         {
           rm.RespiratoryEDFDuration = value ?? 1;
-          OnPropertyChanged(nameof(RespiratoryEDFDuration));
           RespiratoryEDFView_Changed();
-          PerformRespiratoryAnalysisEDF();
         }
       }
     }
 
     // Binary Signal Selection
-    public int? RespiratoryBinaryStart
+    public int? RespiratoryBinaryStartRecord
     {
       get
       {
-        return rm.RespiratoryBinaryStart;
+        return rm.RespiratoryBinaryStartRecord;
       }
       set
       {
-        if (IsRespBinLoaded && rm.RespiratoryBinaryStart != (value ?? 1))
+        if (RespiratoryBinaryNavigationEnabled && rm.RespiratoryBinaryStartRecord != (value ?? 1))
         {
-          rm.RespiratoryBinaryStart = value ?? 1;
-          OnPropertyChanged(nameof(RespiratoryBinaryStart));
+          rm.RespiratoryBinaryStartRecord = value ?? 1;
           RespiratoryBinaryView_Changed();
-          PerformRespiratoryAnalysisBinary();
         }
       }
     }
@@ -948,12 +1109,10 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        if (IsRespBinLoaded && rm.RespiratoryBinaryDuration != (value ?? 1))
+        if (RespiratoryBinaryNavigationEnabled && rm.RespiratoryBinaryDuration != (value ?? 1))
         {
           rm.RespiratoryBinaryDuration = value ?? 1;
-          OnPropertyChanged(nameof(RespiratoryBinaryDuration));
           RespiratoryBinaryView_Changed();
-          PerformRespiratoryAnalysisBinary();
         }
       }
     }
@@ -970,13 +1129,6 @@ namespace SleepApneaDiagnoser
         rm.IsAnalysisFromBinary = value;
       }
     }
-    public bool RespiratorySignalPlotExists
-    {
-      get
-      {
-        return RespiratorySignalPlot != null;
-      }
-    }
     public PlotModel RespiratorySignalPlot
     {
       get
@@ -988,7 +1140,7 @@ namespace SleepApneaDiagnoser
         Utils.ApplyThemeToPlot(value, UseDarkTheme);
         rm.RespiratorySignalPlot = value;
         OnPropertyChanged(nameof(RespiratorySignalPlot));
-        OnPropertyChanged(nameof(RespiratorySignalPlotExists));
+        OnPropertyChanged(nameof(RespiratoryAnalysisEnabled));
         RepiratoryPlot_Changed();
       }
     }
@@ -998,37 +1150,37 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        if (!RespiratorySignalPlotExists)
+        if (!RespiratoryAnalysisEnabled)
           return null;
         else
         {
           if (IsAnalysisFromBinary)
           {
             List<string> return_value = new List<string>();
-            for (int x = 1; x <= resp_bin_max_epoch; x++)
+            for (int x = RespiratoryBinaryStartRecord ?? 1; x < RespiratoryBinaryStartRecord + RespiratoryBinaryDuration; x++)
               return_value.Add(x.ToString());
             return return_value.ToArray();
           }
           else
           {
             List<string> return_value = new List<string>();
-            for (int x = 1; x <= RespiratoryEDFStartRecordMax; x++)
+            for (int x = RespiratoryEDFStartRecord ?? 1; x < RespiratoryEDFStartRecord + RespiratoryEDFDuration; x++)
               return_value.Add(x.ToString());
             return return_value.ToArray();
           }
         }
       }
     }
-    public string RespiratoryAnalysisSelectedEpoch
+    public string RespiratoryAnalyticsSelectedEpoch
     {
       get
       {
-        return rm.RespiratoryAnalysisSelectedEpoch;
+        return rm.RespiratoryAnalyticsSelectedEpoch;
       }
       set
       {
-        rm.RespiratoryAnalysisSelectedEpoch = value;
-        OnPropertyChanged(nameof(RespiratoryAnalysisSelectedEpoch));
+        rm.RespiratoryAnalyticsSelectedEpoch = value;
+        OnPropertyChanged(nameof(RespiratoryAnalyticsSelectedEpoch));
         RespiratoryAnalysisSelectedEpoch_Changed();
       }
     }
@@ -1200,17 +1352,29 @@ namespace SleepApneaDiagnoser
         OnPropertyChanged(nameof(RespiratoryInspirationVolumeCoeffVar));
       }
     }
-    public PlotModel RespiratoryPropertiesSignalPlot
+    public bool RespiratoryDisplayAnalytics
     {
       get
       {
-        return rm.RespiratoryPropertiesSignalPlot;
+        return rm.RespiratoryDisplayAnalytics;
+      }
+      set
+      {
+        rm.RespiratoryDisplayAnalytics = value;
+        OnPropertyChanged(nameof(RespiratoryDisplayAnalytics));
+      }
+    }
+    public PlotModel RespiratoryAnalyticsPlot
+    {
+      get
+      {
+        return rm.RespiratoryAnalyticsPlot;
       }
       set
       {
         Utils.ApplyThemeToPlot(value, UseDarkTheme);
-        rm.RespiratoryPropertiesSignalPlot = value;
-        OnPropertyChanged(nameof(RespiratoryPropertiesSignalPlot));
+        rm.RespiratoryAnalyticsPlot = value;
+        OnPropertyChanged(nameof(RespiratoryAnalyticsPlot));
       }
     }
 
@@ -1311,7 +1475,7 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return 1 + resp_bin_max_epoch - RespiratoryBinaryStart ?? 1;
+        return 1 + resp_bin_max_epoch - RespiratoryBinaryStartRecord ?? 1;
       }
     }
     public int RespiratoryBinaryMaxEpochs
@@ -1334,6 +1498,8 @@ namespace SleepApneaDiagnoser
         rm.RespiratoryProgressRingEnabled = value;
         OnPropertyChanged(nameof(RespiratoryProgressRingEnabled));
         OnPropertyChanged(nameof(RespiratoryEDFNavigationEnabled));
+        OnPropertyChanged(nameof(RespiratoryAnalysisEnabled));
+        OnPropertyChanged(nameof(RespiratoryBinaryNavigationEnabled));
       }
     }
     public bool RespiratoryEDFNavigationEnabled
@@ -1346,21 +1512,33 @@ namespace SleepApneaDiagnoser
           return !RespiratoryProgressRingEnabled;
       }
     }
-
-    // Used For Importing From Binary For Respiratory Signals
-    public bool IsRespBinLoaded
+    public bool RespiratoryBinaryNavigationEnabled
     {
       get
       {
-        return resp_bin_loaded;
+        if (RespiratoryProgressRingEnabled)
+          return false;
+        else
+          return resp_bin_loaded;
       }
       set
       {
         resp_bin_loaded = value;
-        OnPropertyChanged(nameof(IsRespBinLoaded));
+        OnPropertyChanged(nameof(RespiratoryBinaryNavigationEnabled));
+      }
+    }
+    public bool RespiratoryAnalysisEnabled
+    {
+      get
+      {
+        if (!RespiratoryProgressRingEnabled)
+          return RespiratorySignalPlot != null;
+        else
+          return false;
       }
     }
 
+    // Used For Importing From Binary For Respiratory Signals
     public bool resp_bin_loaded = false;
     private string resp_bin_sample_frequency_s;
     private string resp_bin_date_time_length;
@@ -1381,18 +1559,20 @@ namespace SleepApneaDiagnoser
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
-    public void BW_ExportAnalysis_DoWork(object sender, DoWorkEventArgs e)
+    public void BW_ExportPlot_DoWork(object sender, DoWorkEventArgs e)
     {
+      List<string[]> properties = new List<string[]>();
+      for (int x = 0; x < RespiratoryAnalyzedEpochs.Length; x++)
+      {
+        double[] output = IsAnalysisFromBinary ?
+        RespiratoryFactory.GetRespAnalysisInfo(RespiratorySignalPlot, DateTime.Parse(resp_bin_date_time_from), Int32.Parse(RespiratoryAnalyzedEpochs[x]), resp_bin_sample_period) :
+        RespiratoryFactory.GetRespAnalysisInfo(RespiratorySignalPlot, EDFStartTime, Int32.Parse(RespiratoryAnalyzedEpochs[x]), GetSamplePeriod(RespiratoryEDFSelectedSignal));
+
+        properties.Add(new string[] { (x + 1).ToString(), output[0].ToString(), output[2].ToString(), output[4].ToString(), output[6].ToString(), output[8].ToString(), output[10].ToString(), output[12].ToString() });
+      }
+      
       string SignalName = IsAnalysisFromBinary ? resp_bin_signal_name : RespiratoryEDFSelectedSignal;
       DateTime StartTime = IsAnalysisFromBinary ? DateTime.Parse(resp_bin_date_time_from) : EDFStartTime;
-      List<string[]> properties = new List<string[]>();
-      properties.Add(new string[] { "Breathing Period", RespiratoryBreathingPeriodMean, RespiratoryBreathingPeriodCoeffVar });
-      properties.Add(new string[] { "Inspiration Period", RespiratoryInspirationPeriodMean, RespiratoryInspirationPeriodCoeffVar });
-      properties.Add(new string[] { "Exspiration Period", RespiratoryExspirationPeriodMean, RespiratoryExspirationPeriodCoeffVar });
-      properties.Add(new string[] { "Positive Peak", RespiratoryPositivePeakMean, RespiratoryPositivePeakCoeffVar });
-      properties.Add(new string[] { "Negative Peak", RespiratoryNegativePeakMean, RespiratoryNegativePeakCoeffVar });
-      properties.Add(new string[] { "Inspiration Volume", RespiratoryInspirationVolumeMean, RespiratoryInspirationVolumeCoeffVar });
-      properties.Add(new string[] { "Exspiration Volume", RespiratoryExpirationVolumeMean, RespiratoryExpirationVolumeCoeffVar });
 
       RespiratoryFactory.SaveRespiratoryAnalysisToExcel(e.Argument.ToString(), SignalName, properties, StartTime, RespiratorySignalPlot);
     }
@@ -1401,7 +1581,7 @@ namespace SleepApneaDiagnoser
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
-    private void BW_ExportAnalysis_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+    private void BW_ExportPlot_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
     {
       RespiratoryProgressRingEnabled = false;
     }
@@ -1410,13 +1590,13 @@ namespace SleepApneaDiagnoser
     /// </summary>
     /// <param name="fileName"> The filename of the excel file to be created </param>
     /// <returns></returns>
-    public void ExportRespiratoryCalculations(string fileName)
+    public void ExportRespiratoryPlot(string fileName)
     {
       RespiratoryProgressRingEnabled = true;
 
       BackgroundWorker bw = new BackgroundWorker();
-      bw.DoWork += BW_ExportAnalysis_DoWork;
-      bw.RunWorkerCompleted += BW_ExportAnalysis_RunWorkerCompleted;
+      bw.DoWork += BW_ExportPlot_DoWork;
+      bw.RunWorkerCompleted += BW_ExportPlot_RunWorkerCompleted;
       bw.RunWorkerAsync(fileName);
     }
     
@@ -1426,7 +1606,7 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public void LoadRespiratoryAnalysisBinary()
     {
-      IsRespBinLoaded = true;
+      RespiratoryBinaryNavigationEnabled = true;
       System.Windows.Forms.OpenFileDialog dialog = new System.Windows.Forms.OpenFileDialog();
 
       dialog.Filter = "|*.bin";
@@ -1479,33 +1659,30 @@ namespace SleepApneaDiagnoser
 
         resp_bin_max_epoch = (int)epochs_to_datetime.Subtract(epochs_from_datetime).TotalSeconds / 30;
         OnPropertyChanged(nameof(RespiratoryBinaryMaxEpochs));
-        rm.RespiratoryBinaryStart = 1;
-        OnPropertyChanged(nameof(RespiratoryBinaryStart));
+        rm.RespiratoryBinaryStartRecord = 1;
+        OnPropertyChanged(nameof(RespiratoryBinaryStartRecord));
         rm.RespiratoryBinaryDuration = 1;
         OnPropertyChanged(nameof(RespiratoryBinaryDuration));
         OnPropertyChanged(nameof(RespiratoryBinaryDurationMax));
         OnPropertyChanged(nameof(RespiratoryBinaryStartRecordMax));
 
-        PerformRespiratoryAnalysisBinary();
-        UpdateRespAnalysisInfoPlot();
+        RespiratoryBinaryView_Changed();
       }
       else
       {
-        IsRespBinLoaded = false;
+        RespiratoryBinaryNavigationEnabled = false;
       }
     }
-    /// <summary>
-    /// Performs respiratory analysis on binary contents stored into memory 
-    /// </summary>
-    public void PerformRespiratoryAnalysisBinary()
-    {
-      bool updatePropertiesPlot = !IsAnalysisFromBinary;
-      
-      IsAnalysisFromBinary = true;
-      RespiratoryProgressRingEnabled = true;
 
+    /// <summary>
+    /// Background process for performing respiratory analysis on binary contents stored into memory 
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
+    public void BW_RespiratoryAnalysisBinary(object sender, DoWorkEventArgs e)
+    {
       // Finding From 
-      int modelStartRecord = RespiratoryBinaryStart.Value;
+      int modelStartRecord = RespiratoryBinaryStartRecord.Value;
       DateTime newFrom = DateTime.Parse(resp_bin_date_time_from);
       newFrom = newFrom.AddSeconds(30 * (modelStartRecord - 1));
 
@@ -1524,7 +1701,7 @@ namespace SleepApneaDiagnoser
       start_index = Math.Max(start_index, 0);
       end_index = Math.Min(end_index, resp_signal_values.Count - 1);
 
-      Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> resp_plots = RespiratoryFactory.GetRespiratoryAnalysisPlot(
+      PlotModel resp_plot = RespiratoryFactory.GetRespiratorySignalPlot(
         resp_bin_signal_name,
         resp_signal_values.GetRange(start_index, end_index - start_index + 1),
         resp_bin_sample_period,
@@ -1535,17 +1712,33 @@ namespace SleepApneaDiagnoser
         newTo
       );
 
-      UpdateRespAnalysisPlot(resp_plots, resp_bin_sample_period, modelStartRecord, modelStartRecord + modelLength - 1);
+      if (RespiratoryUseConstantAxis)
+      {
+        resp_plot.Axes[1].Minimum = resp_signal_values.Min();
+        resp_plot.Axes[1].Maximum = resp_signal_values.Max();
+      }
 
-      if (updatePropertiesPlot)
-        UpdateRespAnalysisInfoPlot();
+      UpdateRespAnalysisPlot(resp_plot);
+      UpdateRespAnalysisInfo(resp_plot);
+      UpdateRespAnalysisInfoPlot(resp_plot, DateTime.Parse(resp_bin_date_time_from), resp_bin_sample_period);
+      OnPropertyChanged(nameof(RespiratoryAnalyzedEpochs));
+    }
+    /// <summary>
+    /// Performs respiratory analysis on binary contents stored into memory 
+    /// </summary>
+    public void PerformRespiratoryAnalysisBinary()
+    {
+      if (!RespiratoryBinaryNavigationEnabled)
+        return;
+
+      RespiratoryProgressRingEnabled = true;
+
+      BackgroundWorker bw = new BackgroundWorker();
+      bw.DoWork += BW_RespiratoryAnalysisBinary;
+      bw.RunWorkerAsync();
     }
 
     // Respiratory Analysis From EDF File
-    /// <summary>
-    /// To know whether the signal is changing
-    /// </summary>
-    private string old_signal_name = null;
     /// <summary>
     /// Background process for performing respiratory analysis
     /// </summary>
@@ -1553,16 +1746,6 @@ namespace SleepApneaDiagnoser
     /// <param name="e"></param>
     private void BW_RespiratoryAnalysisEDF(object sender, DoWorkEventArgs e)
     {
-      bool updatePropertiesPlot = IsAnalysisFromBinary || RespiratoryEDFSelectedSignal != old_signal_name;
-      old_signal_name = RespiratoryEDFSelectedSignal;
-
-      IsAnalysisFromBinary = false;
-
-      PlotModel temp_SignalPlot = new PlotModel();
-
-      temp_SignalPlot.Series.Clear();
-      temp_SignalPlot.Axes.Clear();
-
       float sample_period;
       LineSeries series = GetSeriesFromSignalName(out sample_period,
                                                   RespiratoryEDFSelectedSignal,
@@ -1570,9 +1753,8 @@ namespace SleepApneaDiagnoser
                                                   Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile) + Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 1)
                                                   );
 
-
-      PlotModel tempPlotModel = new PlotModel();
-      Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> resp_plots = RespiratoryFactory.GetRespiratoryAnalysisPlot(
+      
+      PlotModel resp_plot = RespiratoryFactory.GetRespiratorySignalPlot(
         RespiratoryEDFSelectedSignal,
         series.Points.Select(temp => (float)temp.Y).ToList(),
         sample_period,
@@ -1585,14 +1767,14 @@ namespace SleepApneaDiagnoser
 
       if (RespiratoryUseConstantAxis)
       {
-        resp_plots.Item7.Minimum = Utils.GetMinSignalValue(RespiratoryEDFSelectedSignal, true, LoadedEDFFile, sm);
-        resp_plots.Item7.Maximum = Utils.GetMaxSignalValue(RespiratoryEDFSelectedSignal, true, LoadedEDFFile, sm);
+        resp_plot.Axes[1].Minimum = Utils.GetMinSignalValue(RespiratoryEDFSelectedSignal, true, LoadedEDFFile, sm);
+        resp_plot.Axes[1].Maximum = Utils.GetMaxSignalValue(RespiratoryEDFSelectedSignal, true, LoadedEDFFile, sm);
       }
 
-      UpdateRespAnalysisPlot(resp_plots, sample_period, RespiratoryEDFStartRecord ?? 1, (RespiratoryEDFStartRecord ?? 1) + (RespiratoryEDFDuration ?? 1) - 1);
-
-      if (updatePropertiesPlot)
-        UpdateRespAnalysisInfoPlot();
+      UpdateRespAnalysisPlot(resp_plot);
+      UpdateRespAnalysisInfo(resp_plot);
+      UpdateRespAnalysisInfoPlot(resp_plot, EDFStartTime, sample_period);
+      OnPropertyChanged(nameof(RespiratoryAnalyzedEpochs));
     }
     /// <summary>
     /// Peforms respiratory analysis 
@@ -1608,108 +1790,29 @@ namespace SleepApneaDiagnoser
       bw.DoWork += BW_RespiratoryAnalysisEDF;
       bw.RunWorkerAsync();
     }
-
-    private void UpdateRespAnalysisPlot(Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> resp_plots, float sample_period, int start_record, int end_record)
+    
+    private void UpdateRespAnalysisPlot(PlotModel resp_plot)
     {
-      PlotModel tempPlotModel = new PlotModel();
-
-      tempPlotModel.Series.Add(resp_plots.Item1);
-      tempPlotModel.Series.Add(resp_plots.Item2);
-      tempPlotModel.Series.Add(resp_plots.Item3);
-      tempPlotModel.Series.Add(resp_plots.Item4);
-      tempPlotModel.Series.Add(resp_plots.Item5);
-      tempPlotModel.Axes.Add(resp_plots.Item6);
-      tempPlotModel.Axes.Add(resp_plots.Item7);
-
-      RespiratorySignalPlot = tempPlotModel;
-
-      OnPropertyChanged(nameof(RespiratoryAnalyzedEpochs));
-      UpdateRespAnalysisInfo();  
+      RespiratorySignalPlot = resp_plot;
     }
-    private double[] GetRespAnalysisInfo(int epoch)
+    private void UpdateRespAnalysisInfo(PlotModel resp_plot)
     {
-      DateTime start;
-      float sample_period;
-      PlotModel model = new PlotModel();
-
-      if (IsAnalysisFromBinary)
+      if (RespiratoryAnalysisEnabled && RespiratoryAnalyticsSelectedEpoch != null)
       {
-        start = DateTime.Parse(resp_bin_date_time_from).AddSeconds(30 * (epoch - 1));
-
-        int start_index = (int)(((double)(start - DateTime.Parse(resp_bin_date_time_from)).TotalSeconds) / ((double)resp_bin_sample_period));
-        int end_index = (int)(((double)(start.AddSeconds(30) - DateTime.Parse(resp_bin_date_time_from)).TotalSeconds) / ((double)resp_bin_sample_period));
-        start_index = Math.Max(start_index, 0);
-        end_index = Math.Min(end_index, resp_signal_values.Count - 1);
-
-        sample_period = resp_bin_sample_period;
-
-        Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> resp_plots = RespiratoryFactory.GetRespiratoryAnalysisPlot(
-          resp_bin_signal_name,
-          resp_signal_values.GetRange(start_index, end_index - start_index + 1),
-          resp_bin_sample_period,
-          resp_signal_values.Average(),
-          true,
-          RespiratoryMinimumPeakWidth,
-          start,
-          start.AddSeconds(30)
-        );
-
-        model.Series.Add(resp_plots.Item1);
-        model.Series.Add(resp_plots.Item2);
-        model.Series.Add(resp_plots.Item3);
-        model.Series.Add(resp_plots.Item4);
-        model.Series.Add(resp_plots.Item5);
-        model.Axes.Add(resp_plots.Item6);
-        model.Axes.Add(resp_plots.Item7);
-      }
-      else
-      {
-        start = Utils.EpochtoDateTime(epoch, LoadedEDFFile);
-
-        LineSeries series = GetSeriesFromSignalName(out sample_period,
-                                                    RespiratoryEDFSelectedSignal,
-                                                    start,
-                                                    start.AddSeconds(30)
-                                                    );
-
-        Tuple<LineSeries, ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries, DateTimeAxis, LinearAxis> resp_plots = RespiratoryFactory.GetRespiratoryAnalysisPlot(
-          RespiratoryEDFSelectedSignal,
-          series.Points.Select(temp => (float)temp.Y).ToList(),
-          sample_period,
-          (float)(Utils.GetMaxSignalValue(RespiratoryEDFSelectedSignal, false, LoadedEDFFile, sm) - Utils.GetMaxSignalValue(RespiratoryEDFSelectedSignal, true, LoadedEDFFile, sm)),
-          true,
-          RespiratoryMinimumPeakWidth,
-          start,
-          start.AddSeconds(30)
-        );
-
-        model.Series.Add(resp_plots.Item1);
-        model.Series.Add(resp_plots.Item2);
-        model.Series.Add(resp_plots.Item3);
-        model.Series.Add(resp_plots.Item4);
-        model.Series.Add(resp_plots.Item5);
-        model.Axes.Add(resp_plots.Item6);
-        model.Axes.Add(resp_plots.Item7);
-      }
-
-      return RespiratoryFactory.GetRespAnalysisInfo(model, start, sample_period);
-    }
-    private void UpdateRespAnalysisInfo()
-    {
-      if (RespiratoryAnalysisSelectedEpoch != null)
-      {
-        double[] output = GetRespAnalysisInfo(Int32.Parse(RespiratoryAnalysisSelectedEpoch));
-
-        RespiratoryBreathingPeriodMean = output[0].ToString("0.## sec/breath");
+        double[] output = IsAnalysisFromBinary ?
+        RespiratoryFactory.GetRespAnalysisInfo(resp_plot, DateTime.Parse(resp_bin_date_time_from), Int32.Parse(RespiratoryAnalyticsSelectedEpoch), resp_bin_sample_period) :
+        RespiratoryFactory.GetRespAnalysisInfo(resp_plot, EDFStartTime, Int32.Parse(RespiratoryAnalyticsSelectedEpoch), GetSamplePeriod(RespiratoryEDFSelectedSignal));
+        
+        RespiratoryBreathingPeriodMean = output[0].ToString("0.## s");
         RespiratoryBreathingPeriodCoeffVar = output[1].ToString("0.## %");
-        RespiratoryNegativePeakMean = output[2].ToString("0.##");
-        RespiratoryNegativePeakCoeffVar = output[3].ToString("0.## %");
-        RespiratoryPositivePeakMean = output[4].ToString("0.##");
-        RespiratoryPositivePeakCoeffVar = output[5].ToString("0.## %");
-        RespiratoryInspirationPeriodMean = output[6].ToString("0.## sec");
-        RespiratoryInspirationPeriodCoeffVar = output[7].ToString("0.## %");
-        RespiratoryExspirationPeriodMean = output[8].ToString("0.## sec");
-        RespiratoryExspirationPeriodCoeffVar = output[9].ToString("0.## %");
+        RespiratoryInspirationPeriodMean = output[2].ToString("0.## s");
+        RespiratoryInspirationPeriodCoeffVar = output[3].ToString("0.## %");
+        RespiratoryExspirationPeriodMean = output[4].ToString("0.## s");
+        RespiratoryExspirationPeriodCoeffVar = output[5].ToString("0.## %");
+        RespiratoryNegativePeakMean = output[6].ToString("0.##");
+        RespiratoryNegativePeakCoeffVar = output[7].ToString("0.## %");
+        RespiratoryPositivePeakMean = output[8].ToString("0.##");
+        RespiratoryPositivePeakCoeffVar = output[9].ToString("0.## %");
         RespiratoryInspirationVolumeMean = output[10].ToString("0.##");
         RespiratoryInspirationVolumeCoeffVar = output[11].ToString("0.## %");
         RespiratoryExpirationVolumeMean = output[12].ToString("0.##");
@@ -1719,103 +1822,26 @@ namespace SleepApneaDiagnoser
       {
         RespiratoryBreathingPeriodMean = null;
         RespiratoryBreathingPeriodCoeffVar = null;
-        RespiratoryNegativePeakMean = null;
-        RespiratoryNegativePeakCoeffVar = null;
-        RespiratoryPositivePeakMean = null;
-        RespiratoryPositivePeakCoeffVar = null;
         RespiratoryInspirationPeriodMean = null;
         RespiratoryInspirationPeriodCoeffVar = null;
         RespiratoryExspirationPeriodMean = null;
         RespiratoryExspirationPeriodCoeffVar = null;
+        RespiratoryNegativePeakMean = null;
+        RespiratoryNegativePeakCoeffVar = null;
+        RespiratoryPositivePeakMean = null;
+        RespiratoryPositivePeakCoeffVar = null;
         RespiratoryInspirationVolumeMean = null;
         RespiratoryInspirationVolumeCoeffVar = null;
         RespiratoryExpirationVolumeMean = null;
         RespiratoryExpirationVolumeCoeffVar = null;
       }
     }
-    private void UpdateRespAnalysisInfoPlot()
+    private void UpdateRespAnalysisInfoPlot(PlotModel resp_plot, DateTime start, float sample_period)
     {
-      if (RespiratorySignalPlotExists)
-      {
-        PlotModel temp_PlotModel = new PlotModel();
-
-        List<LinearAxis> y_axis = new List<LinearAxis>();
-        y_axis.Add(new LinearAxis());
-        y_axis.Add(new LinearAxis());
-        y_axis.Add(new LinearAxis());
-        y_axis[0].Key = "Y0";
-        y_axis[0].Title = "Vol";
-        y_axis[0].StartPosition = 0;
-        y_axis[0].EndPosition = 0.333;
-        y_axis[1].Key = "Y1";
-        y_axis[1].Title = "Pk";
-        y_axis[1].StartPosition = 0.333;
-        y_axis[1].EndPosition = 0.666;
-        y_axis[2].Key = "Y2";
-        y_axis[2].Title = "Prds";
-        y_axis[2].StartPosition = 0.666;
-        y_axis[2].EndPosition = 1;
-
-        LinearAxis x_axis = new LinearAxis();
-        x_axis.Key = "X";
-        x_axis.Position = AxisPosition.Bottom;
-
-        List<LineSeries> series = new List<LineSeries>();
-        for (int y = 0; y < 7; y++)
-        {
-          series.Add(new LineSeries());
-          series[y].XAxisKey = "X";
-        }
-
-        series[0].YAxisKey = "Y2";
-        series[1].YAxisKey = "Y1";
-        series[2].YAxisKey = "Y1";
-        series[3].YAxisKey = "Y2";
-        series[4].YAxisKey = "Y2";
-        series[5].YAxisKey = "Y0";
-        series[6].YAxisKey = "Y0";
-
-        series[0].Title = "Breathing Period";
-        series[1].Title = "Negative Peak";
-        series[2].Title = "Positive Peak";
-        series[3].Title = "Inspiration Period";
-        series[4].Title = "Expiration Period";
-        series[5].Title = "Inspiration Volume";
-        series[6].Title = "Expiration Volume";
-
-        for (int x = 0; x < RespiratoryAnalyzedEpochs.Length; x++)
-        {
-          DateTime start;
-          if (IsAnalysisFromBinary)
-            start = DateTime.Parse(resp_bin_date_time_from).AddSeconds(30 * (Int32.Parse(RespiratoryAnalyzedEpochs[x]) - 1));
-          else
-            start = Utils.EpochtoDateTime(Int32.Parse(RespiratoryAnalyzedEpochs[x]), LoadedEDFFile);
-
-          double[] output = GetRespAnalysisInfo(Int32.Parse(RespiratoryAnalyzedEpochs[x]));
-
-          for (int y = 0; y < output.Length; y += 2)
-          {
-            series[y / 2].Points.Add(new DataPoint(Int32.Parse(RespiratoryAnalyzedEpochs[x]), output[y]));
-          }
-        }
-
-        for (int x = 0; x < series.Count; x++)
-        {
-          temp_PlotModel.Series.Add(series[x]);
-        }
-        temp_PlotModel.Axes.Add(x_axis);
-        temp_PlotModel.Axes.Add(y_axis[0]);
-        temp_PlotModel.Axes.Add(y_axis[1]);
-        temp_PlotModel.Axes.Add(y_axis[2]);
-        temp_PlotModel.IsLegendVisible = false;
-
-        RespiratoryPropertiesSignalPlot = temp_PlotModel;
-      }
+      if (RespiratoryAnalysisEnabled)
+        RespiratoryAnalyticsPlot = RespiratoryFactory.GetRespiratoryAnalyticsPlot(resp_plot, RespiratoryAnalyzedEpochs, start, sample_period); 
       else
-      {
-        old_signal_name = null;
-        RespiratoryPropertiesSignalPlot = null;
-      }
+        RespiratoryAnalyticsPlot = null;
     }
 
     #endregion

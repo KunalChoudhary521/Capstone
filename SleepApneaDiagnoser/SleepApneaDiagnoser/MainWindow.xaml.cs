@@ -100,15 +100,6 @@ namespace SleepApneaDiagnoser
           column_RespAnalysis.Width = new GridLength(450, GridUnitType.Star);
           column_RespAnalysis.MinWidth = 300;
         }
-
-        if (this.Height < 700)
-        {
-          row_RespiratoryAnalysisPropertiesPlot.Height = new GridLength(0, GridUnitType.Star);
-        }
-        else
-        {
-          row_RespiratoryAnalysisPropertiesPlot.Height = new GridLength(400, GridUnitType.Star);
-        }
       }
     }
     private void Window_StateChanged(object sender, EventArgs e)
@@ -122,7 +113,6 @@ namespace SleepApneaDiagnoser
 
           column_RespAnalysis.Width = new GridLength(450, GridUnitType.Star);
           column_RespAnalysis.MinWidth = 300;
-          row_RespiratoryAnalysisPropertiesPlot.Height = new GridLength(400, GridUnitType.Star);
           break;
       }
     }
@@ -295,7 +285,7 @@ namespace SleepApneaDiagnoser
     }
 
     // Analysis Tab Events 
-    private void button_ExportRespiratoryCalculationsClick(object sender, RoutedEventArgs e)
+    private void button_ExportRespiratoryPlotClick(object sender, RoutedEventArgs e)
     {
       Microsoft.Win32.SaveFileDialog dialog = new Microsoft.Win32.SaveFileDialog();
       dialog.Filter = ".xlsx|*.xlsx";
@@ -326,7 +316,7 @@ namespace SleepApneaDiagnoser
         app.Quit();
         System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
         
-        resp_modelview.ExportRespiratoryCalculations(dialog.FileName);
+        resp_modelview.ExportRespiratoryPlot(dialog.FileName);
       }
     }
     private void button_ExportEEGCalculations_Click(object sender, RoutedEventArgs e)
