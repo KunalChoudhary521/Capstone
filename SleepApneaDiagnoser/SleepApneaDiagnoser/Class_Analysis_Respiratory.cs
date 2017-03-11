@@ -1834,7 +1834,38 @@ namespace SleepApneaDiagnoser
     private void UpdateRespAnalysisInfoPlot(PlotModel resp_plot, DateTime start, float sample_period)
     {
       if (RespiratoryAnalysisEnabled)
-        RespiratoryAnalyticsPlot = RespiratoryFactory.GetRespiratoryAnalyticsPlot(resp_plot, RespiratoryAnalyzedEpochs, start, sample_period); 
+      {
+        RespiratoryAnalyticsPlot = RespiratoryFactory.GetRespiratoryAnalyticsPlot(resp_plot, RespiratoryAnalyzedEpochs, start, sample_period);
+        for (int x = 0; x < RespiratoryAnalyticsPlot.Series.Count; x++)
+        {
+          RespiratoryAnalyticsPlot.Series[x].MouseDown += (sender, e) =>
+          {
+            if (RespiratoryProgressRingEnabled)
+              return;
+
+            if (IsAnalysisFromBinary)
+            {
+              rm.RespiratoryBinaryDuration = 3;
+              OnPropertyChanged(nameof(RespiratoryBinaryDuration));
+
+              RespiratoryBinaryStartRecord = (int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1;
+              RespiratoryDisplayAnalytics = false;
+
+              PerformRespiratoryAnalysisBinary();
+            }
+            else
+            {
+              rm.RespiratoryEDFDuration = 3;
+              OnPropertyChanged(nameof(RespiratoryEDFDuration));
+
+              RespiratoryEDFStartRecord = (int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1;
+              RespiratoryDisplayAnalytics = false;
+
+              PerformRespiratoryAnalysisEDF();
+            }
+          };
+        }
+      }
       else
         RespiratoryAnalyticsPlot = null;
     }
