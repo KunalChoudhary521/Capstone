@@ -1073,17 +1073,24 @@ namespace SleepApneaDiagnoser
     {
       ExportSignalModel signals_data = ((List<dynamic>)e.Argument)[0];
       string location = ((List<dynamic>)e.Argument)[1];
+      LineSeries signalToExport = null;
+      float sampleFrequency = 0;
 
       foreach (var signal in pm.PreviewSelectedSignals)
       {
         EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == signal);
-        LineSeries derivative = null;
+
+        DateTime startTime = Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile); // epoch start
+        int end_epochs = signals_data.Epochs_From + signals_data.Epochs_Length;
+        if (end_epochs > int.Parse(EDFEndEpoch))
+        {
+          end_epochs = int.Parse(EDFEndEpoch) + 1;
+        }
+        DateTime endTime = Utils.EpochtoDateTime(end_epochs, LoadedEDFFile); // epoch end
 
         if (edfsignal == null)
         {
           bool foundInDerived = false;
-          //float derivedSamplePeriod = 0;
-          float derivedSampleFrequency;
           EDFSignal oneDerivedEdfSignal = null;
 
           // look for the signal in the derviatives
@@ -1094,71 +1101,80 @@ namespace SleepApneaDiagnoser
               foundInDerived = true;
               oneDerivedEdfSignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == derivedSignal.Signal1Name);
               //derivedSamplePeriod = LoadedEDFFile.Header.DurationOfDataRecordInSeconds / (float)oneDerivedEdfSignal.NumberOfSamplesPerDataRecord; ;
-              derivedSampleFrequency = (float)oneDerivedEdfSignal.NumberOfSamplesPerDataRecord / LoadedEDFFile.Header.DurationOfDataRecordInSeconds;
+              sampleFrequency = (float)oneDerivedEdfSignal.NumberOfSamplesPerDataRecord / LoadedEDFFile.Header.DurationOfDataRecordInSeconds;
               break;
             }
           }
 
           if (foundInDerived)
           {
-            DateTime startTime = Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile); // epoch start
-            int end_epochs = signals_data.Epochs_From + signals_data.Epochs_Length;
-            if (end_epochs > int.Parse(EDFEndEpoch))
-            {
-              end_epochs = int.Parse(EDFEndEpoch) + 1;
-            }
-            DateTime endTime = Utils.EpochtoDateTime(end_epochs, LoadedEDFFile); // epoch end
-
-            LineSeries derivedSeries = GetSeriesFromSignalName(out derivedSampleFrequency, signal, startTime, endTime);
-
-            FileStream hdr_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".hdr", FileMode.OpenOrCreate);
-            hdr_file.SetLength(0); //clear it's contents
-            hdr_file.Close(); //flush
-            hdr_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".hdr", FileMode.OpenOrCreate); //reload
-
-            StringBuilder sb_hdr = new StringBuilder(); // string builder used for writing into the file
-
-            sb_hdr.AppendLine(signal) // name
-                .AppendLine(signals_data.Subject_ID.ToString()) // subject id
-                .AppendLine(Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile).ToString()) // epoch start
-                .AppendLine(Utils.EpochtoDateTime(end_epochs, LoadedEDFFile).ToString()) // epoch length
-                .AppendLine((1 / derivedSampleFrequency).ToString()); // sample frequency 
-
-            var bytes_to_write = Encoding.ASCII.GetBytes(sb_hdr.ToString());
-            hdr_file.Write(bytes_to_write, 0, bytes_to_write.Length);
-            hdr_file.Close();
-
-            FileStream bin_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".bin", FileMode.OpenOrCreate); //the binary file for each signal
-            bin_file.SetLength(0); //clear it's contents
-            bin_file.Close(); //flush
-
-
-            #region signal_binary_contents
-
-            bin_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".bin", FileMode.OpenOrCreate); //reload
-            BinaryWriter bin_writer = new BinaryWriter(bin_file);
-
-            int start_index = 0;
-            int end_index = derivedSeries.Points.Count();
-
-            if (start_index < 0) { start_index = 0; }
-
-            for (int i = start_index; i < end_index; i++)
-            {
-              float value = (float)derivedSeries.Points[i].Y;
-
-              byte[] bytes = System.BitConverter.GetBytes(value);
-              foreach (var b in bytes)
-              {
-                bin_writer.Write(b);
-              }
-            }
-
-            bin_writer.Close();
-
-            #endregion
-
+            signalToExport = GetSeriesFromSignalName(out sampleFrequency, signal, startTime, endTime);
           }
+
+          bool foundInFiltered = false;
+
+          foreach (var filteredSignal in sm.FilteredSignals) {
+            if (filteredSignal.SignalName == signal)
+            {
+              foundInFiltered = true;
+              break;
+            }
+          }
+
+          if(foundInFiltered) {
+            // check to see if it is a filtered signal
+            signalToExport = GetSeriesFromSignalName(out sampleFrequency, signal, startTime, endTime);          
+          }
+
+          #region header_file
+
+          FileStream hdr_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".hdr", FileMode.OpenOrCreate);
+          hdr_file.SetLength(0); //clear it's contents
+          hdr_file.Close(); //flush
+          hdr_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".hdr", FileMode.OpenOrCreate); //reload
+
+          StringBuilder sb_hdr = new StringBuilder(); // string builder used for writing into the file
+
+          sb_hdr.AppendLine(signal) // name
+              .AppendLine(signals_data.Subject_ID.ToString()) // subject id
+              .AppendLine(Utils.EpochtoDateTime(signals_data.Epochs_From, LoadedEDFFile).ToString()) // epoch start
+              .AppendLine(Utils.EpochtoDateTime(end_epochs, LoadedEDFFile).ToString()) // epoch length
+              .AppendLine((1 / sampleFrequency).ToString()); // sample frequency 
+
+          var bytes_to_write = Encoding.ASCII.GetBytes(sb_hdr.ToString());
+          hdr_file.Write(bytes_to_write, 0, bytes_to_write.Length);
+          hdr_file.Close();
+
+          FileStream bin_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".bin", FileMode.OpenOrCreate); //the binary file for each signal
+          bin_file.SetLength(0); //clear it's contents
+          bin_file.Close(); //flush
+
+          #endregion
+
+          #region signal_binary_contents
+
+          bin_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".bin", FileMode.OpenOrCreate); //reload
+          BinaryWriter bin_writer = new BinaryWriter(bin_file);
+
+          int start_index = 0;
+          int end_index = signalToExport.Points.Count();
+
+          if (start_index < 0) { start_index = 0; }
+
+          for (int i = start_index; i < end_index; i++)
+          {
+            float value = (float)signalToExport.Points[i].Y;
+
+            byte[] bytes = System.BitConverter.GetBytes(value);
+            foreach (var b in bytes)
+            {
+              bin_writer.Write(b);
+            }
+          }
+
+          bin_writer.Close();
+
+          #endregion
         }
         else
         {

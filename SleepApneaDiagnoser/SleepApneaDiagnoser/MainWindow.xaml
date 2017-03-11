@@ -375,9 +375,7 @@
                                     <Label Content="Signal Selection" FontSize="18" Width="200" Height="34" VerticalAlignment="Top" HorizontalAlignment="Left"  Grid.ColumnSpan="2"/>
                                     <Label Content="Plot Options" FontSize="18" Width="200" Height="34" VerticalAlignment="Top" HorizontalAlignment="Left" Grid.Column="2"/>
                                     <!-- From Binary -->
-                                    <Label Content="Binary" FontSize="14" Margin="0,5,20,5" Grid.Row="1"/>
-                                    <Button Content="Open" Width="100" HorizontalAlignment="Left" Margin="10,8,0,8" Grid.Column="1" Grid.Row="1"/>
-                                    <!-- From EDF -->
+                  <!-- From EDF -->
                                     <Label Content="EDF" FontSize="14" Margin="0,5,20,0" Grid.Row="2"/>
                                     <Label Content="Signal 1" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="10,5,0,0" Grid.Column="1" Grid.Row="2"/>
                                     <ComboBox Margin="79.667,4.333,9.667,4.667" IsEnabled="{Binding CoherenceEDFNavigationEnabled}" ItemsSource="{Binding AllNonHiddenSignals}" SelectedValue="{Binding CoherenceEDFSelectedSignal1}" Grid.Column="1" Grid.Row="2"/>
