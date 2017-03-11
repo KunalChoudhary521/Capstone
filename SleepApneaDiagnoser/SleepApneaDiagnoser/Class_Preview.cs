@@ -1055,6 +1055,7 @@ namespace SleepApneaDiagnoser
           }
           else
           {
+            PreviewNavigationEnabled = false;
             bw.RunWorkerAsync(arguments);
           }
         }
@@ -1068,6 +1069,7 @@ namespace SleepApneaDiagnoser
     }
     private void BW_FinishExportSignals(object sender, RunWorkerCompletedEventArgs e)
     {
+      PreviewNavigationEnabled = true;
     }
     private void BW_ExportSignals(object sender, DoWorkEventArgs e)
     {
