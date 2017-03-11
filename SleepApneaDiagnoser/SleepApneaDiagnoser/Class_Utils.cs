@@ -571,8 +571,8 @@ namespace SleepApneaDiagnoser
             fr.OriginalName = curr[1];
             fr.LowPass_Enabled = bool.Parse(curr[2]);
             fr.LowPassCutoff = float.Parse(curr[3]);
-            fr.WeightedAverage_Enabled = bool.Parse(curr[4]);
-            fr.WeightedAverage_Length = float.Parse(curr[5]);
+            fr.Average_Enabled = bool.Parse(curr[4]);
+            fr.Average_Length = float.Parse(curr[5]);
 
             if (AllSignals == null || AllSignals.Contains(fr.OriginalName))
             {
@@ -603,8 +603,8 @@ namespace SleepApneaDiagnoser
           curr_filterSignals[x].OriginalName + "," +
           curr_filterSignals[x].LowPass_Enabled.ToString() + "," +
           curr_filterSignals[x].LowPassCutoff.ToString() + "," +
-          curr_filterSignals[x].WeightedAverage_Enabled.ToString() + "," +
-          curr_filterSignals[x].WeightedAverage_Length.ToString());
+          curr_filterSignals[x].Average_Enabled.ToString() + "," +
+          curr_filterSignals[x].Average_Length.ToString());
       }
       sw.Close();
     }
@@ -671,23 +671,20 @@ namespace SleepApneaDiagnoser
     }
     
     // Filters
-    public static LineSeries ApplyWeightedAverageFilter(LineSeries series, float LENGTH)
+    public static LineSeries ApplyAverageFilter(LineSeries series, int LENGTH)
     {
-      List<double> coeff = new List<double>();
-      float sum = 0;
-      for (int x = 0; x < LENGTH; x++)
-      {
-        coeff.Add((LENGTH - x));
-        sum += (LENGTH - x);
-      }
-      for (int x = 0; x < LENGTH; x++)
-      {
-        coeff[x] = coeff[x] / sum;
-      }
+      double[] input = series.Points.Select(temp => temp.Y).ToArray();
+      double[] result = new double[series.Points.Count];
 
-      OnlineFirFilter filter = new OnlineFirFilter(coeff);
-      double[] result = filter.ProcessSamples(series.Points.Select(temp => temp.Y).ToArray());
+      for (int x = 0; x < input.Length; x++)
+      {
+        double sum = 0;
+        for (int y = x - LENGTH; y < x + LENGTH; y++)
+          sum += input[Math.Min(Math.Max(y, 0), input.Length - 1)];
 
+        result[x] = sum / (2 * LENGTH);
+      }
+      
       LineSeries series_new = new LineSeries();
       for (int x = 0; x < result.Length; x++)
       {
@@ -698,7 +695,7 @@ namespace SleepApneaDiagnoser
     }
     public static LineSeries ApplyLowPassFilter(LineSeries series, float cutoff, float sample_period)
     {
-      OnlineFirFilter filter = (OnlineFirFilter) OnlineIirFilter.CreateLowpass(MathNet.Filtering.ImpulseResponse.Finite, (double)(1 / sample_period), cutoff);
+      OnlineFirFilter filter = (OnlineFirFilter) OnlineFirFilter.CreateLowpass(MathNet.Filtering.ImpulseResponse.Finite, (double)(1 / sample_period), cutoff);
       double[] result = filter.ProcessSamples(series.Points.Select(temp => temp.Y).ToArray());
 
       LineSeries new_series = new LineSeries();
