@@ -491,6 +491,8 @@ namespace SleepApneaDiagnoser
       LinearAxis x_axis = new LinearAxis();
       x_axis.Key = "X";
       x_axis.Position = AxisPosition.Bottom;
+      x_axis.Minimum = Int32.Parse(epochs[0]);
+      x_axis.Maximum = Int32.Parse(epochs[epochs.Length - 1]);
 
       // Create Plot Model 
       PlotModel temp_PlotModel = new PlotModel();
@@ -560,97 +562,114 @@ namespace SleepApneaDiagnoser
       Excel.Application app = new Excel.Application();
 
       Excel.Workbook wb = app.Workbooks.Add(System.Reflection.Missing.Value);
-      Excel.Worksheet ws2 = (Excel.Worksheet)wb.Sheets.Add();
-      Excel.Worksheet ws1 = (Excel.Worksheet)wb.Sheets.Add();
-
-      #region Sheet 1
-
-      ws1.Name = "Analysis";
-
-      ws1.Cells[1, 2].Value = "Signal";
-      ws1.Cells[1, 3].Value = SignalName;
-      ws1.Cells[1, 2].Font.Bold = true;
-
-      ws1.Cells[3, 2].Value = "Epoch";
-      ws1.Cells[3, 3].Value = "Breathing Period";
-      ws1.Cells[3, 4].Value = "Inspiration Period";
-      ws1.Cells[3, 5].Value = "Exspiration Period";
-      ws1.Cells[3, 6].Value = "Negative Peak";
-      ws1.Cells[3, 7].Value = "Positive Peak";
-      ws1.Cells[3, 8].Value = "Negative Volume";
-      ws1.Cells[3, 9].Value = "Positive Volume";
-
-      for (int x = 0; x < signalProperties.Count; x++)
+      
+      #region Sheet 2
       {
-        ws1.Cells[4 + x, 2].Value = signalProperties[x][0];
-        ws1.Cells[4 + x, 3].Value = signalProperties[x][1];
-        ws1.Cells[4 + x, 4].Value = signalProperties[x][2];
-        ws1.Cells[4 + x, 5].Value = signalProperties[x][3];
-        ws1.Cells[4 + x, 6].Value = signalProperties[x][4];
-        ws1.Cells[4 + x, 7].Value = signalProperties[x][5];
-        ws1.Cells[4 + x, 8].Value = signalProperties[x][6];
-        ws1.Cells[4 + x, 9].Value = signalProperties[x][7];
+        Excel.Worksheet ws = (Excel.Worksheet)wb.Sheets.Add();
+
+        ws.Name = "SignalValues";
+
+        Excel.Range range = ws.Range[ws.Cells[3, 2], ws.Cells[2 + signal_points.Length / 7, 8]];
+        range.Value = signal_points;
+        ws.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, range, System.Reflection.Missing.Value, Excel.XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = "SignalValues";
+        ws.ListObjects["SignalValues"].TableStyle = "TableStyleLight9";
+        ws.Columns["A:I"].ColumnWidth = 20;
+        ws.Columns["E:H"].Hidden = true;
+        ws.Columns["B:H"].HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
+
+        Excel.Range range2 = ws.Range[ws.Cells[4, 2], ws.Cells[2 + signal_points.Length / 7, 8]];
+        range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($E4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+        range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($F4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+        range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($G4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+        range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($H4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+        range2.FormatConditions[1].Interior.Color = 5296274;
+        range2.FormatConditions[2].Interior.Color = 255;
+        range2.FormatConditions[3].Interior.Color = 65535;
+        range2.FormatConditions[4].Interior.Color = 15773696;
+
+        var excel_chart = ((Excel.ChartObject)((Excel.ChartObjects)ws.ChartObjects()).Add(500, 100, 900, 500)).Chart;
+        excel_chart.SetSourceData(range.Columns["B:G"]);
+        excel_chart.ChartType = Microsoft.Office.Interop.Excel.XlChartType.xlXYScatterLines;
+        excel_chart.ChartWizard(Source: range.Columns["B:G"], Title: SignalName, CategoryTitle: "Time", ValueTitle: SignalName);
+        excel_chart.PlotVisibleOnly = false;
+        ((Excel.Series)excel_chart.SeriesCollection(1)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
+        ((Excel.Series)excel_chart.SeriesCollection(2)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
+        ((Excel.Series)excel_chart.SeriesCollection(3)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
+        ((Excel.Series)excel_chart.SeriesCollection(4)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
+        ((Excel.Series)excel_chart.SeriesCollection(5)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
+        ((Excel.Series)excel_chart.SeriesCollection(2)).Format.Fill.ForeColor.RGB = 5296274;
+        ((Excel.Series)excel_chart.SeriesCollection(3)).Format.Fill.ForeColor.RGB = 255;
+        ((Excel.Series)excel_chart.SeriesCollection(4)).Format.Fill.ForeColor.RGB = 65535;
+        ((Excel.Series)excel_chart.SeriesCollection(5)).Format.Fill.ForeColor.RGB = 15773696;
+        ((Excel.Series)excel_chart.SeriesCollection(2)).Format.Line.ForeColor.RGB = 5296274;
+        ((Excel.Series)excel_chart.SeriesCollection(3)).Format.Line.ForeColor.RGB = 255;
+        ((Excel.Series)excel_chart.SeriesCollection(4)).Format.Line.ForeColor.RGB = 65535;
+        ((Excel.Series)excel_chart.SeriesCollection(5)).Format.Line.ForeColor.RGB = 15773696;
+
+        System.Runtime.InteropServices.Marshal.ReleaseComObject(range);
+        System.Runtime.InteropServices.Marshal.ReleaseComObject(ws);
       }
-
-      ws1.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, ws1.Range[ws1.Cells[3, 2], ws1.Cells[3 + signalProperties.Count, 9]], System.Reflection.Missing.Value, Excel.XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = "SignalProperties";
-      ws1.ListObjects["SignalProperties"].TableStyle = "TableStyleLight9";
-      ws1.Columns["A:J"].ColumnWidth = 20;
-      ws1.Columns["B:I"].HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
-
       #endregion
 
-      #region Sheet 2
+      #region Sheet 1
+      {
+        Excel.Worksheet ws = (Excel.Worksheet)wb.Sheets.Add();
 
-      ws2.Name = "SignalValues";
+        ws.Name = "Analysis";
 
-      Excel.Range range = ws2.Range[ws2.Cells[3, 2], ws2.Cells[2 + signal_points.Length / 7, 8]];
-      range.Value = signal_points;
-      ws2.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, range, System.Reflection.Missing.Value, Excel.XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = "SignalValues";
-      ws2.ListObjects["SignalValues"].TableStyle = "TableStyleLight9";
-      ws2.Columns["A:I"].ColumnWidth = 20;
-      ws2.Columns["E:H"].Hidden = true;
-      ws2.Columns["B:H"].HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
+        ws.Cells[1, 2].Value = "Signal";
+        ws.Cells[1, 3].Value = SignalName;
+        ws.Cells[1, 2].Font.Bold = true;
 
-      Excel.Range range2 = ws2.Range[ws2.Cells[4, 2], ws2.Cells[2 + signal_points.Length / 7, 8]];
-      range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($E4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
-      range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($F4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
-      range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($G4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
-      range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($H4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
-      range2.FormatConditions[1].Interior.Color = 5296274;
-      range2.FormatConditions[2].Interior.Color = 255;
-      range2.FormatConditions[3].Interior.Color = 65535;
-      range2.FormatConditions[4].Interior.Color = 15773696;
+        ws.Cells[3, 2].Value = "Epoch";
+        ws.Cells[3, 3].Value = "Breathing Period";
+        ws.Cells[3, 4].Value = "Inspiration Period";
+        ws.Cells[3, 5].Value = "Exspiration Period";
+        ws.Cells[3, 6].Value = "Negative Peak";
+        ws.Cells[3, 7].Value = "Positive Peak";
+        ws.Cells[3, 8].Value = "Negative Volume";
+        ws.Cells[3, 9].Value = "Positive Volume";
 
-      var excel_chart = ((Excel.ChartObject)((Excel.ChartObjects)ws2.ChartObjects()).Add(500, 100, 900, 500)).Chart;
-      excel_chart.SetSourceData(range.Columns["B:G"]);
-      excel_chart.ChartType = Microsoft.Office.Interop.Excel.XlChartType.xlXYScatterLines;
-      excel_chart.ChartWizard(Source: range.Columns["B:G"], Title: SignalName, CategoryTitle: "Time", ValueTitle: SignalName);
-      excel_chart.PlotVisibleOnly = false;
-      ((Excel.Series)excel_chart.SeriesCollection(1)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
-      ((Excel.Series)excel_chart.SeriesCollection(2)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
-      ((Excel.Series)excel_chart.SeriesCollection(3)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
-      ((Excel.Series)excel_chart.SeriesCollection(4)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
-      ((Excel.Series)excel_chart.SeriesCollection(5)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
-      ((Excel.Series)excel_chart.SeriesCollection(2)).Format.Fill.ForeColor.RGB = 5296274;
-      ((Excel.Series)excel_chart.SeriesCollection(3)).Format.Fill.ForeColor.RGB = 255;
-      ((Excel.Series)excel_chart.SeriesCollection(4)).Format.Fill.ForeColor.RGB = 65535;
-      ((Excel.Series)excel_chart.SeriesCollection(5)).Format.Fill.ForeColor.RGB = 15773696;
-      ((Excel.Series)excel_chart.SeriesCollection(2)).Format.Line.ForeColor.RGB = 5296274;
-      ((Excel.Series)excel_chart.SeriesCollection(3)).Format.Line.ForeColor.RGB = 255;
-      ((Excel.Series)excel_chart.SeriesCollection(4)).Format.Line.ForeColor.RGB = 65535;
-      ((Excel.Series)excel_chart.SeriesCollection(5)).Format.Line.ForeColor.RGB = 15773696;
+        for (int x = 0; x < signalProperties.Count; x++)
+        {
+          ws.Cells[4 + x, 2].Value = signalProperties[x][0];
+          ws.Cells[4 + x, 3].Value = signalProperties[x][1];
+          ws.Cells[4 + x, 4].Value = signalProperties[x][2];
+          ws.Cells[4 + x, 5].Value = signalProperties[x][3];
+          ws.Cells[4 + x, 6].Value = signalProperties[x][4];
+          ws.Cells[4 + x, 7].Value = signalProperties[x][5];
+          ws.Cells[4 + x, 8].Value = signalProperties[x][6];
+          ws.Cells[4 + x, 9].Value = signalProperties[x][7];
+        }
 
+        ws.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, ws.Range[ws.Cells[3, 2], ws.Cells[3 + signalProperties.Count, 9]], System.Reflection.Missing.Value, Excel.XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = "SignalProperties";
+        ws.ListObjects["SignalProperties"].TableStyle = "TableStyleLight9";
+        ws.Columns["A:J"].ColumnWidth = 20;
+        ws.Columns["B:I"].HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
+
+        var excel_chart = ((Excel.ChartObject)((Excel.ChartObjects)ws.ChartObjects()).Add(1000, 50, 900, 500)).Chart;
+        excel_chart.SetSourceData(ws.Range[ws.Cells[3, 2], ws.Cells[3 + signalProperties.Count, 9]]);
+        excel_chart.ChartType = Microsoft.Office.Interop.Excel.XlChartType.xlXYScatterLines;
+        excel_chart.ChartWizard(Source: ws.Range[ws.Cells[3, 2], ws.Cells[3 + signalProperties.Count, 9]], Title: "Flow Signal Analytics", CategoryTitle: "Epoch", ValueTitle: "");
+        excel_chart.PlotVisibleOnly = false;
+        ((Excel.Series)excel_chart.SeriesCollection(1)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
+        ((Excel.Series)excel_chart.SeriesCollection(2)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
+        ((Excel.Series)excel_chart.SeriesCollection(3)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
+        ((Excel.Series)excel_chart.SeriesCollection(4)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
+        ((Excel.Series)excel_chart.SeriesCollection(5)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
+        ((Excel.Series)excel_chart.SeriesCollection(6)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
+        ((Excel.Series)excel_chart.SeriesCollection(7)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
+
+        System.Runtime.InteropServices.Marshal.ReleaseComObject(ws);
+      }
       #endregion
 
       #region Save and Close
 
       wb.SaveAs(fileName);
-
       wb.Close(true);
       app.Quit();
-
-      System.Runtime.InteropServices.Marshal.ReleaseComObject(range);
-      System.Runtime.InteropServices.Marshal.ReleaseComObject(ws2);
+      
       System.Runtime.InteropServices.Marshal.ReleaseComObject(wb);
       System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
 
@@ -687,18 +706,22 @@ namespace SleepApneaDiagnoser
     /// <summary>
     /// The user selected start time for the respiratory analysis in 30s epochs
     /// </summary>
-    internal int? RespiratoryBinaryStart;
+    internal int? RespiratoryBinaryStartRecord;
     /// <summary>
     /// The user selected period for the respiratory analysis in 30s epochs
     /// </summary>
     internal int? RespiratoryBinaryDuration;
 
     // Output Plot
-
+    public bool RespiratoryDisplayAnalytics;
     /// <summary>
-    /// The respiratory analysis plot to be displayed
+    /// The respiratory signal plot to be displayed
     /// </summary>
     public PlotModel RespiratorySignalPlot = null;
+    /// <summary>
+    /// The respiratory analytic plot to be displayed
+    /// </summary>
+    public PlotModel RespiratoryAnalyticsPlot;
 
     // Output Analysis
     /// <summary>
@@ -789,15 +812,11 @@ namespace SleepApneaDiagnoser
     public bool IsAnalysisFromBinary = false;
 
     // Freeze UI when Performing Analysis 
-
     /// <summary>
     /// True if the program is performing analysis and a progress ring should be shown
     /// </summary>
     public bool RespiratoryProgressRingEnabled = false;
-    internal PlotModel RespiratoryAnalyticsPlot;
-
-    public bool RespiratoryDisplayAnalytics { get; internal set; }
-
+    
     #endregion
   }
 
@@ -828,6 +847,8 @@ namespace SleepApneaDiagnoser
             RespiratoryBreathingPeriodMean = "";
             RespiratoryBreathingPeriodCoeffVar = "";
             RespiratorySignalPlot = null;
+            RespiratoryAnalyticsPlot = null;
+            RespiratoryAnalyticsSelectedEpoch = null;
             RespiratoryEDFSelectedSignal = null;
             RespiratoryEDFDuration = null;
             RespiratoryEDFStartRecord = null;
@@ -838,6 +859,8 @@ namespace SleepApneaDiagnoser
             RespiratoryBreathingPeriodCoeffVar = "";
             RespiratoryEDFSelectedSignal = null;
             RespiratorySignalPlot = null;
+            RespiratoryAnalyticsPlot = null;
+            RespiratoryAnalyticsSelectedEpoch = null;
             RespiratoryEDFStartRecord = 1;
             RespiratoryEDFDuration = 1;
           }
@@ -956,7 +979,7 @@ namespace SleepApneaDiagnoser
     {
       IsAnalysisFromBinary = true;
 
-      OnPropertyChanged(nameof(RespiratoryBinaryStart));
+      OnPropertyChanged(nameof(RespiratoryBinaryStartRecord));
       OnPropertyChanged(nameof(RespiratoryBinaryDuration));
 
       OnPropertyChanged(nameof(RespiratoryBinaryStartRecordMax));
@@ -1063,17 +1086,17 @@ namespace SleepApneaDiagnoser
     }
 
     // Binary Signal Selection
-    public int? RespiratoryBinaryStart
+    public int? RespiratoryBinaryStartRecord
     {
       get
       {
-        return rm.RespiratoryBinaryStart;
+        return rm.RespiratoryBinaryStartRecord;
       }
       set
       {
-        if (IsRespBinLoaded && rm.RespiratoryBinaryStart != (value ?? 1))
+        if (RespiratoryBinaryNavigationEnabled && rm.RespiratoryBinaryStartRecord != (value ?? 1))
         {
-          rm.RespiratoryBinaryStart = value ?? 1;
+          rm.RespiratoryBinaryStartRecord = value ?? 1;
           RespiratoryBinaryView_Changed();
         }
       }
@@ -1086,7 +1109,7 @@ namespace SleepApneaDiagnoser
       }
       set
       {
-        if (IsRespBinLoaded && rm.RespiratoryBinaryDuration != (value ?? 1))
+        if (RespiratoryBinaryNavigationEnabled && rm.RespiratoryBinaryDuration != (value ?? 1))
         {
           rm.RespiratoryBinaryDuration = value ?? 1;
           RespiratoryBinaryView_Changed();
@@ -1106,13 +1129,6 @@ namespace SleepApneaDiagnoser
         rm.IsAnalysisFromBinary = value;
       }
     }
-    public bool RespiratorySignalPlotExists
-    {
-      get
-      {
-        return RespiratorySignalPlot != null;
-      }
-    }
     public PlotModel RespiratorySignalPlot
     {
       get
@@ -1124,7 +1140,7 @@ namespace SleepApneaDiagnoser
         Utils.ApplyThemeToPlot(value, UseDarkTheme);
         rm.RespiratorySignalPlot = value;
         OnPropertyChanged(nameof(RespiratorySignalPlot));
-        OnPropertyChanged(nameof(RespiratorySignalPlotExists));
+        OnPropertyChanged(nameof(RespiratoryAnalysisEnabled));
         RepiratoryPlot_Changed();
       }
     }
@@ -1134,14 +1150,14 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        if (!RespiratorySignalPlotExists)
+        if (!RespiratoryAnalysisEnabled)
           return null;
         else
         {
           if (IsAnalysisFromBinary)
           {
             List<string> return_value = new List<string>();
-            for (int x = RespiratoryBinaryStart ?? 1; x < RespiratoryBinaryStart + RespiratoryBinaryDuration; x++)
+            for (int x = RespiratoryBinaryStartRecord ?? 1; x < RespiratoryBinaryStartRecord + RespiratoryBinaryDuration; x++)
               return_value.Add(x.ToString());
             return return_value.ToArray();
           }
@@ -1459,7 +1475,7 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        return 1 + resp_bin_max_epoch - RespiratoryBinaryStart ?? 1;
+        return 1 + resp_bin_max_epoch - RespiratoryBinaryStartRecord ?? 1;
       }
     }
     public int RespiratoryBinaryMaxEpochs
@@ -1482,6 +1498,8 @@ namespace SleepApneaDiagnoser
         rm.RespiratoryProgressRingEnabled = value;
         OnPropertyChanged(nameof(RespiratoryProgressRingEnabled));
         OnPropertyChanged(nameof(RespiratoryEDFNavigationEnabled));
+        OnPropertyChanged(nameof(RespiratoryAnalysisEnabled));
+        OnPropertyChanged(nameof(RespiratoryBinaryNavigationEnabled));
       }
     }
     public bool RespiratoryEDFNavigationEnabled
@@ -1494,21 +1512,33 @@ namespace SleepApneaDiagnoser
           return !RespiratoryProgressRingEnabled;
       }
     }
-
-    // Used For Importing From Binary For Respiratory Signals
-    public bool IsRespBinLoaded
+    public bool RespiratoryBinaryNavigationEnabled
     {
       get
       {
-        return resp_bin_loaded;
+        if (RespiratoryProgressRingEnabled)
+          return false;
+        else
+          return resp_bin_loaded;
       }
       set
       {
         resp_bin_loaded = value;
-        OnPropertyChanged(nameof(IsRespBinLoaded));
+        OnPropertyChanged(nameof(RespiratoryBinaryNavigationEnabled));
+      }
+    }
+    public bool RespiratoryAnalysisEnabled
+    {
+      get
+      {
+        if (!RespiratoryProgressRingEnabled)
+          return RespiratorySignalPlot != null;
+        else
+          return false;
       }
     }
 
+    // Used For Importing From Binary For Respiratory Signals
     public bool resp_bin_loaded = false;
     private string resp_bin_sample_frequency_s;
     private string resp_bin_date_time_length;
@@ -1576,7 +1606,7 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public void LoadRespiratoryAnalysisBinary()
     {
-      IsRespBinLoaded = true;
+      RespiratoryBinaryNavigationEnabled = true;
       System.Windows.Forms.OpenFileDialog dialog = new System.Windows.Forms.OpenFileDialog();
 
       dialog.Filter = "|*.bin";
@@ -1629,8 +1659,8 @@ namespace SleepApneaDiagnoser
 
         resp_bin_max_epoch = (int)epochs_to_datetime.Subtract(epochs_from_datetime).TotalSeconds / 30;
         OnPropertyChanged(nameof(RespiratoryBinaryMaxEpochs));
-        rm.RespiratoryBinaryStart = 1;
-        OnPropertyChanged(nameof(RespiratoryBinaryStart));
+        rm.RespiratoryBinaryStartRecord = 1;
+        OnPropertyChanged(nameof(RespiratoryBinaryStartRecord));
         rm.RespiratoryBinaryDuration = 1;
         OnPropertyChanged(nameof(RespiratoryBinaryDuration));
         OnPropertyChanged(nameof(RespiratoryBinaryDurationMax));
@@ -1640,7 +1670,7 @@ namespace SleepApneaDiagnoser
       }
       else
       {
-        IsRespBinLoaded = false;
+        RespiratoryBinaryNavigationEnabled = false;
       }
     }
 
@@ -1652,7 +1682,7 @@ namespace SleepApneaDiagnoser
     public void BW_RespiratoryAnalysisBinary(object sender, DoWorkEventArgs e)
     {
       // Finding From 
-      int modelStartRecord = RespiratoryBinaryStart.Value;
+      int modelStartRecord = RespiratoryBinaryStartRecord.Value;
       DateTime newFrom = DateTime.Parse(resp_bin_date_time_from);
       newFrom = newFrom.AddSeconds(30 * (modelStartRecord - 1));
 
@@ -1690,7 +1720,7 @@ namespace SleepApneaDiagnoser
 
       UpdateRespAnalysisPlot(resp_plot);
       UpdateRespAnalysisInfo(resp_plot);
-      UpdateRespAnalysisInfoPlot(resp_plot, newFrom, resp_bin_sample_period);
+      UpdateRespAnalysisInfoPlot(resp_plot, DateTime.Parse(resp_bin_date_time_from), resp_bin_sample_period);
       OnPropertyChanged(nameof(RespiratoryAnalyzedEpochs));
     }
     /// <summary>
@@ -1698,7 +1728,7 @@ namespace SleepApneaDiagnoser
     /// </summary>
     public void PerformRespiratoryAnalysisBinary()
     {
-      if (!IsRespBinLoaded)
+      if (!RespiratoryBinaryNavigationEnabled)
         return;
 
       RespiratoryProgressRingEnabled = true;
@@ -1743,7 +1773,7 @@ namespace SleepApneaDiagnoser
 
       UpdateRespAnalysisPlot(resp_plot);
       UpdateRespAnalysisInfo(resp_plot);
-      UpdateRespAnalysisInfoPlot(resp_plot, Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile), sample_period);
+      UpdateRespAnalysisInfoPlot(resp_plot, EDFStartTime, sample_period);
       OnPropertyChanged(nameof(RespiratoryAnalyzedEpochs));
     }
     /// <summary>
@@ -1767,7 +1797,7 @@ namespace SleepApneaDiagnoser
     }
     private void UpdateRespAnalysisInfo(PlotModel resp_plot)
     {
-      if (RespiratorySignalPlotExists && RespiratoryAnalyticsSelectedEpoch != null)
+      if (RespiratoryAnalysisEnabled && RespiratoryAnalyticsSelectedEpoch != null)
       {
         double[] output = IsAnalysisFromBinary ?
         RespiratoryFactory.GetRespAnalysisInfo(resp_plot, DateTime.Parse(resp_bin_date_time_from), Int32.Parse(RespiratoryAnalyticsSelectedEpoch), resp_bin_sample_period) :
@@ -1808,7 +1838,7 @@ namespace SleepApneaDiagnoser
     }
     private void UpdateRespAnalysisInfoPlot(PlotModel resp_plot, DateTime start, float sample_period)
     {
-      if (RespiratorySignalPlotExists)
+      if (RespiratoryAnalysisEnabled)
         RespiratoryAnalyticsPlot = RespiratoryFactory.GetRespiratoryAnalyticsPlot(resp_plot, RespiratoryAnalyzedEpochs, start, sample_period); 
       else
         RespiratoryAnalyticsPlot = null;
