@@ -84,36 +84,30 @@ namespace SleepApneaDiagnoser
     {
       if (this.WindowState != WindowState.Maximized)
       {
-        if (this.Width < 1000)
+        if (this.Width < 960)
         {
           column_EDFHeader.Width = new GridLength(0);
           column_EDFHeader.MaxWidth = 0;
           column_EDFHeader.MinWidth = 0;
 
-          column_RespAnalysis.Width = new GridLength(0);
-          column_RespAnalysis.MaxWidth = 0;
+          column_RespAnalysis.Width = new GridLength(0, GridUnitType.Star);
           column_RespAnalysis.MinWidth = 0;
         }
         else
         {
           column_EDFHeader.Width = new GridLength(300);
-          column_EDFHeader.MaxWidth = 300;
-          column_EDFHeader.MinWidth = 300;
 
-          column_RespAnalysis.Width = new GridLength(475);
-          column_RespAnalysis.MaxWidth = 475;
-          column_RespAnalysis.MinWidth = 475;
+          column_RespAnalysis.Width = new GridLength(450, GridUnitType.Star);
+          column_RespAnalysis.MinWidth = 300;
         }
 
         if (this.Height < 700)
         {
-          RespSignalPropertiesPlotHeader.Visibility = Visibility.Hidden;
-          RespSignalPropertiesPlot.Visibility = Visibility.Hidden;
+          row_RespiratoryAnalysisPropertiesPlot.Height = new GridLength(0, GridUnitType.Star);
         }
         else
         {
-          RespSignalPropertiesPlotHeader.Visibility = Visibility.Visible;
-          RespSignalPropertiesPlot.Visibility = Visibility.Visible;
+          row_RespiratoryAnalysisPropertiesPlot.Height = new GridLength(400, GridUnitType.Star);
         }
       }
     }
@@ -125,11 +119,10 @@ namespace SleepApneaDiagnoser
           column_EDFHeader.Width = new GridLength(300);
           column_EDFHeader.MaxWidth = 300;
           column_EDFHeader.MinWidth = 300;
-          column_RespAnalysis.Width = new GridLength(475);
-          column_RespAnalysis.MaxWidth = 475;
-          column_RespAnalysis.MinWidth = 475;
-          RespSignalPropertiesPlotHeader.Visibility = Visibility.Visible;
-          RespSignalPropertiesPlot.Visibility = Visibility.Visible;
+
+          column_RespAnalysis.Width = new GridLength(450, GridUnitType.Star);
+          column_RespAnalysis.MinWidth = 300;
+          row_RespiratoryAnalysisPropertiesPlot.Height = new GridLength(400, GridUnitType.Star);
           break;
       }
     }

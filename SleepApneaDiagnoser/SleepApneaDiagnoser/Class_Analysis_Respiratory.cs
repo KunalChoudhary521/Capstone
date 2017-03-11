@@ -1491,6 +1491,7 @@ namespace SleepApneaDiagnoser
       }
       else
       {
+        IsRespBinLoaded = false;
       }
     }
     /// <summary>
