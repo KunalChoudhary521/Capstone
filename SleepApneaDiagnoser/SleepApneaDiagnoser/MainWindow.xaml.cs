@@ -335,15 +335,19 @@ namespace SleepApneaDiagnoser
     {
       eeg_modelview.PerformEEGAnalysisBinary();
     }
-
     private void button_ExportEEGPlotsBin_Click(object sender, RoutedEventArgs e)
     {
       eeg_modelview.ExportEEGPlotsBin();
     }
-
     private void button_ExportEEGAnalysisBin_Click(object sender, RoutedEventArgs e)
     {
       eeg_modelview.ExportEEGCalculationsBin();
+    }
+
+    private void button_DisplayAnalytics_Checked(object sender, RoutedEventArgs e)
+    {
+      RespSignalPlot.Visibility = resp_modelview.RespiratoryDisplayAnalytics ? Visibility.Hidden : Visibility.Visible;
+      RespAnalyticsPlot.Visibility = !resp_modelview.RespiratoryDisplayAnalytics ? Visibility.Hidden : Visibility.Visible;
     }
   }
 }

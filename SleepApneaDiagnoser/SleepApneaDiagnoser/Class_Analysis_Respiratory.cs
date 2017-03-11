@@ -623,8 +623,8 @@ namespace SleepApneaDiagnoser
 
         ws.Cells[3, 2].Value = "Epoch";
         ws.Cells[3, 3].Value = "Breathing Period";
-        ws.Cells[3, 4].Value = "Inspiration Period";
-        ws.Cells[3, 5].Value = "Exspiration Period";
+        ws.Cells[3, 4].Value = "Exspiration Period";
+        ws.Cells[3, 5].Value = "Inspiration Period";
         ws.Cells[3, 6].Value = "Negative Peak";
         ws.Cells[3, 7].Value = "Positive Peak";
         ws.Cells[3, 8].Value = "Negative Volume";
@@ -1150,24 +1150,19 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        if (!RespiratoryAnalysisEnabled)
-          return null;
+        if (IsAnalysisFromBinary)
+        {
+          List<string> return_value = new List<string>();
+          for (int x = RespiratoryBinaryStartRecord ?? 1; x < RespiratoryBinaryStartRecord + RespiratoryBinaryDuration; x++)
+            return_value.Add(x.ToString());
+          return return_value.ToArray();
+        }
         else
         {
-          if (IsAnalysisFromBinary)
-          {
-            List<string> return_value = new List<string>();
-            for (int x = RespiratoryBinaryStartRecord ?? 1; x < RespiratoryBinaryStartRecord + RespiratoryBinaryDuration; x++)
-              return_value.Add(x.ToString());
-            return return_value.ToArray();
-          }
-          else
-          {
-            List<string> return_value = new List<string>();
-            for (int x = RespiratoryEDFStartRecord ?? 1; x < RespiratoryEDFStartRecord + RespiratoryEDFDuration; x++)
-              return_value.Add(x.ToString());
-            return return_value.ToArray();
-          }
+          List<string> return_value = new List<string>();
+          for (int x = RespiratoryEDFStartRecord ?? 1; x < RespiratoryEDFStartRecord + RespiratoryEDFDuration; x++)
+            return_value.Add(x.ToString());
+          return return_value.ToArray();
         }
       }
     }
