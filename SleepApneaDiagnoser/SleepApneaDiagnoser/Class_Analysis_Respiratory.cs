@@ -1401,7 +1401,7 @@ namespace SleepApneaDiagnoser
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
-    private void BW__ExportAnalysis_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+    private void BW_ExportAnalysis_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
     {
       RespiratoryProgressRingEnabled = false;
     }
@@ -1416,7 +1416,7 @@ namespace SleepApneaDiagnoser
 
       BackgroundWorker bw = new BackgroundWorker();
       bw.DoWork += BW_ExportAnalysis_DoWork;
-      bw.RunWorkerCompleted += BW__ExportAnalysis_RunWorkerCompleted;
+      bw.RunWorkerCompleted += BW_ExportAnalysis_RunWorkerCompleted;
       bw.RunWorkerAsync(fileName);
     }
     
@@ -1737,18 +1737,50 @@ namespace SleepApneaDiagnoser
       if (RespiratorySignalPlotExists)
       {
         PlotModel temp_PlotModel = new PlotModel();
+
+        List<LinearAxis> y_axis = new List<LinearAxis>();
+        y_axis.Add(new LinearAxis());
+        y_axis.Add(new LinearAxis());
+        y_axis.Add(new LinearAxis());
+        y_axis[0].Key = "Y0";
+        y_axis[0].Title = "Vol";
+        y_axis[0].StartPosition = 0;
+        y_axis[0].EndPosition = 0.333;
+        y_axis[1].Key = "Y1";
+        y_axis[1].Title = "Pk";
+        y_axis[1].StartPosition = 0.333;
+        y_axis[1].EndPosition = 0.666;
+        y_axis[2].Key = "Y2";
+        y_axis[2].Title = "Prds";
+        y_axis[2].StartPosition = 0.666;
+        y_axis[2].EndPosition = 1;
+
         LinearAxis x_axis = new LinearAxis();
-        LinearAxis y_axis = new LinearAxis();
-        x_axis.Position = AxisPosition.Bottom;
         x_axis.Key = "X";
-        y_axis.Key = "Y";
+        x_axis.Position = AxisPosition.Bottom;
+
         List<LineSeries> series = new List<LineSeries>();
         for (int y = 0; y < 7; y++)
         {
           series.Add(new LineSeries());
           series[y].XAxisKey = "X";
-          series[y].YAxisKey = "Y";
         }
+
+        series[0].YAxisKey = "Y2";
+        series[1].YAxisKey = "Y1";
+        series[2].YAxisKey = "Y1";
+        series[3].YAxisKey = "Y2";
+        series[4].YAxisKey = "Y2";
+        series[5].YAxisKey = "Y0";
+        series[6].YAxisKey = "Y0";
+
+        series[0].Title = "Breathing Period";
+        series[1].Title = "Negative Peak";
+        series[2].Title = "Positive Peak";
+        series[3].Title = "Inspiration Period";
+        series[4].Title = "Expiration Period";
+        series[5].Title = "Inspiration Volume";
+        series[6].Title = "Expiration Volume";
 
         for (int x = 0; x < RespiratoryAnalyzedEpochs.Length; x++)
         {
@@ -1771,7 +1803,10 @@ namespace SleepApneaDiagnoser
           temp_PlotModel.Series.Add(series[x]);
         }
         temp_PlotModel.Axes.Add(x_axis);
-        temp_PlotModel.Axes.Add(y_axis);
+        temp_PlotModel.Axes.Add(y_axis[0]);
+        temp_PlotModel.Axes.Add(y_axis[1]);
+        temp_PlotModel.Axes.Add(y_axis[2]);
+        temp_PlotModel.IsLegendVisible = false;
 
         RespiratoryPropertiesSignalPlot = temp_PlotModel;
       }

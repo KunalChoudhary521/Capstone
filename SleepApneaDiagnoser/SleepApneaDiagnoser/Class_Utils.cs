@@ -31,6 +31,7 @@ namespace SleepApneaDiagnoser
       {
         var color = UseDarkTheme ? OxyColors.LightGray : OxyColors.Black;
 
+        plot.LegendTextColor = color;
         plot.TitleColor = color;
         plot.PlotAreaBorderColor = color;
         for (int x = 0; x < plot.Axes.Count; x++)
