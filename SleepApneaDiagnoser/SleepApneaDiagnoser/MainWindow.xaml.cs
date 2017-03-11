@@ -84,7 +84,7 @@ namespace SleepApneaDiagnoser
     {
       if (this.WindowState != WindowState.Maximized)
       {
-        if (this.Width < 960)
+        if (this.Width < 1300)
         {
           column_EDFHeader.Width = new GridLength(0);
           column_EDFHeader.MaxWidth = 0;
