@@ -355,20 +355,22 @@ namespace SleepApneaDiagnoser
     }
 
     // Settings Persistence
+    public static string settings_folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\SleepApneaAnalysisTool\\Settings";
+
     public static SignalCategory[] LoadCategoriesFile(string[] AllSignals)
     {
       // Check if Settings directory exists
-      if (!Directory.Exists("Settings"))
-        Directory.CreateDirectory("Settings");
+      if (!Directory.Exists(settings_folder))
+        Directory.CreateDirectory(settings_folder);
 
       // Return Value
       List<SignalCategory> temp = new List<SignalCategory>();
 
       // If the settings file exists
-      if (File.Exists("Settings\\signal_categories.txt"))
+      if (File.Exists(settings_folder + "\\signal_categories.txt"))
       {
         // Open settings file
-        StreamReader sr = new StreamReader("Settings\\signal_categories.txt");
+        StreamReader sr = new StreamReader(settings_folder + "\\signal_categories.txt");
         string[] text = sr.ReadToEnd().Replace("\r\n", "\n").Split('\n');
 
         // Foreach line in the settings file
@@ -450,7 +452,7 @@ namespace SleepApneaDiagnoser
         }
       }
 
-      StreamWriter sw = new StreamWriter("Settings\\signal_categories.txt");
+      StreamWriter sw = new StreamWriter(settings_folder + "\\signal_categories.txt");
       for (int x = 0; x < current_SignalCategories.Count; x++)
       {
         if (current_SignalCategories[x].Signals.Count > 0)
@@ -469,14 +471,14 @@ namespace SleepApneaDiagnoser
     }
     public static DerivativeSignal[] LoadDerivativesFile(EDFFile LoadedEDFFile)
     {
-      if (!Directory.Exists("Settings"))
-        Directory.CreateDirectory("Settings");
+      if (!Directory.Exists(settings_folder))
+        Directory.CreateDirectory(settings_folder);
 
       List<DerivativeSignal> output = new List<DerivativeSignal>();
 
-      if (File.Exists("Settings\\common_derivatives.txt"))
+      if (File.Exists(settings_folder + "\\common_derivatives.txt"))
       {
-        StreamReader sr = new StreamReader("Settings\\common_derivatives.txt");
+        StreamReader sr = new StreamReader(settings_folder + "\\common_derivatives.txt");
         List<string> text = sr.ReadToEnd().Replace("\r\n", "\n").Split('\n').ToList();
 
         for (int x = 0; x < text.Count; x++)
@@ -541,7 +543,7 @@ namespace SleepApneaDiagnoser
       }
 
       // Write to file
-      StreamWriter sw = new StreamWriter("Settings\\common_derivatives.txt");
+      StreamWriter sw = new StreamWriter(settings_folder + "\\common_derivatives.txt");
       for (int x = 0; x < current_DerivativeSignals.Count; x++)
       {
         sw.WriteLine(current_DerivativeSignals[x].DerivativeName + "," + current_DerivativeSignals[x].Signal1Name + "," + current_DerivativeSignals[x].Signal2Name);
@@ -550,14 +552,14 @@ namespace SleepApneaDiagnoser
     }
     public static FilteredSignal[] LoadFilteredSignalsFile(string[] AllSignals)
     {
-      if (!Directory.Exists("Settings"))
-        Directory.CreateDirectory("Settings");
+      if (!Directory.Exists(settings_folder))
+        Directory.CreateDirectory(settings_folder);
 
       List<FilteredSignal> filteredSignals = new List<FilteredSignal>();
 
-      if (File.Exists("Settings\\filtered.txt"))
+      if (File.Exists(settings_folder + "\\filtered.txt"))
       {
-        StreamReader sr = new StreamReader("Settings\\filtered.txt");
+        StreamReader sr = new StreamReader(settings_folder + "\\filtered.txt");
         string[] lines = sr.ReadToEnd().Replace("\r\n", "\n").Split('\n');
 
         for (int x = 0; x < lines.Length; x++)
@@ -588,14 +590,14 @@ namespace SleepApneaDiagnoser
     }
     public static void WriteToFilteredSignalsFile(FilteredSignal[] FilteredSignals, string[] AllSignals)
     {
-      if (!Directory.Exists("Settings"))
-        Directory.CreateDirectory("Settings");
+      if (!Directory.Exists(settings_folder))
+        Directory.CreateDirectory(settings_folder);
 
       List<FilteredSignal> curr_filterSignals = LoadFilteredSignalsFile(null).ToList();
       curr_filterSignals.RemoveAll(temp => AllSignals.ToList().Contains(temp.OriginalName));
       curr_filterSignals.AddRange(FilteredSignals);
 
-      StreamWriter sw = new StreamWriter("Settings\\filtered.txt");
+      StreamWriter sw = new StreamWriter(settings_folder + "\\filtered.txt");
       for (int x = 0; x < curr_filterSignals.Count; x++)
       {
         sw.WriteLine(
@@ -610,14 +612,14 @@ namespace SleepApneaDiagnoser
     }
     public static string[] LoadHiddenSignalsFile()
     {
-      if (!Directory.Exists("Settings"))
-        Directory.CreateDirectory("Settings");
+      if (!Directory.Exists(settings_folder))
+        Directory.CreateDirectory(settings_folder);
 
       List<string> output = new List<string>();
 
-      if (File.Exists("Settings\\hiddensignals.txt"))
+      if (File.Exists(settings_folder + "\\hiddensignals.txt"))
       {
-        StreamReader sr = new StreamReader("Settings\\hiddensignals.txt");
+        StreamReader sr = new StreamReader(settings_folder + "\\hiddensignals.txt");
         output = sr.ReadToEnd().Replace("\r\n", "\n").Split('\n').ToList();
         output = output.Select(temp => temp.Trim()).Where(temp => temp != "").ToList();
         sr.Close();
@@ -627,10 +629,10 @@ namespace SleepApneaDiagnoser
     }
     public static void WriteToHiddenSignalsFile(string[] hidden_signals)
     {
-      if (!Directory.Exists("Settings"))
-        Directory.CreateDirectory("Settings");
+      if (!Directory.Exists(settings_folder))
+        Directory.CreateDirectory(settings_folder);
 
-      StreamWriter sw = new StreamWriter("Settings\\hiddensignals.txt");
+      StreamWriter sw = new StreamWriter(settings_folder + "\\hiddensignals.txt");
       for (int x = 0; x < hidden_signals.Length; x++)
       {
         sw.WriteLine(hidden_signals[x]);
@@ -639,12 +641,12 @@ namespace SleepApneaDiagnoser
     }
     public static void LoadPersonalization(out bool UseCustomColor, out Color ThemeColor, out bool UseDarkTheme)
     {
-      if (!Directory.Exists("Settings"))
-        Directory.CreateDirectory("Settings");
+      if (!Directory.Exists(settings_folder))
+        Directory.CreateDirectory(settings_folder);
 
-      if (File.Exists("Settings\\personalization.txt"))
+      if (File.Exists(settings_folder + "\\personalization.txt"))
       {
-        StreamReader sr = new StreamReader("Settings\\personalization.txt");
+        StreamReader sr = new StreamReader(settings_folder + "\\personalization.txt");
         UseCustomColor = bool.Parse(sr.ReadLine());
         string temp = sr.ReadLine();
         ThemeColor = Color.FromArgb(byte.Parse(temp.Split(',')[0]), byte.Parse(temp.Split(',')[1]), byte.Parse(temp.Split(',')[2]), byte.Parse(temp.Split(',')[3]));
@@ -660,10 +662,10 @@ namespace SleepApneaDiagnoser
     }
     public static void WriteToPersonalization(bool UseCustomColor, Color ThemeColor, bool UseDarkTheme)
     {
-      if (!Directory.Exists("Settings"))
-        Directory.CreateDirectory("Settings");
+      if (!Directory.Exists(settings_folder))
+        Directory.CreateDirectory(settings_folder);
 
-      StreamWriter sw = new StreamWriter("Settings\\personalization.txt");
+      StreamWriter sw = new StreamWriter(settings_folder + "\\personalization.txt");
       sw.WriteLine(UseCustomColor.ToString());
       sw.WriteLine(ThemeColor.A.ToString() + "," + ThemeColor.R.ToString() + "," + ThemeColor.G.ToString() + "," + ThemeColor.B.ToString());
       sw.WriteLine(UseDarkTheme.ToString());

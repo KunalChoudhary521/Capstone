@@ -315,14 +315,14 @@ namespace SleepApneaDiagnoser
     {
       get
       {
-        if (!Directory.Exists("Settings"))
-          Directory.CreateDirectory("Settings");
+        if (!Directory.Exists(Utils.settings_folder))
+          Directory.CreateDirectory(Utils.settings_folder);
 
         string[] value = null;
 
-        if (File.Exists("Settings\\recent.txt"))
+        if (File.Exists(Utils.settings_folder + "\\recent.txt"))
         {
-          StreamReader sr = new StreamReader("Settings\\recent.txt");
+          StreamReader sr = new StreamReader(Utils.settings_folder + "\\recent.txt");
           string[] text = sr.ReadToEnd().Split('\n');
           List<string> values = new List<string>();
           for (int x = 0; x < text.Length; x++)
@@ -343,14 +343,14 @@ namespace SleepApneaDiagnoser
 
     public void RecentFiles_Add(string path)
     {
-      if (!Directory.Exists("Settings"))
-        Directory.CreateDirectory("Settings");
+      if (!Directory.Exists(Utils.settings_folder))
+        Directory.CreateDirectory(Utils.settings_folder);
 
       List<string> array = RecentFiles.ToArray().ToList();
       array.Insert(0, path);
       array = array.Distinct().ToList();
 
-      StreamWriter sw = new StreamWriter("Settings\\recent.txt");
+      StreamWriter sw = new StreamWriter(Utils.settings_folder + "\\recent.txt");
       for (int x = 0; x < array.Count; x++)
       {
         sw.WriteLine(array[x]);
@@ -361,14 +361,14 @@ namespace SleepApneaDiagnoser
     }
     public void RecentFiles_Remove(string path)
     {
-      if (!Directory.Exists("Settings"))
-        Directory.CreateDirectory("Settings");
+      if (!Directory.Exists(Utils.settings_folder))
+        Directory.CreateDirectory(Utils.settings_folder);
 
       List<string> array = RecentFiles.ToArray().ToList();
       array.Remove(path);
       array = array.Distinct().ToList();
 
-      StreamWriter sw = new StreamWriter("Settings\\recent.txt");
+      StreamWriter sw = new StreamWriter(Utils.settings_folder + "\\recent.txt");
       for (int x = 0; x < array.Count; x++)
       {
         sw.WriteLine(array[x]);
