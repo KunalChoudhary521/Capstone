@@ -30,7 +30,7 @@ namespace SleepApneaDiagnoser
 
       return series_norm;
     }
-    private static Tuple<ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries> GetPeaksAndOnsets(LineSeries series, bool RemoveMultiplePeaks, int min_spike_length)
+    private static ScatterSeries[] GetPeaksAndOnsets(LineSeries series, bool RemoveMultiplePeaks, int min_spike_length)
     {
       int spike_length = 0;
       int maxima = 0;
@@ -148,7 +148,7 @@ namespace SleepApneaDiagnoser
         }
       }
 
-      return new Tuple<ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries>(series_insets, series_onsets, series_neg_peaks, series_pos_peaks);
+      return new ScatterSeries[] { series_insets, series_onsets, series_neg_peaks, series_pos_peaks };
     }
     
     private static double GetVarianceCoefficient(double[] values)
@@ -295,51 +295,29 @@ namespace SleepApneaDiagnoser
         return new Tuple<double, double>(0, 0);
       }
     }
-    public static double[] GetRespAnalysisInfo(PlotModel model, DateTime start_time, int epoch, float sample_period)
+    public static double[] GetRespAnalysisInfo(LineSeries series_in, int start_epoch, int curr_epoch, float sample_period, int min_spike_length)
     {
-      DateTime start = start_time.AddSeconds(30 * (epoch - 1));
-      DateTime end = start + Utils.EpochPeriodtoTimeSpan(1);
+      int start_index = (int) ((curr_epoch - start_epoch) * 30 / sample_period);
+      int count = (int)(30 / sample_period);
 
       List<Series> series = new List<Series>();
       series.Add(new LineSeries());
-      for (int y = 0; y < ((LineSeries)model.Series[0]).Points.Count; y++)
-      {
-        DateTime curr = DateTimeAxis.ToDateTime(((LineSeries)model.Series[0]).Points[y].X);
-        if (curr >= start)
-        {
-          if (curr <= end)
-          {
-            ((LineSeries)series[0]).Points.Add(((LineSeries)model.Series[0]).Points[y]);
-          }
-        }
-      }
-      for (int x = 1; x < model.Series.Count; x++)
-      {
-        series.Add(new ScatterSeries());
-        for (int y = 0; y < ((ScatterSeries)model.Series[x]).Points.Count; y++)
-        {
-          DateTime curr = DateTimeAxis.ToDateTime(((ScatterSeries)model.Series[x]).Points[y].X);
-          if (curr >= start)
-          {
-            if (curr <= end)
-            {
-              ((ScatterSeries)series[x]).Points.Add(((ScatterSeries)model.Series[x]).Points[y]);
-            }
-          }
-        }
-      }
+      try {
+        ((LineSeries)series[0]).Points.AddRange(series_in.Points.GetRange(start_index, count));
+      } catch{}
 
+      series.AddRange(GetPeaksAndOnsets((LineSeries)series[0], true, min_spike_length));
       double[] output = new double[14];
 
-      Tuple<double, double> breathing_periods = RespiratoryFactory.GetRespiratorySignalBreathingPeriod(new ScatterSeries[] { (ScatterSeries)series[1], (ScatterSeries)series[2] });
+      Tuple<double, double> breathing_periods = RespiratoryFactory.GetRespiratorySignalBreathingPeriod(new ScatterSeries[] { (ScatterSeries)series[2], (ScatterSeries)series[1] });
       output[0] = breathing_periods.Item1;
       output[1] = breathing_periods.Item2;
 
-      Tuple<double, double> inspir_periods = RespiratoryFactory.GetRespiratorySignalBreathingHalfPeriod((ScatterSeries)series[2], (ScatterSeries)series[1]);
+      Tuple<double, double> inspir_periods = RespiratoryFactory.GetRespiratorySignalBreathingHalfPeriod((ScatterSeries)series[1], (ScatterSeries)series[2]);
       output[2] = inspir_periods.Item1;
       output[3] = inspir_periods.Item2;
 
-      Tuple<double, double> exspir_periods = RespiratoryFactory.GetRespiratorySignalBreathingHalfPeriod((ScatterSeries)series[1], (ScatterSeries)series[2]);
+      Tuple<double, double> exspir_periods = RespiratoryFactory.GetRespiratorySignalBreathingHalfPeriod((ScatterSeries)series[2], (ScatterSeries)series[1]);
       output[4] = exspir_periods.Item1;
       output[5] = exspir_periods.Item2;
 
@@ -351,11 +329,11 @@ namespace SleepApneaDiagnoser
       output[8] = pos_peaks.Item1;
       output[9] = pos_peaks.Item2;
 
-      Tuple<double, double> inspir_volume = RespiratoryFactory.GetRespiratorySignalFlowVolume((LineSeries)series[0], (ScatterSeries)series[2], (ScatterSeries)series[1], sample_period);
+      Tuple<double, double> inspir_volume = RespiratoryFactory.GetRespiratorySignalFlowVolume((LineSeries)series[0], (ScatterSeries)series[1], (ScatterSeries)series[2], sample_period);
       output[10] = inspir_volume.Item1;
       output[11] = inspir_volume.Item2;
 
-      Tuple<double, double> exspir_volume = RespiratoryFactory.GetRespiratorySignalFlowVolume((LineSeries)series[0], (ScatterSeries)series[1], (ScatterSeries)series[2], sample_period);
+      Tuple<double, double> exspir_volume = RespiratoryFactory.GetRespiratorySignalFlowVolume((LineSeries)series[0], (ScatterSeries)series[2], (ScatterSeries)series[1], sample_period);
       output[12] = exspir_volume.Item1;
       output[13] = exspir_volume.Item2;
 
@@ -377,11 +355,11 @@ namespace SleepApneaDiagnoser
 
       // Find Peaks and Zero Crossings
       int min_spike_length = (int)((double)((double)MinimumPeakWidth / (double)1000) / (double)sample_period);
-      Tuple<ScatterSeries, ScatterSeries, ScatterSeries, ScatterSeries> output = GetPeaksAndOnsets(series_norm, RemoveMultiplePeaks, min_spike_length);
-      ScatterSeries series_insets = output.Item1;
-      ScatterSeries series_onsets = output.Item2;
-      ScatterSeries series_neg_peaks = output.Item3;
-      ScatterSeries series_pos_peaks = output.Item4;
+      ScatterSeries[] output = GetPeaksAndOnsets(series_norm, RemoveMultiplePeaks, min_spike_length);
+      ScatterSeries series_insets = output[0];
+      ScatterSeries series_onsets = output[1];
+      ScatterSeries series_neg_peaks = output[2];
+      ScatterSeries series_pos_peaks = output[3];
 
       // Modify Series colors
       series_onsets.MarkerFill = OxyColor.FromRgb(255, 0, 0);
@@ -425,7 +403,7 @@ namespace SleepApneaDiagnoser
 
       return tempPlotModel;
     }
-    public static PlotModel GetRespiratoryAnalyticsPlot(PlotModel resp_plot, string[] epochs, DateTime start, float sample_period)
+    public static PlotModel GetRespiratoryAnalyticsPlot(LineSeries resp_plot, string[] epochs, int start, float sample_period, int min_spike_length)
     {
       // Create Series
       List<LineSeries> all_series = new List<LineSeries>();
@@ -455,7 +433,7 @@ namespace SleepApneaDiagnoser
       for (int x = 0; x < epochs.Length; x++)
       {
         double[] output;
-        output = RespiratoryFactory.GetRespAnalysisInfo(resp_plot, start, Int32.Parse(epochs[x]), sample_period);
+        output = RespiratoryFactory.GetRespAnalysisInfo(resp_plot, start, Int32.Parse(epochs[x]), sample_period, min_spike_length);
        
         for (int y = 0; y < output.Length; y += 2)
         {
@@ -1559,9 +1537,10 @@ namespace SleepApneaDiagnoser
       List<string[]> properties = new List<string[]>();
       for (int x = 0; x < RespiratoryAnalyzedEpochs.Length; x++)
       {
+        
         double[] output = IsAnalysisFromBinary ?
-        RespiratoryFactory.GetRespAnalysisInfo(RespiratorySignalPlot, DateTime.Parse(resp_bin_date_time_from), Int32.Parse(RespiratoryAnalyzedEpochs[x]), resp_bin_sample_period) :
-        RespiratoryFactory.GetRespAnalysisInfo(RespiratorySignalPlot, EDFStartTime, Int32.Parse(RespiratoryAnalyzedEpochs[x]), GetSamplePeriod(RespiratoryEDFSelectedSignal));
+        RespiratoryFactory.GetRespAnalysisInfo((LineSeries) RespiratorySignalPlot.Series[0], RespiratoryBinaryStartRecord ?? 1, Int32.Parse(RespiratoryAnalyzedEpochs[x]), resp_bin_sample_period, RespiratoryMinimumPeakWidth) :
+        RespiratoryFactory.GetRespAnalysisInfo((LineSeries)RespiratorySignalPlot.Series[0], RespiratoryEDFStartRecord ?? 1, Int32.Parse(RespiratoryAnalyzedEpochs[x]), GetSamplePeriod(RespiratoryEDFSelectedSignal), RespiratoryMinimumPeakWidth);
 
         properties.Add(new string[] { (x + 1).ToString(), output[0].ToString(), output[2].ToString(), output[4].ToString(), output[6].ToString(), output[8].ToString(), output[10].ToString(), output[12].ToString() });
       }
@@ -1715,7 +1694,7 @@ namespace SleepApneaDiagnoser
 
       UpdateRespAnalysisPlot(resp_plot);
       UpdateRespAnalysisInfo(resp_plot);
-      UpdateRespAnalysisInfoPlot(resp_plot, DateTime.Parse(resp_bin_date_time_from), resp_bin_sample_period);
+      UpdateRespAnalysisInfoPlot(resp_plot, RespiratoryBinaryStartRecord ?? 1, resp_bin_sample_period);
       OnPropertyChanged(nameof(RespiratoryAnalyzedEpochs));
     }
     /// <summary>
@@ -1768,7 +1747,7 @@ namespace SleepApneaDiagnoser
 
       UpdateRespAnalysisPlot(resp_plot);
       UpdateRespAnalysisInfo(resp_plot);
-      UpdateRespAnalysisInfoPlot(resp_plot, EDFStartTime, sample_period);
+      UpdateRespAnalysisInfoPlot(resp_plot, RespiratoryEDFStartRecord ?? 1, sample_period);
       OnPropertyChanged(nameof(RespiratoryAnalyzedEpochs));
     }
     /// <summary>
@@ -1795,8 +1774,8 @@ namespace SleepApneaDiagnoser
       if (RespiratoryAnalysisEnabled && RespiratoryAnalyticsSelectedEpoch != null)
       {
         double[] output = IsAnalysisFromBinary ?
-        RespiratoryFactory.GetRespAnalysisInfo(resp_plot, DateTime.Parse(resp_bin_date_time_from), Int32.Parse(RespiratoryAnalyticsSelectedEpoch), resp_bin_sample_period) :
-        RespiratoryFactory.GetRespAnalysisInfo(resp_plot, EDFStartTime, Int32.Parse(RespiratoryAnalyticsSelectedEpoch), GetSamplePeriod(RespiratoryEDFSelectedSignal));
+        RespiratoryFactory.GetRespAnalysisInfo((LineSeries) resp_plot.Series[0], RespiratoryBinaryStartRecord ?? 1, Int32.Parse(RespiratoryAnalyticsSelectedEpoch), resp_bin_sample_period, RespiratoryMinimumPeakWidth) :
+        RespiratoryFactory.GetRespAnalysisInfo((LineSeries)resp_plot.Series[0], RespiratoryEDFStartRecord ?? 1, Int32.Parse(RespiratoryAnalyticsSelectedEpoch), GetSamplePeriod(RespiratoryEDFSelectedSignal), RespiratoryMinimumPeakWidth);
         
         RespiratoryBreathingPeriodMean = output[0].ToString("0.## s");
         RespiratoryBreathingPeriodCoeffVar = output[1].ToString("0.## %");
@@ -1831,11 +1810,11 @@ namespace SleepApneaDiagnoser
         RespiratoryExpirationVolumeCoeffVar = null;
       }
     }
-    private void UpdateRespAnalysisInfoPlot(PlotModel resp_plot, DateTime start, float sample_period)
+    private void UpdateRespAnalysisInfoPlot(PlotModel resp_plot, int start, float sample_period)
     {
       if (RespiratoryAnalysisEnabled)
       {
-        RespiratoryAnalyticsPlot = RespiratoryFactory.GetRespiratoryAnalyticsPlot(resp_plot, RespiratoryAnalyzedEpochs, start, sample_period);
+        RespiratoryAnalyticsPlot = RespiratoryFactory.GetRespiratoryAnalyticsPlot((LineSeries)resp_plot.Series[0], RespiratoryAnalyzedEpochs, start, sample_period, RespiratoryMinimumPeakWidth);
         for (int x = 0; x < RespiratoryAnalyticsPlot.Series.Count; x++)
         {
           RespiratoryAnalyticsPlot.Series[x].MouseDown += (sender, e) =>
