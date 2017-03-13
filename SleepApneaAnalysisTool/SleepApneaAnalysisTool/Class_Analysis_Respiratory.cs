@@ -489,104 +489,131 @@ namespace SleepApneaAnalysisTool
       return temp_PlotModel;
     }
 
-    public static void SaveRespiratoryAnalysisToExcel(string fileName, string SignalName, List<string[]> signalProperties, DateTime StartTime, PlotModel plot)
+    public static void SaveRespiratoryAnalysisToExcel(string fileName, string SignalName, List<string[]> signalProperties, DateTime StartTime, PlotModel plot, float sample_period)
     {
-      List<DataPoint> series = ((LineSeries)plot.Series[0]).Points;
-      List<ScatterPoint> insets = ((ScatterSeries)plot.Series[1]).Points;
-      List<ScatterPoint> onsets = ((ScatterSeries)plot.Series[2]).Points;
-      List<ScatterPoint> negpeaks = ((ScatterSeries)plot.Series[3]).Points;
-      List<ScatterPoint> pospeaks = ((ScatterSeries)plot.Series[4]).Points;
-      object[,] signal_points = new object[series.Count + 1, 7];
+      const int COLUMNS = 7;
+
+      List<object[,]> signal_points = new List<object[,]>();
       #region Get Points
-
-      int count_in = 0, count_on = 0, count_pos = 0, count_neg = 0;
-      signal_points[0, 0] = "Epoch";
-      signal_points[0, 1] = "Date Time";
-      signal_points[0, 2] = "Value";
-      signal_points[0, 3] = "Inspiration";
-      signal_points[0, 4] = "Exspiration";
-      signal_points[0, 5] = "Neg. Peaks";
-      signal_points[0, 6] = "Pos. Peaks";
-
-      for (int x = 1; x < series.Count + 1; x++)
       {
-        signal_points[x, 0] = Utils.DateTimetoEpoch(DateTimeAxis.ToDateTime(series[x - 1].X), StartTime);
-        signal_points[x, 1] = DateTimeAxis.ToDateTime(series[x - 1].X).ToString("MM/dd/yyyy hh:mm:ss.fff tt");
-        signal_points[x, 2] = series[x - 1].Y;
+        List<DataPoint> series = ((LineSeries)plot.Series[0]).Points;
+        List<ScatterPoint> insets = ((ScatterSeries)plot.Series[1]).Points;
+        List<ScatterPoint> onsets = ((ScatterSeries)plot.Series[2]).Points;
+        List<ScatterPoint> negpeaks = ((ScatterSeries)plot.Series[3]).Points;
+        List<ScatterPoint> pospeaks = ((ScatterSeries)plot.Series[4]).Points;
 
-        if (count_in < insets.Count && insets[count_in].X == series[x - 1].X)
+        int count_in = 0, count_on = 0, count_pos = 0, count_neg = 0;
+        int epoch = -1;
+        int index = -1;
+        int row = -1;
+        for (int x = 0; x < series.Count; x++)
         {
-          signal_points[x, 3] = series[x - 1].Y;
-          count_in++;
-        }
-        if (count_on < onsets.Count && onsets[count_on].X == series[x - 1].X)
-        {
-          signal_points[x, 4] = series[x - 1].Y;
-          count_on++;
-        }
-        if (count_neg < negpeaks.Count && negpeaks[count_neg].X == series[x - 1].X)
-        {
-          signal_points[x, 5] = series[x - 1].Y;
-          count_neg++;
-        }
-        if (count_pos < pospeaks.Count && pospeaks[count_pos].X == series[x - 1].X)
-        {
-          signal_points[x, 6] = series[x - 1].Y;
-          count_pos++;
+          if (epoch != Utils.DateTimetoEpoch(DateTimeAxis.ToDateTime(series[x].X), StartTime))
+          {
+            epoch = Utils.DateTimetoEpoch(DateTimeAxis.ToDateTime(series[x].X), StartTime);
+            index = signal_points.Count;
+            row = 0;
+            signal_points.Add(new object[(int)(30 / sample_period) + 1, COLUMNS]);
+
+            // Table Header
+            signal_points[index][row, 0] = "Epoch";
+            signal_points[index][row, 1] = "Date Time";
+            signal_points[index][row, 2] = "Value";
+            signal_points[index][row, 3] = "Inspiration";
+            signal_points[index][row, 4] = "Exspiration";
+            signal_points[index][row, 5] = "Neg. Peaks";
+            signal_points[index][row, 6] = "Pos. Peaks";
+            row++;
+          }
+
+          signal_points[index][row, 0] = Utils.DateTimetoEpoch(DateTimeAxis.ToDateTime(series[x].X), StartTime);
+          signal_points[index][row, 1] = DateTimeAxis.ToDateTime(series[x].X).ToString("MM/dd/yyyy hh:mm:ss.fff tt");
+          signal_points[index][row, 2] = series[x].Y;
+
+          if (count_in < insets.Count && insets[count_in].X == series[x].X)
+          {
+            signal_points[index][row, 3] = series[x].Y;
+            count_in++;
+          }
+          if (count_on < onsets.Count && onsets[count_on].X == series[x].X)
+          {
+            signal_points[index][row, 4] = series[x].Y;
+            count_on++;
+          }
+          if (count_neg < negpeaks.Count && negpeaks[count_neg].X == series[x].X)
+          {
+            signal_points[index][row, 5] = series[x].Y;
+            count_neg++;
+          }
+          if (count_pos < pospeaks.Count && pospeaks[count_pos].X == series[x].X)
+          {
+            signal_points[index][row, 6] = series[x].Y;
+            count_pos++;
+          }
+          row++;
         }
       }
-
       #endregion 
 
       Excel.Application app = new Excel.Application();
-
       Excel.Workbook wb = app.Workbooks.Add(System.Reflection.Missing.Value);
       
-      #region Sheet 2
+      #region Sheet 2 -> Sheet N
       {
-        Excel.Worksheet ws = (Excel.Worksheet)wb.Sheets.Add();
+        for (int x = signal_points.Count - 1; x >= 0 ; x--)
+        {
+          object[,] epoch_points = signal_points[x];
+          int ROWS = (epoch_points.Length / COLUMNS);
+          int EPOCH = Int32.Parse(epoch_points[1, 0].ToString());
 
-        ws.Name = "SignalValues";
+          Excel.Worksheet ws = (Excel.Worksheet)wb.Sheets.Add();
+          ws.Name = "Epoch" + EPOCH;
 
-        Excel.Range range = ws.Range[ws.Cells[3, 2], ws.Cells[2 + signal_points.Length / 7, 8]];
-        range.Value = signal_points;
-        ws.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, range, System.Reflection.Missing.Value, Excel.XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = "SignalValues";
-        ws.ListObjects["SignalValues"].TableStyle = "TableStyleLight9";
-        ws.Columns["A:I"].ColumnWidth = 20;
-        ws.Columns["E:H"].Hidden = true;
-        ws.Columns["B:H"].HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
+          // Make Table with Values
+          Excel.Range range = ws.Range[ws.Cells[3, 2], ws.Cells[3 + ROWS - 1, 2 + COLUMNS - 1]];
+          range.Value = epoch_points;
+          ws.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, range, System.Reflection.Missing.Value, Excel.XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = "Epoch" + EPOCH;
+          ws.ListObjects["Epoch" + EPOCH].TableStyle = "TableStyleLight9";
+          ws.Columns["A:I"].ColumnWidth = 20;
+          ws.Columns["E:H"].Hidden = true;
+          ws.Columns["B:H"].HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
 
-        Excel.Range range2 = ws.Range[ws.Cells[4, 2], ws.Cells[2 + signal_points.Length / 7, 8]];
-        range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($E4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
-        range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($F4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
-        range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($G4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
-        range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($H4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
-        range2.FormatConditions[1].Interior.Color = 5296274;
-        range2.FormatConditions[2].Interior.Color = 255;
-        range2.FormatConditions[3].Interior.Color = 65535;
-        range2.FormatConditions[4].Interior.Color = 15773696;
+          // Add Conditional Formatting 
+          Excel.Range range2 = ws.Range[ws.Cells[4, 2], ws.Cells[3 + ROWS - 1, 2 + COLUMNS - 1]];
+          range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($E4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+          range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($F4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+          range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($G4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+          range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($H4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+          range2.FormatConditions[1].Interior.Color = 5296274;
+          range2.FormatConditions[2].Interior.Color = 255;
+          range2.FormatConditions[3].Interior.Color = 65535;
+          range2.FormatConditions[4].Interior.Color = 15773696;
 
-        var excel_chart = ((Excel.ChartObject)((Excel.ChartObjects)ws.ChartObjects()).Add(500, 100, 900, 500)).Chart;
-        excel_chart.SetSourceData(range.Columns["B:G"]);
-        excel_chart.ChartType = Microsoft.Office.Interop.Excel.XlChartType.xlXYScatterLines;
-        excel_chart.ChartWizard(Source: range.Columns["B:G"], Title: SignalName, CategoryTitle: "Time", ValueTitle: SignalName);
-        excel_chart.PlotVisibleOnly = false;
-        ((Excel.Series)excel_chart.SeriesCollection(1)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
-        ((Excel.Series)excel_chart.SeriesCollection(2)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
-        ((Excel.Series)excel_chart.SeriesCollection(3)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
-        ((Excel.Series)excel_chart.SeriesCollection(4)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
-        ((Excel.Series)excel_chart.SeriesCollection(5)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
-        ((Excel.Series)excel_chart.SeriesCollection(2)).Format.Fill.ForeColor.RGB = 5296274;
-        ((Excel.Series)excel_chart.SeriesCollection(3)).Format.Fill.ForeColor.RGB = 255;
-        ((Excel.Series)excel_chart.SeriesCollection(4)).Format.Fill.ForeColor.RGB = 65535;
-        ((Excel.Series)excel_chart.SeriesCollection(5)).Format.Fill.ForeColor.RGB = 15773696;
-        ((Excel.Series)excel_chart.SeriesCollection(2)).Format.Line.ForeColor.RGB = 5296274;
-        ((Excel.Series)excel_chart.SeriesCollection(3)).Format.Line.ForeColor.RGB = 255;
-        ((Excel.Series)excel_chart.SeriesCollection(4)).Format.Line.ForeColor.RGB = 65535;
-        ((Excel.Series)excel_chart.SeriesCollection(5)).Format.Line.ForeColor.RGB = 15773696;
+          // Add Chart
+          Excel.Chart chart = ((Excel.ChartObject)((Excel.ChartObjects)ws.ChartObjects()).Add(500, 100, 900, 500)).Chart;
+          chart.SetSourceData(range.Columns["B:G"]);
+          chart.ChartType = Microsoft.Office.Interop.Excel.XlChartType.xlXYScatterLines;
+          chart.ChartWizard(Source: range.Columns["B:G"], Title: SignalName, CategoryTitle: "Time", ValueTitle: SignalName);
+          chart.PlotVisibleOnly = false;
+          ((Excel.Series)chart.SeriesCollection(1)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
+          ((Excel.Series)chart.SeriesCollection(2)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
+          ((Excel.Series)chart.SeriesCollection(3)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
+          ((Excel.Series)chart.SeriesCollection(4)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
+          ((Excel.Series)chart.SeriesCollection(5)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
+          ((Excel.Series)chart.SeriesCollection(2)).Format.Fill.ForeColor.RGB = 5296274;
+          ((Excel.Series)chart.SeriesCollection(3)).Format.Fill.ForeColor.RGB = 255;
+          ((Excel.Series)chart.SeriesCollection(4)).Format.Fill.ForeColor.RGB = 65535;
+          ((Excel.Series)chart.SeriesCollection(5)).Format.Fill.ForeColor.RGB = 15773696;
+          ((Excel.Series)chart.SeriesCollection(2)).Format.Line.ForeColor.RGB = 5296274;
+          ((Excel.Series)chart.SeriesCollection(3)).Format.Line.ForeColor.RGB = 255;
+          ((Excel.Series)chart.SeriesCollection(4)).Format.Line.ForeColor.RGB = 65535;
+          ((Excel.Series)chart.SeriesCollection(5)).Format.Line.ForeColor.RGB = 15773696;
 
-        System.Runtime.InteropServices.Marshal.ReleaseComObject(range);
-        System.Runtime.InteropServices.Marshal.ReleaseComObject(ws);
+          System.Runtime.InteropServices.Marshal.ReleaseComObject(chart);
+          System.Runtime.InteropServices.Marshal.ReleaseComObject(range);
+          System.Runtime.InteropServices.Marshal.ReleaseComObject(range2);
+          System.Runtime.InteropServices.Marshal.ReleaseComObject(ws);
+        }
       }
       #endregion
 
@@ -648,11 +675,11 @@ namespace SleepApneaAnalysisTool
       wb.SaveAs(fileName);
       wb.Close(true);
       app.Quit();
-      
-      System.Runtime.InteropServices.Marshal.ReleaseComObject(wb);
-      System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
 
       #endregion
+
+      System.Runtime.InteropServices.Marshal.ReleaseComObject(wb);
+      System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
     }
 
     #endregion
@@ -1549,7 +1576,8 @@ namespace SleepApneaAnalysisTool
       string SignalName = IsAnalysisFromBinary ? resp_bin_signal_name : RespiratoryEDFSelectedSignal;
       DateTime StartTime = IsAnalysisFromBinary ? DateTime.Parse(resp_bin_date_time_from) : EDFStartTime;
 
-      RespiratoryFactory.SaveRespiratoryAnalysisToExcel(e.Argument.ToString(), SignalName, properties, StartTime, RespiratorySignalPlot);
+      float sample_period = IsAnalysisFromBinary ? resp_bin_sample_period : GetSamplePeriod(RespiratoryEDFSelectedSignal);
+      RespiratoryFactory.SaveRespiratoryAnalysisToExcel(e.Argument.ToString(), SignalName, properties, StartTime, RespiratorySignalPlot, sample_period);
     }
     /// <summary>
     /// Called when exporting respiratory analysis finishes
