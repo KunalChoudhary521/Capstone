@@ -577,7 +577,7 @@ namespace SleepApneaAnalysisTool
           ws.Columns["A:I"].ColumnWidth = 20;
           ws.Columns["E:H"].Hidden = true;
           ws.Columns["B:H"].HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
-
+          
           // Add Conditional Formatting 
           Excel.Range range2 = ws.Range[ws.Cells[4, 2], ws.Cells[3 + ROWS - 1, 2 + COLUMNS - 1]];
           range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($E4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
@@ -588,6 +588,7 @@ namespace SleepApneaAnalysisTool
           range2.FormatConditions[2].Interior.Color = 255;
           range2.FormatConditions[3].Interior.Color = 65535;
           range2.FormatConditions[4].Interior.Color = 15773696;
+          range2.Columns[2].NumberFormat = "m/d/yyyy h:mm:ss.000";
 
           // Add Chart
           Excel.Chart chart = ((Excel.ChartObject)((Excel.ChartObjects)ws.ChartObjects()).Add(500, 100, 900, 500)).Chart;
@@ -1846,6 +1847,32 @@ namespace SleepApneaAnalysisTool
         RespiratoryAnalyticsPlot = RespiratoryFactory.GetRespiratoryAnalyticsPlot((LineSeries)resp_plot.Series[0], RespiratoryAnalyzedEpochs, start, sample_period, RespiratoryMinimumPeakWidth);
         for (int x = 0; x < RespiratoryAnalyticsPlot.Series.Count; x++)
         {
+          RespiratoryAnalyticsPlot.Series[x].TouchStarted += (sender, e) =>
+          {
+            if (RespiratoryProgressRingEnabled)
+              return;
+
+            if (IsAnalysisFromBinary)
+            {
+              rm.RespiratoryBinaryDuration = 3;
+              OnPropertyChanged(nameof(RespiratoryBinaryDuration));
+
+              RespiratoryBinaryStartRecord = Math.Max((int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1, 1);
+              RespiratoryDisplayAnalytics = false;
+
+              PerformRespiratoryAnalysisBinary();
+            }
+            else
+            {
+              rm.RespiratoryEDFDuration = 3;
+              OnPropertyChanged(nameof(RespiratoryEDFDuration));
+
+              RespiratoryEDFStartRecord = Math.Max((int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1, 1);
+              RespiratoryDisplayAnalytics = false;
+
+              PerformRespiratoryAnalysisEDF();
+            }
+          };
           RespiratoryAnalyticsPlot.Series[x].MouseDown += (sender, e) =>
           {
             if (RespiratoryProgressRingEnabled)
