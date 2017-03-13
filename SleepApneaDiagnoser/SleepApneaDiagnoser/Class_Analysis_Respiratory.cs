@@ -1542,7 +1542,7 @@ namespace SleepApneaDiagnoser
         RespiratoryFactory.GetRespAnalysisInfo((LineSeries) RespiratorySignalPlot.Series[0], RespiratoryBinaryStartRecord ?? 1, Int32.Parse(RespiratoryAnalyzedEpochs[x]), resp_bin_sample_period, RespiratoryMinimumPeakWidth) :
         RespiratoryFactory.GetRespAnalysisInfo((LineSeries)RespiratorySignalPlot.Series[0], RespiratoryEDFStartRecord ?? 1, Int32.Parse(RespiratoryAnalyzedEpochs[x]), GetSamplePeriod(RespiratoryEDFSelectedSignal), RespiratoryMinimumPeakWidth);
 
-        properties.Add(new string[] { (x + 1).ToString(), output[0].ToString(), output[2].ToString(), output[4].ToString(), output[6].ToString(), output[8].ToString(), output[10].ToString(), output[12].ToString() });
+        properties.Add(new string[] { RespiratoryAnalyzedEpochs[x], output[0].ToString(), output[2].ToString(), output[4].ToString(), output[6].ToString(), output[8].ToString(), output[10].ToString(), output[12].ToString() });
       }
       
       string SignalName = IsAnalysisFromBinary ? resp_bin_signal_name : RespiratoryEDFSelectedSignal;
@@ -1827,7 +1827,7 @@ namespace SleepApneaDiagnoser
               rm.RespiratoryBinaryDuration = 3;
               OnPropertyChanged(nameof(RespiratoryBinaryDuration));
 
-              RespiratoryBinaryStartRecord = (int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1;
+              RespiratoryBinaryStartRecord = Math.Max((int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1, 1);
               RespiratoryDisplayAnalytics = false;
 
               PerformRespiratoryAnalysisBinary();
@@ -1837,7 +1837,7 @@ namespace SleepApneaDiagnoser
               rm.RespiratoryEDFDuration = 3;
               OnPropertyChanged(nameof(RespiratoryEDFDuration));
 
-              RespiratoryEDFStartRecord = (int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1;
+              RespiratoryEDFStartRecord = Math.Max((int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1, 1);
               RespiratoryDisplayAnalytics = false;
 
               PerformRespiratoryAnalysisEDF();
