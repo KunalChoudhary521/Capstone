@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SleepApneaDiagnoser
+namespace SleepApneaAnalysisTool
 {
   public class ExportSignalModel
   {

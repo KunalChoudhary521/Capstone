@@ -14,7 +14,7 @@ using System.Windows.Shapes;
 using MahApps.Metro.Controls.Dialogs;
 using MahApps.Metro.Controls;
 
-namespace SleepApneaDiagnoser
+namespace SleepApneaAnalysisTool
 {
   /// <summary>
   /// Interaction logic for Dialog_Add_Filter.xaml

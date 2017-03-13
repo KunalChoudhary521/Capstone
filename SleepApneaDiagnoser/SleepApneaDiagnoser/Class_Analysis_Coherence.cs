@@ -8,7 +8,7 @@ using OxyPlot;
 using OxyPlot.Series;
 using OxyPlot.Axes;
 
-namespace SleepApneaDiagnoser
+namespace SleepApneaAnalysisTool
 {
   /// <summary>
   /// Model for variables used exclusively in the 'Coherence' sub tab of the 'Tool' tab

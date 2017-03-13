@@ -1,9 +1,9 @@
-﻿<mtr:MetroWindow x:Class="SleepApneaDiagnoser.Dialog_Export_Previewed_Signals"
+﻿<mtr:MetroWindow x:Class="SleepApneaAnalysisTool.Dialog_Export_Previewed_Signals"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:SleepApneaDiagnoser"
+        xmlns:local="clr-namespace:SleepApneaAnalysisTool"
         mc:Ignorable="d"
         xmlns:mtr="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         Title="Export Selected Signals" Height="342.558" Width="506.481">

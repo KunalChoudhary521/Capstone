@@ -14,7 +14,7 @@ using MahApps.Metro.Controls.Dialogs;
 using MahApps.Metro;
 using OxyPlot.Axes;
 
-namespace SleepApneaDiagnoser
+namespace SleepApneaAnalysisTool
 {
   #region Sub Classes
 

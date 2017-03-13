@@ -11,7 +11,7 @@ using OxyPlot.Axes;
 using MahApps.Metro.Controls.Dialogs;
 using System.Diagnostics;
 
-namespace SleepApneaDiagnoser
+namespace SleepApneaAnalysisTool
 {
   public class CommonModelView : INotifyPropertyChanged
   {

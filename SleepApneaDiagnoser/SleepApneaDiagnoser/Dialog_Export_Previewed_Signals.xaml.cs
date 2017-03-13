@@ -13,7 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using MahApps.Metro.Controls.Dialogs;
 
-namespace SleepApneaDiagnoser
+namespace SleepApneaAnalysisTool
 {
   /// <summary>
   /// Interaction logic for Dialog_Export_Previewed_Signals.xaml

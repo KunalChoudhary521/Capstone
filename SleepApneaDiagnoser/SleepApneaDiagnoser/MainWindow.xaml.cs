@@ -11,7 +11,7 @@ using System.IO;
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
 
-namespace SleepApneaDiagnoser
+namespace SleepApneaAnalysisTool
 {
   /// <summary>
   /// Interaction logic for MainWindow.xaml

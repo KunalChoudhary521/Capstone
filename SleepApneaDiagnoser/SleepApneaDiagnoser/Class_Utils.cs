@@ -13,7 +13,7 @@ using MahApps.Metro;
 using System.Windows.Media;
 using System.Windows;
 
-namespace SleepApneaDiagnoser
+namespace SleepApneaAnalysisTool
 {
   partial class Utils
   {

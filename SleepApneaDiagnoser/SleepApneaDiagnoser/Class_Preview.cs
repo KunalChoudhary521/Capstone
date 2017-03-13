@@ -12,7 +12,7 @@ using OxyPlot.Axes;
 using System.Windows.Forms;
 using Excel = Microsoft.Office.Interop.Excel;
 
-namespace SleepApneaDiagnoser
+namespace SleepApneaAnalysisTool
 {
   /// <summary>
   /// Factory containing business logic used exclusively in the 'Preview' tab

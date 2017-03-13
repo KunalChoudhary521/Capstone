@@ -10,7 +10,7 @@ using OxyPlot.Series;
 using OxyPlot.Axes;
 using Excel = Microsoft.Office.Interop.Excel;
 
-namespace SleepApneaDiagnoser
+namespace SleepApneaAnalysisTool
 {
   /// <summary>
   /// Factory containing business logic used exclusively in the 'Respiratory' sub tab of the 'Analysis' tab

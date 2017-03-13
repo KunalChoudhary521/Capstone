@@ -14,7 +14,7 @@ using PSD_Welch;
 using EEGSpec;
 using System.Threading;
 
-namespace SleepApneaDiagnoser
+namespace SleepApneaAnalysisTool
 {
   /// <summary>
   /// Model for variables used exclusively in the 'EEG' sub tab of the 'Analysis' tab
