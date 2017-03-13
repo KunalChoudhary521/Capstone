@@ -295,7 +295,7 @@ namespace SleepApneaAnalysisTool
         return new Tuple<double, double>(0, 0);
       }
     }
-    public static double[] GetRespAnalysisInfo(LineSeries series_in, int start_epoch, int curr_epoch, float sample_period, int min_spike_length)
+    public static double[] GetRespAnalysisInfo(LineSeries series_in, int start_epoch, int curr_epoch, float sample_period, float MinimumPeakWidth)
     {
       int start_index = (int) ((curr_epoch - start_epoch) * 30 / sample_period);
       int count = (int)(30 / sample_period);
@@ -306,6 +306,7 @@ namespace SleepApneaAnalysisTool
         ((LineSeries)series[0]).Points.AddRange(series_in.Points.GetRange(start_index, count));
       } catch{}
 
+      int min_spike_length = (int)((double)((double)MinimumPeakWidth / (double)1000) / (double)sample_period);
       series.AddRange(GetPeaksAndOnsets((LineSeries)series[0], true, min_spike_length));
       double[] output = new double[14];
 
@@ -403,7 +404,7 @@ namespace SleepApneaAnalysisTool
 
       return tempPlotModel;
     }
-    public static PlotModel GetRespiratoryAnalyticsPlot(LineSeries resp_plot, string[] epochs, int start, float sample_period, int min_spike_length)
+    public static PlotModel GetRespiratoryAnalyticsPlot(LineSeries resp_plot, string[] epochs, int start, float sample_period, float MinimumPeakWidth)
     {
       // Create Series
       List<LineSeries> all_series = new List<LineSeries>();
@@ -433,7 +434,7 @@ namespace SleepApneaAnalysisTool
       for (int x = 0; x < epochs.Length; x++)
       {
         double[] output;
-        output = RespiratoryFactory.GetRespAnalysisInfo(resp_plot, start, Int32.Parse(epochs[x]), sample_period, min_spike_length);
+        output = RespiratoryFactory.GetRespAnalysisInfo(resp_plot, start, Int32.Parse(epochs[x]), sample_period, MinimumPeakWidth);
        
         for (int y = 0; y < output.Length; y += 2)
         {
