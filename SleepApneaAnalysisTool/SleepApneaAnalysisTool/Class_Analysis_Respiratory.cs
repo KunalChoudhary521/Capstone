@@ -980,7 +980,7 @@ namespace SleepApneaAnalysisTool
       OnPropertyChanged(nameof(RespiratoryEDFDurationMax));
       OnPropertyChanged(nameof(RespiratoryEDFDurationMin));
 
-      PerformRespiratoryAnalysisEDF();
+      PerformRespiratoryAnalysisEDF(false);
     }
     private void RespiratoryBinaryView_Changed()
     {
@@ -992,7 +992,7 @@ namespace SleepApneaAnalysisTool
       OnPropertyChanged(nameof(RespiratoryBinaryStartRecordMax));
       OnPropertyChanged(nameof(RespiratoryBinaryDurationMax));
 
-      PerformRespiratoryAnalysisBinary();
+      PerformRespiratoryAnalysisBinary(false);
     }
     private void RespiratoryAnalysisSelectedEpoch_Changed()
     {
@@ -1036,9 +1036,9 @@ namespace SleepApneaAnalysisTool
         OnPropertyChanged(nameof(RespiratoryUseConstantAxis));
 
         if (IsAnalysisFromBinary)
-          PerformRespiratoryAnalysisBinary();
+          PerformRespiratoryAnalysisBinary(false);
         else
-          PerformRespiratoryAnalysisEDF();
+          PerformRespiratoryAnalysisEDF(false);
       }
     }
 
@@ -1730,7 +1730,7 @@ namespace SleepApneaAnalysisTool
     /// <summary>
     /// Performs respiratory analysis on binary contents stored into memory 
     /// </summary>
-    public void PerformRespiratoryAnalysisBinary()
+    public void PerformRespiratoryAnalysisBinary(bool setfalse)
     {
       if (!RespiratoryBinaryNavigationEnabled)
         return;
@@ -1738,7 +1738,10 @@ namespace SleepApneaAnalysisTool
       RespiratoryProgressRingEnabled = true;
 
       BackgroundWorker bw = new BackgroundWorker();
-      bw.DoWork += BW_RespiratoryAnalysisBinary;
+      if (setfalse)
+        bw.DoWork += (object s, DoWorkEventArgs e) => { BW_RespiratoryAnalysisBinary(s, e); RespiratoryDisplayAnalytics = false; } ;
+      else
+        bw.DoWork += BW_RespiratoryAnalysisBinary;
       bw.RunWorkerAsync();
     }
 
@@ -1783,7 +1786,7 @@ namespace SleepApneaAnalysisTool
     /// <summary>
     /// Peforms respiratory analysis 
     /// </summary>
-    public void PerformRespiratoryAnalysisEDF()
+    public void PerformRespiratoryAnalysisEDF(bool setfalse)
     {
       if (RespiratoryEDFSelectedSignal == null)
         return;
@@ -1791,7 +1794,10 @@ namespace SleepApneaAnalysisTool
       RespiratoryProgressRingEnabled = true;
 
       BackgroundWorker bw = new BackgroundWorker();
-      bw.DoWork += BW_RespiratoryAnalysisEDF;
+      if (setfalse)
+        bw.DoWork += (object s, DoWorkEventArgs e) => { BW_RespiratoryAnalysisEDF(s,e); RespiratoryDisplayAnalytics = false; };
+      else
+        bw.DoWork += BW_RespiratoryAnalysisEDF;
       bw.RunWorkerAsync();
     }
     
@@ -1854,23 +1860,27 @@ namespace SleepApneaAnalysisTool
 
             if (IsAnalysisFromBinary)
             {
-              rm.RespiratoryBinaryDuration = 3;
+              rm.RespiratoryBinaryStartRecord = Math.Max((int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1, 1);
+              OnPropertyChanged(nameof(RespiratoryBinaryStartRecord));
+              OnPropertyChanged(nameof(RespiratoryBinaryDurationMax));
+
+              rm.RespiratoryBinaryDuration = 2;
               OnPropertyChanged(nameof(RespiratoryBinaryDuration));
+              OnPropertyChanged(nameof(RespiratoryBinaryStartRecordMax));
 
-              RespiratoryBinaryStartRecord = Math.Max((int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1, 1);
-              RespiratoryDisplayAnalytics = false;
-
-              PerformRespiratoryAnalysisBinary();
+              PerformRespiratoryAnalysisBinary(true);
             }
             else
             {
-              rm.RespiratoryEDFDuration = 3;
+              rm.RespiratoryEDFStartRecord = Math.Max((int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1, 1);
+              OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
+              OnPropertyChanged(nameof(RespiratoryEDFDurationMax));
+
+              rm.RespiratoryEDFDuration = 2;
               OnPropertyChanged(nameof(RespiratoryEDFDuration));
+              OnPropertyChanged(nameof(RespiratoryEDFStartRecordMax));
 
-              RespiratoryEDFStartRecord = Math.Max((int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1, 1);
-              RespiratoryDisplayAnalytics = false;
-
-              PerformRespiratoryAnalysisEDF();
+              PerformRespiratoryAnalysisEDF(true);
             }
           };
           RespiratoryAnalyticsPlot.Series[x].MouseDown += (sender, e) =>
@@ -1880,23 +1890,27 @@ namespace SleepApneaAnalysisTool
 
             if (IsAnalysisFromBinary)
             {
-              rm.RespiratoryBinaryDuration = 3;
+              rm.RespiratoryBinaryStartRecord = Math.Max((int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1, 1);
+              OnPropertyChanged(nameof(RespiratoryBinaryStartRecord));
+              OnPropertyChanged(nameof(RespiratoryBinaryDurationMax));
+
+              rm.RespiratoryBinaryDuration = 2;
               OnPropertyChanged(nameof(RespiratoryBinaryDuration));
+              OnPropertyChanged(nameof(RespiratoryBinaryStartRecordMax));
 
-              RespiratoryBinaryStartRecord = Math.Max((int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1, 1);
-              RespiratoryDisplayAnalytics = false;
-
-              PerformRespiratoryAnalysisBinary();
+              PerformRespiratoryAnalysisBinary(true);
             }
             else
             {
-              rm.RespiratoryEDFDuration = 3;
+              rm.RespiratoryEDFStartRecord = Math.Max((int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1, 1);
+              OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
+              OnPropertyChanged(nameof(RespiratoryEDFDurationMax));
+
+              rm.RespiratoryEDFDuration = 2;
               OnPropertyChanged(nameof(RespiratoryEDFDuration));
+              OnPropertyChanged(nameof(RespiratoryEDFStartRecordMax));
 
-              RespiratoryEDFStartRecord = Math.Max((int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1, 1);
-              RespiratoryDisplayAnalytics = false;
-
-              PerformRespiratoryAnalysisEDF();
+              PerformRespiratoryAnalysisEDF(true);
             }
           };
         }
