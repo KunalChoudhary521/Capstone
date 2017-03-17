@@ -12,6 +12,7 @@ using MathNet.Filtering.IIR;
 using MahApps.Metro;
 using System.Windows.Media;
 using System.Windows;
+using Excel = Microsoft.Office.Interop.Excel;
 
 namespace SleepApneaAnalysisTool
 {
@@ -726,6 +727,74 @@ namespace SleepApneaAnalysisTool
       stream.Close();
     }
 
+    // Excel Interop 
+    public static void AddRespiratorySignalToWorksheet(Excel.Worksheet ws, string SignalName, object[,] table, int ROWS, int COLUMNS)
+    {
+      // Make Table with Values
+      Excel.Range range = ws.Range[ws.Cells[3, 2], ws.Cells[3 + ROWS - 1, 2 + COLUMNS - 1]];
+      range.Value = table;
+      ws.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, range, System.Reflection.Missing.Value, Excel.XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = ws.Name;
+      ws.ListObjects[ws.Name].TableStyle = "TableStyleLight9";
+      ws.Columns["A:I"].ColumnWidth = 20;
+      ws.Columns["E:H"].Hidden = true;
+      ws.Columns["B:H"].HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
+
+      // Add Conditional Formatting 
+      Excel.Range range2 = ws.Range[ws.Cells[4, 2], ws.Cells[3 + ROWS - 1, 2 + COLUMNS - 1]];
+      range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($E4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+      range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($F4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+      range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($G4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+      range2.FormatConditions.Add(Excel.XlFormatConditionType.xlExpression, System.Reflection.Missing.Value, "=NOT(ISBLANK($H4))", System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value, System.Reflection.Missing.Value);
+      range2.FormatConditions[1].Interior.Color = 5296274;
+      range2.FormatConditions[2].Interior.Color = 255;
+      range2.FormatConditions[3].Interior.Color = 65535;
+      range2.FormatConditions[4].Interior.Color = 15773696;
+      range2.Columns[2].NumberFormat = "m/d/yyyy h:mm:ss.000";
+
+      // Add Chart
+      Excel.Chart chart = ((Excel.ChartObject)((Excel.ChartObjects)ws.ChartObjects()).Add(500, 100, 900, 500)).Chart;
+      chart.SetSourceData(range.Columns["B:G"]);
+      chart.ChartType = Microsoft.Office.Interop.Excel.XlChartType.xlXYScatterLines;
+      chart.ChartWizard(Source: range.Columns["B:G"], Title: SignalName, CategoryTitle: "Time", ValueTitle: SignalName);
+      chart.PlotVisibleOnly = false;
+      ((Excel.Series)chart.SeriesCollection(1)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
+      ((Excel.Series)chart.SeriesCollection(2)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
+      ((Excel.Series)chart.SeriesCollection(3)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
+      ((Excel.Series)chart.SeriesCollection(4)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
+      ((Excel.Series)chart.SeriesCollection(5)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
+      ((Excel.Series)chart.SeriesCollection(2)).Format.Fill.ForeColor.RGB = 5296274;
+      ((Excel.Series)chart.SeriesCollection(3)).Format.Fill.ForeColor.RGB = 255;
+      ((Excel.Series)chart.SeriesCollection(4)).Format.Fill.ForeColor.RGB = 65535;
+      ((Excel.Series)chart.SeriesCollection(5)).Format.Fill.ForeColor.RGB = 15773696;
+      ((Excel.Series)chart.SeriesCollection(2)).Format.Line.ForeColor.RGB = 5296274;
+      ((Excel.Series)chart.SeriesCollection(3)).Format.Line.ForeColor.RGB = 255;
+      ((Excel.Series)chart.SeriesCollection(4)).Format.Line.ForeColor.RGB = 65535;
+      ((Excel.Series)chart.SeriesCollection(5)).Format.Line.ForeColor.RGB = 15773696;
+
+      System.Runtime.InteropServices.Marshal.ReleaseComObject(chart);
+      System.Runtime.InteropServices.Marshal.ReleaseComObject(range);
+      System.Runtime.InteropServices.Marshal.ReleaseComObject(range2);
+    }
+    public static void AddSignalToWorksheet(Excel.Worksheet ws, string SignalName, object[,] table, int ROWS, int COLUMNS)
+    {
+      Excel.Range range = ws.Range[ws.Cells[3, 2], ws.Cells[3 + ROWS - 1, 2 + COLUMNS - 1]];
+      range.Value = table;
+      ws.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, range, System.Reflection.Missing.Value, Excel.XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = ws.Name;
+      ws.ListObjects[ws.Name].TableStyle = "TableStyleLight9";
+      ws.Columns["A:I"].ColumnWidth = 20;
+      ws.Columns["B:H"].HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
+
+      range.Columns[2].NumberFormat = "m/d/yyyy h:mm:ss.000";
+
+      Excel.Chart chart = ((Excel.ChartObject)((Excel.ChartObjects)ws.ChartObjects()).Add(500, 100, 900, 500)).Chart;
+      chart.SetSourceData(range.Columns["B:C"]);
+      chart.ChartType = Microsoft.Office.Interop.Excel.XlChartType.xlXYScatterLines;
+      chart.ChartWizard(Source: range.Columns["B:C"], Title: SignalName, CategoryTitle: "Time", ValueTitle: SignalName);
+
+      System.Runtime.InteropServices.Marshal.ReleaseComObject(chart);
+      System.Runtime.InteropServices.Marshal.ReleaseComObject(range);
+    }
+    
     #endregion 
   }
 }

@@ -12,6 +12,7 @@ using MathNet.Filtering.IIR;
 using MahApps.Metro;
 using System.Windows.Media;
 using System.Windows;
+using Excel = Microsoft.Office.Interop.Excel;
 
 namespace SleepApneaAnalysisTool
 {
@@ -147,6 +148,19 @@ namespace SleepApneaAnalysisTool
         }
       }
       return signalSampleValues;
+    }
+
+    // Excel Interop 
+
+    /// <summary>
+    /// Obtained from https://www.codeproject.com/Articles/9992/Faster-MS-Excel-Reading-using-Office-Interop-Assem
+    /// </summary>
+    /// <param name="app"></param>
+    public static void MakeExcelInteropPerformant(Excel.Application app, bool makeperformant)
+    {
+      app.Visible = !makeperformant;
+      app.ScreenUpdating = !makeperformant;
+      app.DisplayAlerts = !makeperformant;
     }
 
   }

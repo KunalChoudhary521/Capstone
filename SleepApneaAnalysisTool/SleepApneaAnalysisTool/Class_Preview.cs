@@ -25,13 +25,11 @@ namespace SleepApneaAnalysisTool
       if (PreviewPlot != null)
       {
         Excel.Application app = new Excel.Application();
+        Utils.MakeExcelInteropPerformant(app, true);
 
         Excel.Workbook wb = app.Workbooks.Add(System.Reflection.Missing.Value);
-        List<Excel.Worksheet> ws = new List<Excel.Worksheet>();
-        for (int x = 0; x < PreviewPlot.Series.Count; x++)
-          ws.Add((Excel.Worksheet)wb.Sheets.Add());
 
-        for (int x = 0; x < ws.Count; x++)
+        for (int x = 0; x < PreviewPlot.Series.Count; x++)
         {
           LineSeries series = (LineSeries)PreviewPlot.Series[x];
           object[,] signal_points = new object[series.Points.Count + 1, 3];
@@ -50,40 +48,18 @@ namespace SleepApneaAnalysisTool
 
           #endregion
 
-          #region Add Points to Sheet and Draw Plot
+          int COLUMNS = 3;
+          int ROWS = signal_points.Length / COLUMNS;
 
-          ws[x].Name = series.YAxis.Title;
+          Excel.Worksheet ws = (Excel.Worksheet)wb.Sheets.Add();
+          ws.Name = series.YAxis.Title;
+          Utils.AddSignalToWorksheet(ws, ws.Name, signal_points, ROWS, COLUMNS);
 
-          Excel.Range range = ws[x].Range[ws[x].Cells[3, 2], ws[x].Cells[2 + signal_points.Length / 3, 4]];
-          range.Value = signal_points;
-          ws[x].ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, range, System.Reflection.Missing.Value, Excel.XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = "SignalValues" + x.ToString();
-          ws[x].ListObjects["SignalValues" + x.ToString()].TableStyle = "TableStyleLight9";
-          ws[x].Columns["A:I"].ColumnWidth = 20;
-          ws[x].Columns["B:H"].HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
-
-          var excel_chart = ((Excel.ChartObject)((Excel.ChartObjects)ws[x].ChartObjects()).Add(500, 100, 900, 500)).Chart;
-          excel_chart.SetSourceData(range.Columns["B:C"]);
-          excel_chart.ChartType = Microsoft.Office.Interop.Excel.XlChartType.xlXYScatterLines;
-          excel_chart.ChartWizard(Source: range.Columns["B:C"], Title: series.YAxis.Title, CategoryTitle: "Time", ValueTitle: series.YAxis.Title);
-
-          #endregion
-          System.Runtime.InteropServices.Marshal.ReleaseComObject(excel_chart);
-          System.Runtime.InteropServices.Marshal.ReleaseComObject(range);
+          System.Runtime.InteropServices.Marshal.ReleaseComObject(ws);
         }
 
-        #region Save and Close
-
         wb.SaveAs(fileName);
-
-        wb.Close(true);
-        app.Quit();
-
-        for (int x = 0; x < ws.Count; x++)
-          System.Runtime.InteropServices.Marshal.ReleaseComObject(ws[x]);
-        System.Runtime.InteropServices.Marshal.ReleaseComObject(wb);
-        System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
-
-        #endregion
+        Utils.MakeExcelInteropPerformant(app, false);
       }
     }
     #endregion

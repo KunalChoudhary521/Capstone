@@ -251,6 +251,16 @@ namespace SleepApneaAnalysisTool
     }
     private void button_PreviewExportExcel_Click(object sender, RoutedEventArgs e)
     {
+      // Check if Excel is installed
+      Microsoft.Office.Interop.Excel.Application app = new Microsoft.Office.Interop.Excel.Application();
+      if (app == null)
+      {
+        this.ShowMessageAsync("Error", "Excel installation not detected.\nThis application needs excel installed in order to export data.");
+        return;
+      }
+      app.Quit();
+      System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
+
       Microsoft.Win32.SaveFileDialog dialog = new Microsoft.Win32.SaveFileDialog();
       dialog.Filter = ".xlsx|*.xlsx";
       dialog.Title = "Select a save location";
@@ -269,16 +279,6 @@ namespace SleepApneaAnalysisTool
           this.ShowMessageAsync("Error", "Selected file is currently in use by another process.\nDo you currently have it open in Excel?");
           return;
         }
-
-        // Check if Excel is installed
-        Microsoft.Office.Interop.Excel.Application app = new Microsoft.Office.Interop.Excel.Application();
-        if (app == null)
-        {
-          this.ShowMessageAsync("Error", "Excel installation not detected.\nThis application needs excel installed in order to export data.");
-          return;
-        }
-        app.Quit();
-        System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
 
         preview_modelview.ExportExcel(dialog.FileName);
       }
@@ -287,6 +287,16 @@ namespace SleepApneaAnalysisTool
     // Analysis Tab Events 
     private void button_ExportRespiratoryPlotClick(object sender, RoutedEventArgs e)
     {
+      // Check if Excel is installed
+      Microsoft.Office.Interop.Excel.Application app = new Microsoft.Office.Interop.Excel.Application();
+      if (app == null)
+      {
+        this.ShowMessageAsync("Error", "Excel installation not detected.\nThis application needs excel installed in order to export data.");
+        return;
+      }
+      app.Quit();
+      System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
+
       Microsoft.Win32.SaveFileDialog dialog = new Microsoft.Win32.SaveFileDialog();
       dialog.Filter = ".xlsx|*.xlsx";
       dialog.Title = "Select a save location";
@@ -305,17 +315,7 @@ namespace SleepApneaAnalysisTool
           this.ShowMessageAsync("Error", "Selected file is currently in use by another process.\nDo you currently have it open in Excel?");
           return;
         }
-        
-        // Check if Excel is installed
-        Microsoft.Office.Interop.Excel.Application app = new Microsoft.Office.Interop.Excel.Application();
-        if (app == null)
-        {
-          this.ShowMessageAsync("Error", "Excel installation not detected.\nThis application needs excel installed in order to export data.");
-          return;
-        }
-        app.Quit();
-        System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
-        
+
         resp_modelview.ExportRespiratoryPlot(dialog.FileName);
       }
     }
