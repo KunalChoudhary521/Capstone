@@ -1801,6 +1801,40 @@ namespace SleepApneaAnalysisTool
       bw.RunWorkerAsync();
     }
     
+    private void AnalyticsClickEvent(object sender, EventArgs e)
+    {
+      ScreenPoint position;
+      try { position = ((OxyMouseDownEventArgs)e).Position; }
+      catch { position = ((OxyTouchEventArgs)e).Position; };
+      
+      if (RespiratoryProgressRingEnabled)
+        return;
+
+      if (IsAnalysisFromBinary)
+      {
+        rm.RespiratoryBinaryStartRecord = Math.Max((int)Math.Round(((LineSeries)sender).InverseTransform(position).X) - 1, 1);
+        OnPropertyChanged(nameof(RespiratoryBinaryStartRecord));
+        OnPropertyChanged(nameof(RespiratoryBinaryDurationMax));
+
+        rm.RespiratoryBinaryDuration = 2;
+        OnPropertyChanged(nameof(RespiratoryBinaryDuration));
+        OnPropertyChanged(nameof(RespiratoryBinaryStartRecordMax));
+
+        PerformRespiratoryAnalysisBinary(true);
+      }
+      else
+      {
+        rm.RespiratoryEDFStartRecord = Math.Max((int)Math.Round(((LineSeries)sender).InverseTransform(position).X) - 1, 1);
+        OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
+        OnPropertyChanged(nameof(RespiratoryEDFDurationMax));
+
+        rm.RespiratoryEDFDuration = 2;
+        OnPropertyChanged(nameof(RespiratoryEDFDuration));
+        OnPropertyChanged(nameof(RespiratoryEDFStartRecordMax));
+
+        PerformRespiratoryAnalysisEDF(true);
+      }
+    }
     private void UpdateRespAnalysisPlot(PlotModel resp_plot)
     {
       RespiratorySignalPlot = resp_plot;
@@ -1853,66 +1887,8 @@ namespace SleepApneaAnalysisTool
         RespiratoryAnalyticsPlot = RespiratoryFactory.GetRespiratoryAnalyticsPlot((LineSeries)resp_plot.Series[0], RespiratoryAnalyzedEpochs, start, sample_period, RespiratoryMinimumPeakWidth);
         for (int x = 0; x < RespiratoryAnalyticsPlot.Series.Count; x++)
         {
-          RespiratoryAnalyticsPlot.Series[x].TouchStarted += (sender, e) =>
-          {
-            if (RespiratoryProgressRingEnabled)
-              return;
-
-            if (IsAnalysisFromBinary)
-            {
-              rm.RespiratoryBinaryStartRecord = Math.Max((int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1, 1);
-              OnPropertyChanged(nameof(RespiratoryBinaryStartRecord));
-              OnPropertyChanged(nameof(RespiratoryBinaryDurationMax));
-
-              rm.RespiratoryBinaryDuration = 2;
-              OnPropertyChanged(nameof(RespiratoryBinaryDuration));
-              OnPropertyChanged(nameof(RespiratoryBinaryStartRecordMax));
-
-              PerformRespiratoryAnalysisBinary(true);
-            }
-            else
-            {
-              rm.RespiratoryEDFStartRecord = Math.Max((int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1, 1);
-              OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
-              OnPropertyChanged(nameof(RespiratoryEDFDurationMax));
-
-              rm.RespiratoryEDFDuration = 2;
-              OnPropertyChanged(nameof(RespiratoryEDFDuration));
-              OnPropertyChanged(nameof(RespiratoryEDFStartRecordMax));
-
-              PerformRespiratoryAnalysisEDF(true);
-            }
-          };
-          RespiratoryAnalyticsPlot.Series[x].MouseDown += (sender, e) =>
-          {
-            if (RespiratoryProgressRingEnabled)
-              return;
-
-            if (IsAnalysisFromBinary)
-            {
-              rm.RespiratoryBinaryStartRecord = Math.Max((int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1, 1);
-              OnPropertyChanged(nameof(RespiratoryBinaryStartRecord));
-              OnPropertyChanged(nameof(RespiratoryBinaryDurationMax));
-
-              rm.RespiratoryBinaryDuration = 2;
-              OnPropertyChanged(nameof(RespiratoryBinaryDuration));
-              OnPropertyChanged(nameof(RespiratoryBinaryStartRecordMax));
-
-              PerformRespiratoryAnalysisBinary(true);
-            }
-            else
-            {
-              rm.RespiratoryEDFStartRecord = Math.Max((int)Math.Round(((LineSeries)sender).InverseTransform(e.Position).X) - 1, 1);
-              OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
-              OnPropertyChanged(nameof(RespiratoryEDFDurationMax));
-
-              rm.RespiratoryEDFDuration = 2;
-              OnPropertyChanged(nameof(RespiratoryEDFDuration));
-              OnPropertyChanged(nameof(RespiratoryEDFStartRecordMax));
-
-              PerformRespiratoryAnalysisEDF(true);
-            }
-          };
+          RespiratoryAnalyticsPlot.Series[x].TouchStarted += AnalyticsClickEvent;
+          RespiratoryAnalyticsPlot.Series[x].MouseDown += AnalyticsClickEvent;
         }
       }
       else
