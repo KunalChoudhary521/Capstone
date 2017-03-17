@@ -757,15 +757,19 @@ namespace SleepApneaAnalysisTool
       chart.ChartType = Microsoft.Office.Interop.Excel.XlChartType.xlXYScatterLines;
       chart.ChartWizard(Source: range.Columns["B:G"], Title: SignalName, CategoryTitle: "Time", ValueTitle: SignalName);
       chart.PlotVisibleOnly = false;
+
       ((Excel.Series)chart.SeriesCollection(1)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
       ((Excel.Series)chart.SeriesCollection(2)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
       ((Excel.Series)chart.SeriesCollection(3)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
       ((Excel.Series)chart.SeriesCollection(4)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
       ((Excel.Series)chart.SeriesCollection(5)).MarkerStyle = Excel.XlMarkerStyle.xlMarkerStyleSquare;
+
       ((Excel.Series)chart.SeriesCollection(2)).Format.Fill.ForeColor.RGB = 5296274;
       ((Excel.Series)chart.SeriesCollection(3)).Format.Fill.ForeColor.RGB = 255;
       ((Excel.Series)chart.SeriesCollection(4)).Format.Fill.ForeColor.RGB = 65535;
       ((Excel.Series)chart.SeriesCollection(5)).Format.Fill.ForeColor.RGB = 15773696;
+
+      ((Excel.Series)chart.SeriesCollection(1)).Format.Line.ForeColor.RGB = 38450;
       ((Excel.Series)chart.SeriesCollection(2)).Format.Line.ForeColor.RGB = 5296274;
       ((Excel.Series)chart.SeriesCollection(3)).Format.Line.ForeColor.RGB = 255;
       ((Excel.Series)chart.SeriesCollection(4)).Format.Line.ForeColor.RGB = 65535;
@@ -790,6 +794,7 @@ namespace SleepApneaAnalysisTool
       chart.SetSourceData(range.Columns["B:C"]);
       chart.ChartType = Microsoft.Office.Interop.Excel.XlChartType.xlXYScatterLines;
       chart.ChartWizard(Source: range.Columns["B:C"], Title: SignalName, CategoryTitle: "Time", ValueTitle: SignalName);
+      ((Excel.Series)chart.SeriesCollection(1)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
 
       System.Runtime.InteropServices.Marshal.ReleaseComObject(chart);
       System.Runtime.InteropServices.Marshal.ReleaseComObject(range);
