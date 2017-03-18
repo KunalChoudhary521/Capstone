@@ -158,6 +158,11 @@ namespace SleepApneaAnalysisTool
         }
       }
     }
+    private void TextBlock_UnloadEDF_Click(object sender, RoutedEventArgs e)
+    {
+      common_modelview.LoadedEDFFile = null;
+      common_modelview.LoadedEDFFileName = null;
+    }
 
     // Setting Flyout Events 
     private void button_Settings_Click(object sender, RoutedEventArgs e)
