@@ -7,8 +7,6 @@ using EDF;
 using MathWorks.MATLAB.NET.Arrays;
 using MATLAB_496;
 using System.IO;
-using MathNet.Filtering.FIR;
-using MathNet.Filtering.IIR;
 using MahApps.Metro;
 using System.Windows.Media;
 using System.Windows;
@@ -698,8 +696,16 @@ namespace SleepApneaAnalysisTool
     }
     public static LineSeries ApplyLowPassFilter(LineSeries series, float cutoff, float sample_period)
     {
-      OnlineFirFilter filter = (OnlineFirFilter) OnlineFirFilter.CreateLowpass(MathNet.Filtering.ImpulseResponse.Finite, (double)(1 / sample_period), cutoff);
-      double[] result = filter.ProcessSamples(series.Points.Select(temp => temp.Y).ToArray());
+      double RC = 1 / (2 * Math.PI * cutoff);
+      double alpha = sample_period / (RC + sample_period);
+
+      double[] result = new double[series.Points.Count];
+
+      result[0] = series.Points[0].Y;
+      for (int x = 1; x < result.Length; x++)
+      {
+        result[x] = alpha * series.Points[x].Y + (1 - alpha) * result[x-1];
+      }
 
       LineSeries new_series = new LineSeries();
       for (int x = 0; x < result.Length; x++)
