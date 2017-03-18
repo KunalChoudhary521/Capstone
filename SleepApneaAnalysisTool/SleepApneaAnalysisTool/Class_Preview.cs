@@ -11,6 +11,7 @@ using OxyPlot.Series;
 using OxyPlot.Axes;
 using System.Windows.Forms;
 using Excel = Microsoft.Office.Interop.Excel;
+using MahApps.Metro.Controls.Dialogs;
 
 namespace SleepApneaAnalysisTool
 {
@@ -990,64 +991,7 @@ namespace SleepApneaAnalysisTool
     }
 
     // Export Previewed/Selected Signals Wizard
-    public void ExportSignals()
-    {
-      if (pm.PreviewSelectedSignals.Count > 0)
-      {
-        Dialog_Export_Previewed_Signals dlg = new Dialog_Export_Previewed_Signals(pm.PreviewSelectedSignals);
-        
-        if (dlg.ShowDialog() == true)
-        {
-          FolderBrowserDialog folder_dialog = new FolderBrowserDialog();
-
-          string location;
-
-          if (folder_dialog.ShowDialog() == DialogResult.OK)
-          {
-            location = folder_dialog.SelectedPath;
-          }
-          else
-          {
-            return;
-          }
-
-          ExportSignalModel signals_data = Dialog_Export_Previewed_Signals.signals_to_export;
-
-          BackgroundWorker bw = new BackgroundWorker();
-          bw.DoWork += BW_ExportSignals;
-          bw.RunWorkerCompleted += BW_FinishExportSignals;
-
-          List<dynamic> arguments = new List<dynamic>();
-          arguments.Add(signals_data);
-          arguments.Add(location);
-
-          int end_epochs = signals_data.Epochs_From + signals_data.Epochs_Length;
-          if (end_epochs > int.Parse(EDFEndEpoch))
-          {
-            end_epochs = int.Parse(EDFEndEpoch) - signals_data.Epochs_From + 1;
-          }
-          if (end_epochs <= 0)
-          {
-          }
-          else
-          {
-            PreviewNavigationEnabled = false;
-            bw.RunWorkerAsync(arguments);
-          }
-        }
-        else
-        {
-        }
-      }
-      else
-      {
-      }
-    }
-    private void BW_FinishExportSignals(object sender, RunWorkerCompletedEventArgs e)
-    {
-      PreviewNavigationEnabled = true;
-    }
-    private void BW_ExportSignals(object sender, DoWorkEventArgs e)
+    private void BW_ExportSignals_DoWork(object sender, DoWorkEventArgs e)
     {
       ExportSignalModel signals_data = ((List<dynamic>)e.Argument)[0];
       string location = ((List<dynamic>)e.Argument)[1];
@@ -1215,7 +1159,67 @@ namespace SleepApneaAnalysisTool
       }
 
     }
+    private void BW_ExportSignals_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+    {
+      PreviewNavigationEnabled = true;
+    }
+    public void ExportSignals()
+    {
+      if (pm.PreviewSelectedSignals.Count > 0)
+      {
+        Dialog_Export_Previewed_Signals dlg = new Dialog_Export_Previewed_Signals(svm.p_window, this, pm.PreviewSelectedSignals);
+        svm.p_window.ShowMetroDialogAsync(dlg);
+      }
+      else
+      {
+      }
+    }
+    public void ExportSignalsOutput(bool result, ExportSignalModel signals_to_export)
+    {
+      if (result == true)
+      {
+        FolderBrowserDialog folder_dialog = new FolderBrowserDialog();
 
+        string location;
+
+        if (folder_dialog.ShowDialog() == DialogResult.OK)
+        {
+          location = folder_dialog.SelectedPath;
+        }
+        else
+        {
+          return;
+        }
+
+        ExportSignalModel signals_data = signals_to_export;
+
+        BackgroundWorker bw = new BackgroundWorker();
+        bw.DoWork += BW_ExportSignals_DoWork;
+        bw.RunWorkerCompleted += BW_ExportSignals_RunWorkerCompleted;
+
+        List<dynamic> arguments = new List<dynamic>();
+        arguments.Add(signals_data);
+        arguments.Add(location);
+
+        int end_epochs = signals_data.Epochs_From + signals_data.Epochs_Length;
+        if (end_epochs > int.Parse(EDFEndEpoch))
+        {
+          end_epochs = int.Parse(EDFEndEpoch) - signals_data.Epochs_From + 1;
+        }
+        if (end_epochs <= 0)
+        {
+        }
+        else
+        {
+          PreviewNavigationEnabled = false;
+          bw.RunWorkerAsync(arguments);
+        }
+      }
+      else
+      {
+      }
+    }
+    
     /// <summary>
     /// Background process for exporting preview plot
     /// </summary>

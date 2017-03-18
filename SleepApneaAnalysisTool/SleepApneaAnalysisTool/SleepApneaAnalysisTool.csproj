@@ -162,15 +162,15 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Page Include="Dialog_Export_Previewed_Signals.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="Dialog_Add_Filter.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Dialog_Add_Derivative.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Dialog_Export_Previewed_Signals.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -206,14 +206,14 @@
     <Compile Include="Class_UserSettings.cs" />
     <Compile Include="Class_Utils.cs" />
     <Compile Include="Class_Analysis_EEG.cs" />
+    <Compile Include="Dialog_Export_Previewed_Signals.xaml.cs">
+      <DependentUpon>Dialog_Export_Previewed_Signals.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Dialog_Add_Filter.xaml.cs">
       <DependentUpon>Dialog_Add_Filter.xaml</DependentUpon>
     </Compile>
     <Compile Include="Dialog_Add_Derivative.xaml.cs">
       <DependentUpon>Dialog_Add_Derivative.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Dialog_Export_Previewed_Signals.xaml.cs">
-      <DependentUpon>Dialog_Export_Previewed_Signals.xaml</DependentUpon>
     </Compile>
     <Compile Include="Dialog_Hide_Signals.xaml.cs">
       <DependentUpon>Dialog_Hide_Signals.xaml</DependentUpon>

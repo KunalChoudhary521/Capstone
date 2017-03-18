@@ -186,7 +186,7 @@ namespace SleepApneaAnalysisTool
     /// <summary>
     /// The Main Window
     /// </summary>
-    private MainWindow p_window;
+    public MainWindow p_window;
 
     #region Properties
 
