@@ -227,7 +227,7 @@
     <Compile Include="Dialog_Remove_Derivative.xaml.cs">
       <DependentUpon>Dialog_Remove_Derivative.xaml</DependentUpon>
     </Compile>
-    <Compile Include="ExportSignalModel.cs" />
+    <Compile Include="Class_ExportSignalModel.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
