@@ -13,6 +13,7 @@ using EEGBandpower;
 using PSD_Welch;
 using EEGSpec;
 using System.Threading;
+using Excel = Microsoft.Office.Interop.Excel;
 
 namespace SleepApneaAnalysisTool
 {
@@ -560,6 +561,7 @@ namespace SleepApneaAnalysisTool
       /********************Plotting a heatmap for spectrogram (line 820, 2133 - PSG_viewer_v7.m)*********************/
       PlotSpectrogram(specTime, specFrq, specMatrixtranspose);
 
+      UnifiedEEGExportToExcel();
 
       return;//for debugging only
     }
@@ -707,6 +709,13 @@ namespace SleepApneaAnalysisTool
         totalPower += absPower[i];
         absPlotbandItems[i] = new ColumnItem { Value = 10 * Math.Log10(absPower[i]) };//bars for abs pwr plot
       }
+
+      /*
+      MWNumericArray fullFrqRange = new MWNumericArray(1, 2, new double[] { 0.1, 50});
+      double realTotalPwr = 10 * Math.Log10((double)(MWNumericArray)pwr.eeg_bandpower(signalToMLab, sampleFreq, fullFrqRange));
+      */
+
+      return;
     }
     public void RelPwrAnalysis(out ColumnItem[] plotbandItems, double totalPower, double[] absPower, int totalFrqBands)
     {
@@ -1214,6 +1223,26 @@ namespace SleepApneaAnalysisTool
                               dataToExport.Points[i].Y).ToString());
       }
       fileStream.Close();
+    }
+
+    public void UnifiedEEGExportToExcel()//exports abs power bands, total power & PSD for each epoch to Excel workbook
+    {
+      Excel.Application eegExcel = new Excel.Application();
+      Utils.MakeExcelInteropPerformant(eegExcel, true);
+
+      Excel.Workbook wb = eegExcel.Workbooks.Add(System.Reflection.Missing.Value);
+
+      Excel.Worksheet unifiedWb = eegExcel.ActiveSheet;
+
+      int[] tempABS = { 1, 2, 3, 4, 5, 6 };
+
+      unifiedWb.Cells[3, "B"] = "Epoch";
+
+      String analysisDir = ChooseDirectory();
+      unifiedWb.SaveAs(@analysisDir+"EEGUnified.xlsx");
+      Utils.MakeExcelInteropPerformant(eegExcel, false);
+
+      return;
     }
     
     #endregion
