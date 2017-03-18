@@ -96,6 +96,8 @@ namespace SleepApneaAnalysisTool
         else
         {
           column_EDFHeader.Width = new GridLength(300);
+          column_EDFHeader.MaxWidth = 300;
+          column_EDFHeader.MinWidth = 300;
 
           column_RespAnalysis.Width = new GridLength(450, GridUnitType.Star);
           column_RespAnalysis.MinWidth = 300;
@@ -162,6 +164,7 @@ namespace SleepApneaAnalysisTool
     {
       common_modelview.LoadedEDFFile = null;
       common_modelview.LoadedEDFFileName = null;
+      GC.Collect();
     }
 
     // Setting Flyout Events 
