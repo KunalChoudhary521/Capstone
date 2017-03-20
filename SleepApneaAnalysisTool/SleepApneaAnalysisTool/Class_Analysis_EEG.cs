@@ -547,7 +547,8 @@ namespace SleepApneaAnalysisTool
 
 
       //order of bands MUST match the order of bands in fqRange array (see above)
-      String[] freqBandName = new String[] { "delta", "theta", "alpha", "beta1", "beta2", "gamma1", "gamma2" };
+      //String[] freqBandName = new String[] { "delta", "theta", "alpha", "beta1", "beta2", "gamma1", "gamma2" };//Derek's
+      String[] freqBandName = new String[] { "delta2", "delta1", "theta", "alpha", "beta1", "beta2", "gamma" };//Gaspard's
 
       /*****************************Plotting absolute power graph***************************/
       PlotAbsolutePower(absPlotbandItems, freqBandName);
@@ -561,7 +562,7 @@ namespace SleepApneaAnalysisTool
       /********************Plotting a heatmap for spectrogram (line 820, 2133 - PSG_viewer_v7.m)*********************/
       PlotSpectrogram(specTime, specFrq, specMatrixtranspose);
 
-      UnifiedEEGExportToExcel();
+      //UnifiedEEGExportToExcel();
 
       return;//for debugging only
     }
@@ -684,14 +685,23 @@ namespace SleepApneaAnalysisTool
     
     public void setFreqBands(out MWNumericArray[] fRange, int numberOfBands)
     {
+      /*Derek's Frequency bands: 
+       * { 0.1, 3 });//delta band
+       * { 4, 7 });//theta band
+       * { 8, 12 });//alpha band
+       * { 13, 17 });//beta1 band
+       * { 18, 30 });//beta2 band
+       * { 31, 40 });//gamma1 band
+       * { 41, 50 });//gamma2 band
+       */
       fRange = new MWNumericArray[numberOfBands];
-      fRange[0] = new MWNumericArray(1, 2, new double[] { 0.1, 3 });//delta band
-      fRange[1] = new MWNumericArray(1, 2, new double[] { 4, 7 });//theta band
-      fRange[2] = new MWNumericArray(1, 2, new double[] { 8, 12 });//alpha band
-      fRange[3] = new MWNumericArray(1, 2, new double[] { 13, 17 });//beta1 band
-      fRange[4] = new MWNumericArray(1, 2, new double[] { 18, 30 });//beta2 band
-      fRange[5] = new MWNumericArray(1, 2, new double[] { 31, 40 });//gamma1 band
-      fRange[6] = new MWNumericArray(1, 2, new double[] { 41, 50 });//gamma2 band
+      fRange[0] = new MWNumericArray(1, 2, new double[] { 1, 2 });//delta2 band
+      fRange[1] = new MWNumericArray(1, 2, new double[] { 2, 4 });//delta1 band
+      fRange[2] = new MWNumericArray(1, 2, new double[] { 4, 7 });//theta band
+      fRange[3] = new MWNumericArray(1, 2, new double[] { 7, 13.5 });//alpha band
+      fRange[4] = new MWNumericArray(1, 2, new double[] { 13.5, 20 });//beta1 band
+      fRange[5] = new MWNumericArray(1, 2, new double[] { 20, 30 });//beta2 band
+      fRange[6] = new MWNumericArray(1, 2, new double[] { 30, 50 });//gamma band
     }
 
     public void AbsPwrAnalysis(out double totalPower, out double[] absPower, out ColumnItem[] absPlotbandItems,
@@ -710,10 +720,10 @@ namespace SleepApneaAnalysisTool
         absPlotbandItems[i] = new ColumnItem { Value = 10 * Math.Log10(absPower[i]) };//bars for abs pwr plot
       }
 
-      /*
+      
       MWNumericArray fullFrqRange = new MWNumericArray(1, 2, new double[] { 0.1, 50});
       double realTotalPwr = 10 * Math.Log10((double)(MWNumericArray)pwr.eeg_bandpower(signalToMLab, sampleFreq, fullFrqRange));
-      */
+      
 
       return;
     }
@@ -1108,7 +1118,8 @@ namespace SleepApneaAnalysisTool
       fileSetup.Close();
 
       fileSetup = new StreamWriter(analysisDir + "EEGAbsPwr.csv");
-      fileSetup.WriteLine(String.Format("Epoch#, delta, theta, alpha, beta1, beta2, gamma1, gamma2"));
+      //fileSetup.WriteLine(String.Format("Epoch#, delta, theta, alpha, beta1, beta2, gamma1, gamma2"));//Derek's
+      fileSetup.WriteLine(String.Format("Epoch#, delta2, delta1, theta, alpha, beta1, beta2, gamma"));//Gaspard's
       fileSetup.Close();
 
       fileSetup = new StreamWriter(analysisDir + "Spectrogram.csv");
