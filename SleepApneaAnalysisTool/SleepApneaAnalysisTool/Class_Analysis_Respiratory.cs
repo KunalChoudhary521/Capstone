@@ -663,13 +663,17 @@ namespace SleepApneaAnalysisTool
     // Binary Signal Selection
 
     /// <summary>
+    /// Structure containing binary file information
+    /// </summary>
+    public BinaryFile LoadedBinaryFile;
+    /// <summary>
     /// The user selected start time for the respiratory analysis in 30s epochs
     /// </summary>
-    internal int? RespiratoryBinaryStartRecord;
+    public int RespiratoryBinaryStartRecord;
     /// <summary>
     /// The user selected period for the respiratory analysis in 30s epochs
     /// </summary>
-    internal int? RespiratoryBinaryDuration;
+    public int RespiratoryBinaryDuration;
 
     // Output Plot
     public bool RespiratoryDisplayAnalytics;
@@ -803,27 +807,22 @@ namespace SleepApneaAnalysisTool
         case nameof(IsEDFLoaded):
           if (!IsEDFLoaded)
           {
-            RespiratoryBreathingPeriodMean = "";
-            RespiratoryBreathingPeriodCoeffVar = "";
-            RespiratorySignalPlot = null;
-            RespiratoryAnalyticsPlot = null;
-            RespiratoryAnalyticsSelectedEpoch = null;
+            if (!IsAnalysisFromBinary)
+            {
+              RespiratorySignalPlot = null;
+              RespiratoryAnalyticsPlot = null;
+              RespiratoryAnalyticsSelectedEpoch = null;
+            }
             RespiratoryEDFSelectedSignal = null;
             RespiratoryEDFDuration = null;
             RespiratoryEDFStartRecord = null;
           }
           else
           {
-            RespiratoryBreathingPeriodMean = "";
-            RespiratoryBreathingPeriodCoeffVar = "";
             RespiratoryEDFSelectedSignal = null;
-            RespiratorySignalPlot = null;
-            RespiratoryAnalyticsPlot = null;
-            RespiratoryAnalyticsSelectedEpoch = null;
             RespiratoryEDFStartRecord = 1;
             RespiratoryEDFDuration = 1;
           }
-          RespiratoryEDFView_Changed();
           OnPropertyChanged(nameof(RespiratoryEDFNavigationEnabled));
           OnPropertyChanged(nameof(IsEDFLoaded));
           break;
@@ -909,8 +908,85 @@ namespace SleepApneaAnalysisTool
     /// Respiratory Model
     /// </summary>
     private RespiratoryModel rm = new RespiratoryModel();
-    
+
     #region Properties
+
+    // Binary File Properties
+    public bool IsBinaryLoaded
+    {
+      get
+      {
+        return LoadedBinaryFile != null;
+      }
+    }
+    public BinaryFile LoadedBinaryFile
+    {
+      get
+      {
+        return rm.LoadedBinaryFile;
+      }
+      set
+      {
+        rm.LoadedBinaryFile = value;
+
+        if (!IsBinaryLoaded)
+        {
+          RespiratoryBinaryDuration = null;
+          RespiratoryBinaryStartRecord = null;
+          if (IsAnalysisFromBinary)
+          {
+            RespiratorySignalPlot = null;
+            RespiratoryAnalyticsPlot = null;
+            RespiratoryAnalyticsSelectedEpoch = null;
+          }
+        }
+        else
+        {
+          RespiratoryBinaryDuration = 1;
+          RespiratoryBinaryStartRecord = 1;
+        }
+
+        OnPropertyChanged(nameof(LoadedBinaryFile));
+        OnPropertyChanged(nameof(RespiratoryBinaryNavigationEnabled));
+        OnPropertyChanged(nameof(IsBinaryLoaded));
+        OnPropertyChanged(nameof(RespiratoryBinaryStartRecordMax));
+        OnPropertyChanged(nameof(RespiratoryBinaryDurationMax));
+        OnPropertyChanged(nameof(RespiratoryBinaryMaxEpochs));
+      }
+    }
+    public DateTime BinaryStartTime
+    {
+      get
+      {
+        if (IsBinaryLoaded)
+          return DateTime.Parse(LoadedBinaryFile.date_time_from);
+        else
+          return new DateTime();
+      }
+    }
+    public DateTime BinaryEndTime
+    {
+      get
+      {
+        if (IsBinaryLoaded)
+        {
+          DateTime EndTime = BinaryStartTime + Utils.EpochPeriodtoTimeSpan(LoadedBinaryFile.max_epoch);
+          return EndTime;
+        }
+        else
+          return new DateTime();
+      }
+    }
+    public int RespiratoryBinaryMaxEpochs
+    {
+      get
+      {
+        if (IsBinaryLoaded)
+          return LoadedBinaryFile.max_epoch;
+        else
+          return 0;
+      }
+    }
 
     // Property Changed Functions
     private void RepiratoryPlot_Changed()
@@ -924,13 +1000,10 @@ namespace SleepApneaAnalysisTool
       OnPropertyChanged(nameof(RespiratoryEDFSelectedSignal));
 
       OnPropertyChanged(nameof(RespiratoryEDFStartRecord));
-      OnPropertyChanged(nameof(RespiratoryEDFStartTime));
       OnPropertyChanged(nameof(RespiratoryEDFDuration));
 
       OnPropertyChanged(nameof(RespiratoryEDFStartRecordMax));
-      OnPropertyChanged(nameof(RespiratoryEDFStartRecordMin));
       OnPropertyChanged(nameof(RespiratoryEDFDurationMax));
-      OnPropertyChanged(nameof(RespiratoryEDFDurationMin));
 
       PerformRespiratoryAnalysisEDF(false);
     }
@@ -1049,11 +1122,14 @@ namespace SleepApneaAnalysisTool
     {
       get
       {
-        return rm.RespiratoryBinaryStartRecord;
+        if (IsBinaryLoaded)
+          return rm.RespiratoryBinaryStartRecord;
+        else
+          return null;
       }
       set
       {
-        if (RespiratoryBinaryNavigationEnabled && rm.RespiratoryBinaryStartRecord != (value ?? 1))
+        if (IsBinaryLoaded && rm.RespiratoryBinaryStartRecord != (value ?? 1))
         {
           rm.RespiratoryBinaryStartRecord = value ?? 1;
           RespiratoryBinaryView_Changed();
@@ -1064,15 +1140,77 @@ namespace SleepApneaAnalysisTool
     {
       get
       {
-        return rm.RespiratoryBinaryDuration;
+        if (IsBinaryLoaded)
+          return rm.RespiratoryBinaryDuration;
+        else
+          return null;
       }
       set
       {
-        if (RespiratoryBinaryNavigationEnabled && rm.RespiratoryBinaryDuration != (value ?? 1))
+        if (IsBinaryLoaded && rm.RespiratoryBinaryDuration != (value ?? 1))
         {
           rm.RespiratoryBinaryDuration = value ?? 1;
           RespiratoryBinaryView_Changed();
         }
+      }
+    }
+
+    // Bounds on the EDF Signal Selection
+    public int RespiratoryEDFStartRecordMax
+    {
+      get
+      {
+        if (LoadedEDFFile != null)
+        {
+          DateTime EndTime = EDFEndTime; // EDF End Time
+          TimeSpan duration = Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 1); // User Selected Duration 
+          DateTime RespiratoryEDFStartTimeMax = EndTime - duration;
+          return Utils.DateTimetoEpoch(RespiratoryEDFStartTimeMax, LoadedEDFFile); // RespiratoryViewStartTimeMax to Record
+        }
+        else
+          return 0;
+      }
+    }
+    public int RespiratoryEDFDurationMax
+    {
+      get
+      {
+        if (IsEDFLoaded) // File Loaded
+        {
+          DateTime RespiratoryEDFStartTime = Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile);
+          DateTime EndTime = EDFEndTime; // EDF End Time
+          TimeSpan duration = EndTime - (RespiratoryEDFStartTime); // Theoretical Limit Duration
+          TimeSpan limit = new TimeSpan(TimeSpan.TicksPerHour * 2); // Practical Limit Duration
+
+          return Math.Min(
+              Utils.TimeSpantoEpochPeriod(limit),
+              Utils.TimeSpantoEpochPeriod(duration)
+              );
+        }
+        else // No File Loaded
+          return 0;
+      }
+    }
+
+    // Bounds on the Binary Signal Selection
+    public int RespiratoryBinaryStartRecordMax
+    {
+      get
+      {
+        if (IsBinaryLoaded)
+          return 1 + LoadedBinaryFile.max_epoch - RespiratoryBinaryDuration ?? 1;
+        else
+          return 0;
+      }
+    }
+    public int RespiratoryBinaryDurationMax
+    {
+      get
+      {
+        if (IsBinaryLoaded)
+          return 1 + LoadedBinaryFile.max_epoch - RespiratoryBinaryStartRecord ?? 1;
+        else
+          return 0;
       }
     }
 
@@ -1332,114 +1470,6 @@ namespace SleepApneaAnalysisTool
       }
     }
 
-    // Bounds on the EDF Signal Selection
-    public DateTime RespiratoryEDFStartTime
-    {
-      get
-      {
-        if (LoadedEDFFile != null)
-          return Utils.EpochtoDateTime(RespiratoryEDFStartRecord ?? 1, LoadedEDFFile);
-        else
-          return new DateTime();
-      }
-    }
-    public DateTime RespiratoryEDFStartTimeMax
-    {
-      get
-      {
-        if (IsEDFLoaded)
-        {
-          DateTime EndTime = EDFEndTime; // EDF End Time
-          TimeSpan duration = Utils.EpochPeriodtoTimeSpan(RespiratoryEDFDuration ?? 1); // User Selected Duration 
-          return EndTime - duration;
-        }
-        else
-          return new DateTime();
-      }
-    }
-    public DateTime RespiratoryEDFStartTimeMin
-    {
-      get
-      {
-        if (LoadedEDFFile != null)
-          return LoadedEDFFile.Header.StartDateTime; // Start Time
-        else
-          return new DateTime();
-      }
-    }
-    public int RespiratoryEDFStartRecordMax
-    {
-      get
-      {
-        if (LoadedEDFFile != null)
-          return Utils.DateTimetoEpoch(RespiratoryEDFStartTimeMax, LoadedEDFFile); // RespiratoryViewStartTimeMax to Record
-        else
-          return 0;
-      }
-    }
-    public int RespiratoryEDFStartRecordMin
-    {
-      get
-      {
-        if (LoadedEDFFile != null)
-          return Utils.DateTimetoEpoch(RespiratoryEDFStartTimeMin, LoadedEDFFile); // RespiratoryViewStartTimeMax to Record
-        else
-          return 0;
-      }
-    }
-    public int RespiratoryEDFDurationMax
-    {
-      get
-      {
-        if (IsEDFLoaded) // File Loaded
-        {
-          DateTime EndTime = EDFEndTime; // EDF End Time
-          TimeSpan duration = EndTime - (RespiratoryEDFStartTime); // Theoretical Limit Duration
-          TimeSpan limit = new TimeSpan(TimeSpan.TicksPerHour * 2); // Practical Limit Duration
-
-          return Math.Min(
-              Utils.TimeSpantoEpochPeriod(limit),
-              Utils.TimeSpantoEpochPeriod(duration)
-              );
-        }
-        else // No File Loaded
-          return 0;
-      }
-    }
-    public int RespiratoryEDFDurationMin
-    {
-      get
-      {
-        if (LoadedEDFFile != null) // File Loaded
-          return 1;
-        else // No File Loaded
-          return 0;
-      }
-    }
-
-    // Bounds on the Binary Signal Selection
-    public int RespiratoryBinaryStartRecordMax
-    {
-      get
-      {
-        return 1 + resp_bin_max_epoch - RespiratoryBinaryDuration ?? 1;
-      }
-    }
-    public int RespiratoryBinaryDurationMax
-    {
-      get
-      {
-        return 1 + resp_bin_max_epoch - RespiratoryBinaryStartRecord ?? 1;
-      }
-    }
-    public int RespiratoryBinaryMaxEpochs
-    {
-      get
-      {
-        return resp_bin_max_epoch;
-      }
-    }
-
     // Freeze UI when Performing Analysis 
     public bool RespiratoryProgressRingEnabled
     {
@@ -1470,15 +1500,10 @@ namespace SleepApneaAnalysisTool
     {
       get
       {
-        if (RespiratoryProgressRingEnabled)
+        if (!IsBinaryLoaded)
           return false;
         else
-          return resp_bin_loaded;
-      }
-      set
-      {
-        resp_bin_loaded = value;
-        OnPropertyChanged(nameof(RespiratoryBinaryNavigationEnabled));
+          return !RespiratoryProgressRingEnabled;
       }
     }
     public bool RespiratoryAnalysisEnabled
@@ -1491,18 +1516,7 @@ namespace SleepApneaAnalysisTool
           return false;
       }
     }
-
-    // Used For Importing From Binary For Respiratory Signals
-    public bool resp_bin_loaded = false;
-    private string resp_bin_sample_frequency_s;
-    private string resp_bin_date_time_length;
-    private string resp_bin_date_time_from;
-    private string resp_bin_subject_id;
-    private string resp_bin_signal_name;
-    private float resp_bin_sample_period;
-    private List<float> resp_signal_values;
-    private int resp_bin_max_epoch;
-
+        
     #endregion
 
     #region Actions
@@ -1520,16 +1534,16 @@ namespace SleepApneaAnalysisTool
       {
         
         double[] output = IsAnalysisFromBinary ?
-        RespiratoryFactory.GetRespAnalysisInfo((LineSeries) RespiratorySignalPlot.Series[0], RespiratoryBinaryStartRecord ?? 1, Int32.Parse(RespiratoryAnalyzedEpochs[x]), resp_bin_sample_period, RespiratoryMinimumPeakWidth) :
+        RespiratoryFactory.GetRespAnalysisInfo((LineSeries) RespiratorySignalPlot.Series[0], RespiratoryBinaryStartRecord ?? 1, Int32.Parse(RespiratoryAnalyzedEpochs[x]), LoadedBinaryFile.sample_period, RespiratoryMinimumPeakWidth) :
         RespiratoryFactory.GetRespAnalysisInfo((LineSeries)RespiratorySignalPlot.Series[0], RespiratoryEDFStartRecord ?? 1, Int32.Parse(RespiratoryAnalyzedEpochs[x]), GetSamplePeriod(RespiratoryEDFSelectedSignal), RespiratoryMinimumPeakWidth);
 
         properties.Add(new string[] { RespiratoryAnalyzedEpochs[x], output[0].ToString(), output[2].ToString(), output[4].ToString(), output[6].ToString(), output[8].ToString(), output[10].ToString(), output[12].ToString() });
       }
       
-      string SignalName = IsAnalysisFromBinary ? resp_bin_signal_name : RespiratoryEDFSelectedSignal;
-      DateTime StartTime = IsAnalysisFromBinary ? DateTime.Parse(resp_bin_date_time_from) : EDFStartTime;
+      string SignalName = IsAnalysisFromBinary ? LoadedBinaryFile.signal_name : RespiratoryEDFSelectedSignal;
+      DateTime StartTime = IsAnalysisFromBinary ? BinaryStartTime : EDFStartTime;
 
-      float sample_period = IsAnalysisFromBinary ? resp_bin_sample_period : GetSamplePeriod(RespiratoryEDFSelectedSignal);
+      float sample_period = IsAnalysisFromBinary ? LoadedBinaryFile.sample_period : GetSamplePeriod(RespiratoryEDFSelectedSignal);
       RespiratoryFactory.SaveRespiratoryAnalysisToExcel(e.Argument.ToString(), SignalName, properties, StartTime, RespiratorySignalPlot, sample_period);
     }
     /// <summary>
@@ -1562,71 +1576,18 @@ namespace SleepApneaAnalysisTool
     /// </summary>
     public void LoadRespiratoryAnalysisBinary()
     {
-      RespiratoryBinaryNavigationEnabled = true;
       System.Windows.Forms.OpenFileDialog dialog = new System.Windows.Forms.OpenFileDialog();
 
       dialog.Filter = "|*.bin";
 
       if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
       {
-        // select the binary file
-        FileStream bin_file = new FileStream(dialog.FileName, FileMode.Open);
-        BinaryReader reader = new BinaryReader(bin_file);
-
-        byte[] value = new byte[4];
-        bool didReachEnd = false;
-        this.resp_signal_values = new List<float>();
-        // read the whole binary file and build the signal values
-        while (reader.BaseStream.Position != reader.BaseStream.Length)
-        {
-          try
-          {
-            value = reader.ReadBytes(4);
-            float myFloat = System.BitConverter.ToSingle(value, 0);
-            resp_signal_values.Add(myFloat);
-          }
-          catch (Exception ex)
-          {
-            didReachEnd = true;
-            break;
-          }
-        }
-
-        // close the binary file
-        bin_file.Close();
-
-        // get the file metadata from the header file
-        bin_file = new FileStream(dialog.FileName.Remove(dialog.FileName.Length - 4, 4) + ".hdr", FileMode.Open);
-
-        StreamReader file_reader = new StreamReader(bin_file);
-        // get the signal name
-        this.resp_bin_signal_name = file_reader.ReadLine();
-        this.resp_bin_subject_id = file_reader.ReadLine();
-        this.resp_bin_date_time_from = file_reader.ReadLine();
-        this.resp_bin_date_time_length = file_reader.ReadLine();
-        this.resp_bin_sample_frequency_s = file_reader.ReadLine();
-
-        bin_file.Close();
-
-        this.resp_bin_sample_period = 1 / float.Parse(resp_bin_sample_frequency_s);
-
-        DateTime epochs_from_datetime = DateTime.Parse(resp_bin_date_time_from);
-        DateTime epochs_to_datetime = DateTime.Parse(resp_bin_date_time_length);
-
-        resp_bin_max_epoch = (int)epochs_to_datetime.Subtract(epochs_from_datetime).TotalSeconds / 30;
-        OnPropertyChanged(nameof(RespiratoryBinaryMaxEpochs));
-        rm.RespiratoryBinaryStartRecord = 1;
-        OnPropertyChanged(nameof(RespiratoryBinaryStartRecord));
-        rm.RespiratoryBinaryDuration = 1;
-        OnPropertyChanged(nameof(RespiratoryBinaryDuration));
-        OnPropertyChanged(nameof(RespiratoryBinaryDurationMax));
-        OnPropertyChanged(nameof(RespiratoryBinaryStartRecordMax));
-
-        RespiratoryBinaryView_Changed();
+        BinaryFile temp = new BinaryFile(dialog.FileName);
+        LoadedBinaryFile = temp;
       }
       else
       {
-        RespiratoryBinaryNavigationEnabled = false;
+        LoadedBinaryFile = null;
       }
     }
 
@@ -1639,29 +1600,29 @@ namespace SleepApneaAnalysisTool
     {
       // Finding From 
       int modelStartRecord = RespiratoryBinaryStartRecord.Value;
-      DateTime newFrom = DateTime.Parse(resp_bin_date_time_from);
+      DateTime newFrom = BinaryStartTime;
       newFrom = newFrom.AddSeconds(30 * (modelStartRecord - 1));
 
       // Finding To 
-      int modelLength = rm.RespiratoryBinaryDuration.Value;
+      int modelLength = RespiratoryBinaryDuration.Value;
       DateTime newTo = newFrom;
       newTo = newTo.AddSeconds(30 * (modelLength));
 
-      if (newFrom < DateTime.Parse(resp_bin_date_time_from))
-        newFrom = DateTime.Parse(resp_bin_date_time_from);
+      if (newFrom < BinaryStartTime)
+        newFrom = BinaryStartTime;
       if (newTo < newFrom)
         newTo = newFrom;
 
-      int start_index = (int)(((double)(newFrom - DateTime.Parse(resp_bin_date_time_from)).TotalSeconds) / ((double)resp_bin_sample_period));
-      int end_index = (int)(((double)(newTo - DateTime.Parse(resp_bin_date_time_from)).TotalSeconds) / ((double)resp_bin_sample_period));
+      int start_index = (int)(((double)(newFrom - BinaryStartTime).TotalSeconds) / ((double)LoadedBinaryFile.sample_period));
+      int end_index = (int)(((double)(newTo - BinaryStartTime).TotalSeconds) / ((double)LoadedBinaryFile.sample_period));
       start_index = Math.Max(start_index, 0);
-      end_index = Math.Min(end_index, resp_signal_values.Count - 1);
+      end_index = Math.Min(end_index, LoadedBinaryFile.signal_values.Count - 1);
 
       PlotModel resp_plot = RespiratoryFactory.GetRespiratorySignalPlot(
-        resp_bin_signal_name,
-        resp_signal_values.GetRange(start_index, end_index - start_index + 1),
-        resp_bin_sample_period,
-        resp_signal_values.Average(),
+        LoadedBinaryFile.signal_name,
+        LoadedBinaryFile.signal_values.GetRange(start_index, end_index - start_index + 1),
+        LoadedBinaryFile.sample_period,
+        LoadedBinaryFile.signal_values.Average(),
         true,
         RespiratoryMinimumPeakWidth,
         newFrom,
@@ -1670,13 +1631,13 @@ namespace SleepApneaAnalysisTool
 
       if (RespiratoryUseConstantAxis)
       {
-        resp_plot.Axes[1].Minimum = resp_signal_values.Min();
-        resp_plot.Axes[1].Maximum = resp_signal_values.Max();
+        resp_plot.Axes[1].Minimum = LoadedBinaryFile.signal_values.Min();
+        resp_plot.Axes[1].Maximum = LoadedBinaryFile.signal_values.Max();
       }
 
       UpdateRespAnalysisPlot(resp_plot);
       UpdateRespAnalysisInfo(resp_plot);
-      UpdateRespAnalysisInfoPlot(resp_plot, RespiratoryBinaryStartRecord ?? 1, resp_bin_sample_period);
+      UpdateRespAnalysisInfoPlot(resp_plot, RespiratoryBinaryStartRecord ?? 1, LoadedBinaryFile.sample_period);
       OnPropertyChanged(nameof(RespiratoryAnalyzedEpochs));
     }
     /// <summary>
@@ -1796,7 +1757,7 @@ namespace SleepApneaAnalysisTool
       if (RespiratoryAnalysisEnabled && RespiratoryAnalyticsSelectedEpoch != null)
       {
         double[] output = IsAnalysisFromBinary ?
-        RespiratoryFactory.GetRespAnalysisInfo((LineSeries) resp_plot.Series[0], RespiratoryBinaryStartRecord ?? 1, Int32.Parse(RespiratoryAnalyticsSelectedEpoch), resp_bin_sample_period, RespiratoryMinimumPeakWidth) :
+        RespiratoryFactory.GetRespAnalysisInfo((LineSeries)resp_plot.Series[0], RespiratoryBinaryStartRecord ?? 1, Int32.Parse(RespiratoryAnalyticsSelectedEpoch), LoadedBinaryFile.sample_period, RespiratoryMinimumPeakWidth) :
         RespiratoryFactory.GetRespAnalysisInfo((LineSeries)resp_plot.Series[0], RespiratoryEDFStartRecord ?? 1, Int32.Parse(RespiratoryAnalyticsSelectedEpoch), GetSamplePeriod(RespiratoryEDFSelectedSignal), RespiratoryMinimumPeakWidth);
         
         RespiratoryBreathingPeriodMean = output[0].ToString("0.## s");

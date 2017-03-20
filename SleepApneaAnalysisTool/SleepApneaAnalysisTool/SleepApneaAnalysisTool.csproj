@@ -191,6 +191,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Class_Analysis_Coherence.cs" />
+    <Compile Include="Class_BinaryFile.cs" />
     <Compile Include="Class_CommonData.cs" />
     <Compile Include="Class_Preview.cs" />
     <Compile Include="Class_Analysis_Respiratory.cs" />
