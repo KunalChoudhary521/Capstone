@@ -129,7 +129,7 @@
                             <ToggleButton x:Name="toggleButton_UseAbsoluteTime" Content="ABSOLUTE TIME" IsChecked="{Binding PreviewUseAbsoluteTime}" IsEnabled="{Binding PreviewNavigationEnabled}" Checked="toggleButton_UseAbsoluteTime_Checked" Unchecked="toggleButton_UseAbsoluteTime_Unchecked" Grid.Column="1" Margin="10,0,2,0" Height="32" VerticalAlignment="Top" />
                             <ToggleButton x:Name="toggleButton_UseConstantAxis" Content="CONSTANT AXIS" IsChecked="{Binding PreviewUseConstantAxis}" IsEnabled="{Binding PreviewNavigationEnabled}" Grid.Column="1" Margin="10,38,2,0" Height="32" VerticalAlignment="Top" />
                         </Grid>
-                        <oxy:PlotView Background="Transparent" x:Name="PlotView_signalPlot" Margin="10,137,10,10" Model="{Binding PreviewSignalPlot}" IsEnabled="{Binding PreviewNavigationEnabled}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Grid.Column="1"/>
+                        <oxy:PlotView Foreground="Black" Background="Transparent" x:Name="PlotView_signalPlot" Margin="10,137,10,10" Model="{Binding PreviewSignalPlot}" IsEnabled="{Binding PreviewNavigationEnabled}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Grid.Column="1"/>
                         <mtr:ProgressRing Name="ProgressRing_PreviewTab" IsActive="{Binding PreviewProgressRingEnabled}" Grid.Column="1"/>
                     </Grid>
 
@@ -229,8 +229,8 @@
                             </Grid>
 
                             <Label Content="Plot" FontSize="18" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="10,130,0,0"/>
-                            <oxy:PlotView Name="RespSignalPlot" Background="Transparent" Margin="10,175,10,10" Model="{Binding RespiratorySignalPlot}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
-                            <oxy:PlotView Name="RespAnalyticsPlot" Visibility="Hidden" Background="Transparent" Margin="10,175,10,10" Model="{Binding RespiratoryAnalyticsPlot}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
+                            <oxy:PlotView Foreground="Black" Name="RespSignalPlot" Background="Transparent" Margin="10,175,10,10" Model="{Binding RespiratorySignalPlot}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
+                            <oxy:PlotView Foreground="Black" Name="RespAnalyticsPlot" Visibility="Hidden" Background="Transparent" Margin="10,175,10,10" Model="{Binding RespiratoryAnalyticsPlot}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
                             <ToggleButton Content="CONSTANT AXIS" Margin="0,135,10,0" IsEnabled="{Binding RespiratoryAnalysisEnabled}" IsChecked="{Binding RespiratoryUseConstantAxis}" VerticalAlignment="Top" HorizontalAlignment="Right" Width="100" Height="34"/>
                             <ToggleButton Content="SHOW ANALYTICS" Margin="0,135,115,0" IsEnabled="{Binding RespiratoryAnalysisEnabled}" IsChecked="{Binding RespiratoryDisplayAnalytics}" VerticalAlignment="Top" HorizontalAlignment="Right" Width="100" Height="34"  Checked="button_DisplayAnalytics_Checked" Unchecked="button_DisplayAnalytics_Checked"/>
 
@@ -345,10 +345,10 @@
                                     <ColumnDefinition Width="500*"/>
                                     <ColumnDefinition Width="500*"/>
                                 </Grid.ColumnDefinitions>
-                                <oxy:PlotView Background="Transparent" Margin="10"  Model ="{Binding PlotAbsPwr}"  ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
-                                <oxy:PlotView Background="Transparent" Margin="10" Model ="{Binding PlotRelPwr}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Grid.Column="1"/>
-                                <oxy:PlotView Background="Transparent" Margin="10" Model ="{Binding PlotSpecGram}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Grid.Row="1"/>
-                                <oxy:PlotView Background="Transparent" Margin="10" Model ="{Binding PlotPSD}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Grid.Column="1" Grid.Row="1"/>
+                                <oxy:PlotView Foreground="Black" Background="Transparent" Margin="10"  Model ="{Binding PlotAbsPwr}"  ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
+                                <oxy:PlotView Foreground="Black" Background="Transparent" Margin="10" Model ="{Binding PlotRelPwr}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Grid.Column="1"/>
+                                <oxy:PlotView Foreground="Black" Background="Transparent" Margin="10" Model ="{Binding PlotSpecGram}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Grid.Row="1"/>
+                                <oxy:PlotView Foreground="Black" Background="Transparent" Margin="10" Model ="{Binding PlotPSD}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Grid.Column="1" Grid.Row="1"/>
                             </Grid>
 
                             <mtr:ProgressRing IsActive="{Binding EEGProgressRingEnabled}"/>
@@ -400,11 +400,11 @@
                                         <RowDefinition/>
                                     </Grid.RowDefinitions>
                                     <Label Content="Signal 1" FontSize="18" Height="38" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="0,10,0,0"/>
-                                    <oxy:PlotView Background="Transparent" Margin="10,48,10,10" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Model="{Binding CoherenceSignalPlot1}"/>
+                                    <oxy:PlotView Foreground="Black" Background="Transparent" Margin="10,48,10,10" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Model="{Binding CoherenceSignalPlot1}"/>
                                     <Label Content="Signal 2" FontSize="18" Height="38" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="10.333,12,0,0" Grid.Column="1"/>
-                                    <oxy:PlotView Background="Transparent" Margin="10,48,10,10" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Model="{Binding CoherenceSignalPlot2}" Grid.Column="1"/>
+                                    <oxy:PlotView Foreground="Black" Background="Transparent" Margin="10,48,10,10" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Model="{Binding CoherenceSignalPlot2}" Grid.Column="1"/>
                                     <Label Content="Coherence" FontSize="18" Height="38" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="10.333,10,0,0" Grid.Column="2"/>
-                                    <oxy:PlotView Background="Transparent" Margin="10,48,10,10" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Model="{Binding CoherencePlot}" Grid.Column="2"/>
+                                    <oxy:PlotView Foreground="Black" Background="Transparent" Margin="10,48,10,10" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Model="{Binding CoherencePlot}" Grid.Column="2"/>
                                     <ToggleButton Content="CONSTANT AXIS" Height="34" Width="100" HorizontalAlignment="Right" Margin="0,10,10,0" IsEnabled="{Binding IsEDFLoaded}"  IsChecked="{Binding CoherenceUseConstantAxis}" VerticalAlignment="Top" Grid.Column="0" />
                                     <ToggleButton Content="CONSTANT AXIS" Height="34" Width="100" HorizontalAlignment="Right" Margin="0,10,10,0" IsEnabled="{Binding IsEDFLoaded}"  IsChecked="{Binding CoherenceUseConstantAxis}" VerticalAlignment="Top" Grid.Column="1" />
                                 </Grid>
