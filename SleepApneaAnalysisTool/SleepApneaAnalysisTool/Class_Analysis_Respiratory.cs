@@ -520,7 +520,7 @@ namespace SleepApneaAnalysisTool
             signal_points[index][row, 1] = "Date Time";
             signal_points[index][row, 2] = "Value";
             signal_points[index][row, 3] = "Inspiration";
-            signal_points[index][row, 4] = "Exspiration";
+            signal_points[index][row, 4] = "Expiration";
             signal_points[index][row, 5] = "Neg. Peaks";
             signal_points[index][row, 6] = "Pos. Peaks";
             row++;
@@ -590,7 +590,7 @@ namespace SleepApneaAnalysisTool
 
         ws.Cells[3, 2].Value = "Epoch";
         ws.Cells[3, 3].Value = "Breathing Period";
-        ws.Cells[3, 4].Value = "Exspiration Period";
+        ws.Cells[3, 4].Value = "Expiration Period";
         ws.Cells[3, 5].Value = "Inspiration Period";
         ws.Cells[3, 6].Value = "Negative Peak";
         ws.Cells[3, 7].Value = "Positive Peak";
@@ -707,13 +707,13 @@ namespace SleepApneaAnalysisTool
     public string RespiratoryInspirationPeriodCoeffVar;
 
     /// <summary>
-    /// The calculated mean average of the exspiration periods of the respiratory signal
+    /// The calculated mean average of the Expiration periods of the respiratory signal
     /// </summary>
-    public string RespiratoryExspirationPeriodMean;
+    public string RespiratoryExpirationPeriodMean;
     /// <summary>
-    /// The calculated coefficient of variance of the exspiration periods of the respiratory signal
+    /// The calculated coefficient of variance of the Expiration periods of the respiratory signal
     /// </summary>
-    public string RespiratoryExspirationPeriodCoeffVar;
+    public string RespiratoryExpirationPeriodCoeffVar;
 
     /// <summary>
     /// The calculated mean average of the positive peaks of the respiratory signal
@@ -1186,28 +1186,28 @@ namespace SleepApneaAnalysisTool
         OnPropertyChanged(nameof(RespiratoryInspirationPeriodCoeffVar));
       }
     }
-    public string RespiratoryExspirationPeriodMean
+    public string RespiratoryExpirationPeriodMean
     {
       get
       {
-        return rm.RespiratoryExspirationPeriodMean;
+        return rm.RespiratoryExpirationPeriodMean;
       }
       set
       {
-        rm.RespiratoryExspirationPeriodMean = value;
-        OnPropertyChanged(nameof(RespiratoryExspirationPeriodMean));
+        rm.RespiratoryExpirationPeriodMean = value;
+        OnPropertyChanged(nameof(RespiratoryExpirationPeriodMean));
       }
     }
-    public string RespiratoryExspirationPeriodCoeffVar
+    public string RespiratoryExpirationPeriodCoeffVar
     {
       get
       {
-        return rm.RespiratoryExspirationPeriodCoeffVar;
+        return rm.RespiratoryExpirationPeriodCoeffVar;
       }
       set
       {
-        rm.RespiratoryExspirationPeriodCoeffVar = value;
-        OnPropertyChanged(nameof(RespiratoryExspirationPeriodCoeffVar));
+        rm.RespiratoryExpirationPeriodCoeffVar = value;
+        OnPropertyChanged(nameof(RespiratoryExpirationPeriodCoeffVar));
       }
     }
     public string RespiratoryPositivePeakMean
@@ -1801,8 +1801,8 @@ namespace SleepApneaAnalysisTool
         
         RespiratoryBreathingPeriodMean = output[0].ToString("0.## s");
         RespiratoryBreathingPeriodCoeffVar = output[1].ToString("0.## %");
-        RespiratoryExspirationPeriodMean = output[2].ToString("0.## s");
-        RespiratoryExspirationPeriodCoeffVar = output[3].ToString("0.## %");
+        RespiratoryExpirationPeriodMean = output[2].ToString("0.## s");
+        RespiratoryExpirationPeriodCoeffVar = output[3].ToString("0.## %");
         RespiratoryInspirationPeriodMean = output[4].ToString("0.## s");
         RespiratoryInspirationPeriodCoeffVar = output[5].ToString("0.## %");
         RespiratoryNegativePeakMean = output[6].ToString("0.##");
@@ -1820,8 +1820,8 @@ namespace SleepApneaAnalysisTool
         RespiratoryBreathingPeriodCoeffVar = null;
         RespiratoryInspirationPeriodMean = null;
         RespiratoryInspirationPeriodCoeffVar = null;
-        RespiratoryExspirationPeriodMean = null;
-        RespiratoryExspirationPeriodCoeffVar = null;
+        RespiratoryExpirationPeriodMean = null;
+        RespiratoryExpirationPeriodCoeffVar = null;
         RespiratoryNegativePeakMean = null;
         RespiratoryNegativePeakCoeffVar = null;
         RespiratoryPositivePeakMean = null;

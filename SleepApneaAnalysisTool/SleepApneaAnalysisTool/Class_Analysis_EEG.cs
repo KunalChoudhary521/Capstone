@@ -241,6 +241,13 @@ namespace SleepApneaAnalysisTool
         OnPropertyChanged(nameof(EpochForAnalysis));
         if (EEGEDFSelectedSignal != null && EpochForAnalysis != null)
           PerformEEGAnalysisEDF();
+        else
+        {
+          PlotAbsPwr = null;
+          PlotRelPwr = null;
+          PlotSpecGram = null;
+          PlotPSD = null;
+        }
       }
     }
 

@@ -7,8 +7,6 @@ using EDF;
 using MathWorks.MATLAB.NET.Arrays;
 using MATLAB_496;
 using System.IO;
-using MathNet.Filtering.FIR;
-using MathNet.Filtering.IIR;
 using MahApps.Metro;
 using System.Windows.Media;
 using System.Windows;

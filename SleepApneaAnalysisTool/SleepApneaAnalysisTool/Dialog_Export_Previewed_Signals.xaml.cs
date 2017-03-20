@@ -12,21 +12,29 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using MahApps.Metro.Controls.Dialogs;
+using MahApps.Metro.Controls;
 
 namespace SleepApneaAnalysisTool
 {
   /// <summary>
-  /// Interaction logic for Dialog_Export_Previewed_Signals.xaml
+  /// Interaction logic for Dialog_Derivative.xaml
   /// </summary>
   public partial class Dialog_Export_Previewed_Signals
   {
-    public static ExportSignalModel signals_to_export;
+    public ExportSignalModel signals_to_export;
+    public bool DialogResult;
+
     private List<string> selected_signals;
-    public Dialog_Export_Previewed_Signals(List<string> selected_signals)
+    private MetroWindow window;
+    private PreviewModelView pmv;
+
+    public Dialog_Export_Previewed_Signals(MetroWindow i_window, PreviewModelView i_pmv, List<string> selected_signals)
     {
       InitializeComponent();
 
       this.selected_signals = new List<string>(selected_signals);
+      this.window = i_window;
+      this.pmv = i_pmv;
 
       this.textBox_subject_id.Text = "";
       this.textBox_epochs_from.Text = "1";
@@ -36,7 +44,7 @@ namespace SleepApneaAnalysisTool
     private void button_export_cancel_Click(object sender, RoutedEventArgs e)
     {
       this.DialogResult = false;
-      this.Close();
+      DialogManager.HideMetroDialogAsync(window, this);
     }
 
     //TODO: ZUR(2016-11-22)
@@ -47,51 +55,52 @@ namespace SleepApneaAnalysisTool
       int subject_id;
       if (string.IsNullOrEmpty(this.textBox_subject_id.Text))
       {
-        this.ShowMessageAsync("Error", "Please enter a subject ID");
+        window.ShowMessageAsync("Error", "Please enter a subject ID");
       }
       else if (int.TryParse(this.textBox_subject_id.Text, out subject_id) == false)
       {
-        this.ShowMessageAsync("Error", "Please enter a valid subject ID");
+        window.ShowMessageAsync("Error", "Please enter a valid subject ID");
       }
       else
       {
         if (subject_id < 0)
         {
-          this.ShowMessageAsync("Error", "Please enter a positive two digit ID");
+          window.ShowMessageAsync("Error", "Please enter a positive two digit ID");
         }
         else
         {
           //just in case
-          subject_id = subject_id % 100; 
+          subject_id = subject_id % 100;
           int from_epochs;
           if (int.TryParse(this.textBox_epochs_from.Text, out from_epochs) == false)
           {
-            this.ShowMessageAsync("Error", "Please enter a valid 'from' epochs value.");
+            window.ShowMessageAsync("Error", "Please enter a valid 'from' epochs value.");
           }
           else
           {
             if (from_epochs < 1)
             {
-              this.ShowMessageAsync("Error", "From epochs must be greater than 1");
+              window.ShowMessageAsync("Error", "From epochs must be greater than 1");
             }
             else
             {
               int to_epochs;
               if (int.TryParse(this.textBox_epochs_to.Text, out to_epochs) == false)
               {
-                this.ShowMessageAsync("Error", "Please enter a valid 'length'");
+                window.ShowMessageAsync("Error", "Please enter a valid 'length'");
               }
               else
               {
                 if (to_epochs <= 0)
                 {
-                  this.ShowMessageAsync("Error", "Length of period must be greater than 0");
+                  window.ShowMessageAsync("Error", "Length of period must be greater than 0");
                 }
                 else
                 {
                   signals_to_export = new ExportSignalModel(subject_id, from_epochs, to_epochs);
                   this.DialogResult = true;
-                  this.Close();
+                  DialogManager.HideMetroDialogAsync(window, this);
+                  pmv.ExportSignalsOutput(DialogResult, signals_to_export);
                 }
               }
             }
