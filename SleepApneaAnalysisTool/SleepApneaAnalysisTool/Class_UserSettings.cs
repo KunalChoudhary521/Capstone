@@ -209,8 +209,7 @@ namespace SleepApneaAnalysisTool
         if (model != null)
         {
           Utils.ApplyThemeToPlot(model, UseDarkTheme);
-          plot.Model = null;
-          plot.Model = model;
+          plot.Model.InvalidatePlot(true); 
         }
       }
 
