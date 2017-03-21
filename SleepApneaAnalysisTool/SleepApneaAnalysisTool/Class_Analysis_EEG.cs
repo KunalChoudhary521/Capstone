@@ -568,8 +568,7 @@ namespace SleepApneaAnalysisTool
 
       /********************Plotting a heatmap for spectrogram (line 820, 2133 - PSG_viewer_v7.m)*********************/
       PlotSpectrogram(specTime, specFrq, specMatrixtranspose);
-
-      //UnifiedEEGExportToExcel();
+      
 
       return;//for debugging only
     }
@@ -723,14 +722,16 @@ namespace SleepApneaAnalysisTool
       for (int i = 0; i < frqRangeToMLab.Length; i++)
       {
         absPower[i] = (double)(MWNumericArray)pwr.eeg_bandpower(signalToMLab, sampleFreq, frqRangeToMLab[i]);
-        totalPower += absPower[i];
+        totalPower += absPower[i];//Derek's Implemen
         absPlotbandItems[i] = new ColumnItem { Value = 10 * Math.Log10(absPower[i]) };//bars for abs pwr plot
       }
 
-      
-      MWNumericArray fullFrqRange = new MWNumericArray(1, 2, new double[] { 0.1, 50});
-      double realTotalPwr = 10 * Math.Log10((double)(MWNumericArray)pwr.eeg_bandpower(signalToMLab, sampleFreq, fullFrqRange));
-      
+      //Gaspard's implementation
+      /*
+      MWNumericArray fullFrqRange = new MWNumericArray(1, 2, new double[] { 0, 50});
+      totalPower = (double)(MWNumericArray)pwr.eeg_bandpower(signalToMLab, sampleFreq, fullFrqRange);
+      double realTotalPwr = 10 * Math.Log10(totalPower);
+      */
 
       return;
     }
@@ -1073,7 +1074,15 @@ namespace SleepApneaAnalysisTool
       }
       BW_ExportCalcDir(fromToDir, analysisDir);
 
-      int currentEpoch = ExportEpochStart ?? 1;
+
+      /***************Variables for UnifiedEEGExport***********************/
+      int startEp = ExportEpochStart.Value, endEp = ExportEpochEnd.Value;
+      int inclusiveRange = endEp - startEp + 1;//start -> end inclusively
+      DateTime[] AbsEpTimes = new DateTime[inclusiveRange];
+      double[][] absPwrArray = new double[inclusiveRange][];//jagged array
+      double[] totalPwrArray = new double[inclusiveRange];
+      double[] avgPSDArray = new double[inclusiveRange];
+      /*******************************************************************/
 
       for (int i = (int)ExportEpochStart; i <= ExportEpochEnd; i++)
       {
@@ -1108,7 +1117,25 @@ namespace SleepApneaAnalysisTool
         SpecGramAnalysis(out specTime, out specFrq, out specMatrix, signalToMatlab, sampleFreq);
         //output Spectrogram calculations to a file
         SpecGramToCSV(specTime, specFrq, specMatrix, i, analysisDir + "Spectrogram.csv");
+
+        //store abs epoch time, abs power & mean PSD values per epoch
+        AbsEpTimes[i - startEp] = StartEpoch;
+
+        absPwrArray[i - startEp] = new double[absPower.Length];
+        Array.Copy(absPower, absPwrArray[i - startEp], absPower.Length);
+
+        totalPwrArray[i - startEp] = totalPower;
+
+        double avgPSD = 0.0;
+        for(int j = 0; j < psdValue.Length; j++)
+        {
+          avgPSD += psdValue[i];
+        }
+        avgPSDArray[i - startEp] = avgPSD / psdValue.Length;        
+
       }
+
+      UnifiedEEGExportToExcel(startEp, endEp, AbsEpTimes, absPwrArray, totalPwrArray, avgPSDArray, analysisDir);
 
       return;//for debugging only
     }
@@ -1243,22 +1270,63 @@ namespace SleepApneaAnalysisTool
       fileStream.Close();
     }
 
-    public void UnifiedEEGExportToExcel()//exports abs power bands, total power & PSD for each epoch to Excel workbook
+    //exports abs power bands, total power & mean PSD for each epoch to Excel workbook
+    public void UnifiedEEGExportToExcel(int startEp, int endEp, DateTime[] AbsoluteTime, 
+                                        double[][] absPwr, double[] totalPwr, double[] avgPSD, String location)
     {
       Excel.Application eegExcel = new Excel.Application();
       Utils.MakeExcelInteropPerformant(eegExcel, true);
 
       Excel.Workbook wb = eegExcel.Workbooks.Add(System.Reflection.Missing.Value);
-
       Excel.Worksheet unifiedWb = eegExcel.ActiveSheet;
+      
 
-      int[] tempABS = { 1, 2, 3, 4, 5, 6 };
+      unifiedWb.Cells[1, "B"] = "Signal:" + EEGEDFSelectedSignal.ToString();
 
-      unifiedWb.Cells[3, "B"] = "Epoch";
+      int titleRow = 3, titleCol = 2;
+      String[] labels = new String[] { "Epoch", "Absolute Time", "delta2", "delta1", "theta", "alpha",
+                                       "beta1", "beta2", "gamma", "Total", "delta2%","delta1%", "theta%",
+                                       "alpha%", "beta1%", "beta2%", "gamma%", "Mean PSD"};
+      for(int i = titleCol; i < labels.Length+titleCol; i++)
+      {
+        unifiedWb.Cells[titleRow, i] = labels[i - titleCol];        
+      }
 
-      String analysisDir = ChooseDirectory();
-      unifiedWb.SaveAs(@analysisDir+"EEGUnified.xlsx");
+      int currentCol = 0;
+      for(int i = startEp, row = titleRow+1; i <= endEp && row < titleRow + 1 + (endEp - startEp + 1); i++, row++)
+      {
+        int col = titleCol;
+
+        currentCol = i - startEp;
+        unifiedWb.Cells[row, col++] = i;
+        unifiedWb.Cells[row, col++] = AbsoluteTime[currentCol].ToLongTimeString();
+
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][0];//delta2
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][1];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][2];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][3];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][4];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][5];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][6];//gamma
+
+        unifiedWb.Cells[row, col++] = totalPwr[currentCol];
+
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][0] / totalPwr[currentCol];//delta2%
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][1] / totalPwr[currentCol];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][2] / totalPwr[currentCol];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][3] / totalPwr[currentCol];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][4] / totalPwr[currentCol];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][5] / totalPwr[currentCol];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][6] / totalPwr[currentCol];//gamma%
+
+        unifiedWb.Cells[row, col++] = avgPSD[currentCol];
+      }
+
+
+      unifiedWb.Columns.AutoFit();//increase column size according to data in it
+      unifiedWb.SaveAs(location + "EEGUnified.xlsx");
       Utils.MakeExcelInteropPerformant(eegExcel, false);
+      
 
       return;
     }
