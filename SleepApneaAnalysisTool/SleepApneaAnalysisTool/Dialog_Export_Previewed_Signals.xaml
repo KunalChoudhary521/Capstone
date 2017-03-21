@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         xmlns:mtr="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
         xmlns:Dialog="clr-namespace:MahApps.Metro.Controls.Dialogs;assembly=MahApps.Metro"           
-        Title="Add Derivative">
+        Title="Export to Binary">
     <Grid Height="280">
         <TextBox x:Name="textBox_subject_id" Height="28" Margin="10,31,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" FontSize="10"/>
         <TextBox x:Name="textBox_epochs_from" Height="28" Margin="10,123,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top"/>
