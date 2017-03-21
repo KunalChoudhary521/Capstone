@@ -1292,31 +1292,34 @@ namespace SleepApneaAnalysisTool
         unifiedWb.Cells[titleRow, i] = labels[i - titleCol];        
       }
 
-      for(int i = startEp, row = titleRow+1; i < endEp && row < titleRow + 1 + (endEp - startEp + 1); i++, row++)
+      int currentCol = 0;
+      for(int i = startEp, row = titleRow+1; i <= endEp && row < titleRow + 1 + (endEp - startEp + 1); i++, row++)
       {
         int col = titleCol;
+
+        currentCol = i - startEp;
         unifiedWb.Cells[row, col++] = i;
-        unifiedWb.Cells[row, col++] = AbsoluteTime[i - startEp].ToLongTimeString();
+        unifiedWb.Cells[row, col++] = AbsoluteTime[currentCol].ToLongTimeString();
 
-        unifiedWb.Cells[row, col++] = absPwr[i - startEp][0];//delta2
-        unifiedWb.Cells[row, col++] = absPwr[i - startEp][1];
-        unifiedWb.Cells[row, col++] = absPwr[i - startEp][2];
-        unifiedWb.Cells[row, col++] = absPwr[i - startEp][3];
-        unifiedWb.Cells[row, col++] = absPwr[i - startEp][4];
-        unifiedWb.Cells[row, col++] = absPwr[i - startEp][5];
-        unifiedWb.Cells[row, col++] = absPwr[i - startEp][6];//gamma
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][0];//delta2
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][1];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][2];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][3];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][4];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][5];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][6];//gamma
 
-        unifiedWb.Cells[row, col++] = totalPwr[i - startEp];
+        unifiedWb.Cells[row, col++] = totalPwr[currentCol];
 
-        unifiedWb.Cells[row, col++] = absPwr[i - startEp][0] / totalPwr[i - startEp];//delta2%
-        unifiedWb.Cells[row, col++] = absPwr[i - startEp][1] / totalPwr[i - startEp];
-        unifiedWb.Cells[row, col++] = absPwr[i - startEp][2] / totalPwr[i - startEp];
-        unifiedWb.Cells[row, col++] = absPwr[i - startEp][3] / totalPwr[i - startEp];
-        unifiedWb.Cells[row, col++] = absPwr[i - startEp][4] / totalPwr[i - startEp];
-        unifiedWb.Cells[row, col++] = absPwr[i - startEp][5] / totalPwr[i - startEp];
-        unifiedWb.Cells[row, col++] = absPwr[i - startEp][6] / totalPwr[i - startEp];//gamma%
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][0] / totalPwr[currentCol];//delta2%
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][1] / totalPwr[currentCol];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][2] / totalPwr[currentCol];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][3] / totalPwr[currentCol];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][4] / totalPwr[currentCol];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][5] / totalPwr[currentCol];
+        unifiedWb.Cells[row, col++] = absPwr[currentCol][6] / totalPwr[currentCol];//gamma%
 
-        unifiedWb.Cells[row, col++] = avgPSD[i - startEp];
+        unifiedWb.Cells[row, col++] = avgPSD[currentCol];
       }
 
 
