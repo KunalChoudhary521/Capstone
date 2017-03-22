@@ -21,6 +21,12 @@ namespace SleepApneaAnalysisTool
   public static class PreviewFactory
   {
     #region Static Functions
+    /// <summary>
+    /// The function saves the currently previewed plot to an Excel workbook
+    /// </summary>
+    /// <param name="fileName"></param>
+    /// <param name="PreviewPlot"></param>
+    /// <param name="StartTime"></param>
     public static void SavePreviewPlotToExcel(string fileName, PlotModel PreviewPlot, DateTime StartTime)
     {
       if (PreviewPlot != null)
@@ -132,6 +138,9 @@ namespace SleepApneaAnalysisTool
   {
     #region Shared Properties and Functions
 
+    /// <summary>
+    /// The settings model view, contains the loaded EDF file structure and user settings
+    /// </summary>
     private SettingsModelView svm;
     private SettingsModel sm
     {
@@ -142,6 +151,11 @@ namespace SleepApneaAnalysisTool
     }
 
     // Property Changed Listener
+    /// <summary>
+    /// Listens to property change events in the settings model view 
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void Exterior_PropertyChanged(object sender, PropertyChangedEventArgs e)
     {
       switch (e.PropertyName)
@@ -187,6 +201,9 @@ namespace SleepApneaAnalysisTool
           break;
       }
     }
+    /// <summary>
+    /// Listens to the event called when the list of signals to preview changes in the settings model view
+    /// </summary>
     private void Exterior_PreviewList_Updated()
     {
       PreviewCurrentCategory = -1;
@@ -194,6 +211,9 @@ namespace SleepApneaAnalysisTool
     }
 
     // Shared Properties
+    /// <summary>
+    /// True if a EDF file is loaded
+    /// </summary>
     public bool IsEDFLoaded
     {
       get
@@ -201,6 +221,9 @@ namespace SleepApneaAnalysisTool
         return svm.IsEDFLoaded;
       }
     }
+    /// <summary>
+    /// The EDF file structure
+    /// </summary>
     public EDFFile LoadedEDFFile
     {
       get
@@ -208,6 +231,9 @@ namespace SleepApneaAnalysisTool
         return svm.LoadedEDFFile;
       }
     }
+    /// <summary>
+    /// The time stamp of the beginning of the signal recordings in the EDF file
+    /// </summary>
     public DateTime EDFStartTime
     {
       get
@@ -218,6 +244,9 @@ namespace SleepApneaAnalysisTool
           return new DateTime();
       }
     }
+    /// <summary>
+    /// The time stamp of the end of the signal recordings in the EDF file
+    /// </summary>
     public DateTime EDFEndTime
     {
       get
@@ -235,6 +264,9 @@ namespace SleepApneaAnalysisTool
       }
     }
 
+    /// <summary>
+    /// A list of all EDF signals 
+    /// </summary>
     public ReadOnlyCollection<string> EDFAllSignals
     {
       get
@@ -242,6 +274,9 @@ namespace SleepApneaAnalysisTool
         return svm.EDFAllSignals;
       }
     }
+    /// <summary>
+    /// A list of all signals including EDF signals, derivative signals, and filtered signals that were not hidden by the user
+    /// </summary>
     public ReadOnlyCollection<string> AllNonHiddenSignals
     {
       get
@@ -249,7 +284,9 @@ namespace SleepApneaAnalysisTool
         return svm.AllNonHiddenSignals;
       }
     }
-
+    /// <summary>
+    /// True if the UI should use a dark theme
+    /// </summary>
     public bool UseDarkTheme
     {
       get
@@ -259,6 +296,15 @@ namespace SleepApneaAnalysisTool
     }
 
     // Shared Functions
+    /// <summary>
+    /// From a signal, returns a series of X,Y values for use with a PlotModel
+    /// Also returns y axis information and the sample_period of the signal
+    /// </summary>
+    /// <param name="sample_period"> Variable to contain the sample period of the signal </param>
+    /// <param name="Signal"> The input signal name </param>
+    /// <param name="StartTime">  The input start time to be contained in the series </param>
+    /// <param name="EndTime"> The input end time to be contained in the series </param>
+    /// <returns> The series of X,Y values to draw on the plot </returns>
     public LineSeries GetSeriesFromSignalName(out float sample_period, string Signal, DateTime StartTime, DateTime EndTime)
     {
       return svm.GetSeriesFromSignalName(out sample_period, Signal, StartTime, EndTime);
@@ -1256,7 +1302,14 @@ namespace SleepApneaAnalysisTool
     #region etc
 
     // INotify Interface
+    /// <summary>
+    /// Event raised when a property in this class changes value
+    /// </summary>
     public event PropertyChangedEventHandler PropertyChanged;
+    /// <summary>
+    /// Function to raise PropertyChanged event 
+    /// </summary>
+    /// <param name="propertyName"></param>
     private void OnPropertyChanged(string propertyName)
     {
       if (PropertyChanged != null)
@@ -1265,6 +1318,10 @@ namespace SleepApneaAnalysisTool
 
     #endregion
 
+    /// <summary>
+    /// Constructor for the PreviewModelView
+    /// </summary>
+    /// <param name="i_svm"></param>
     public PreviewModelView(SettingsModelView i_svm)
     {
       svm = i_svm;

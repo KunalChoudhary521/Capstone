@@ -66,7 +66,15 @@ namespace SleepApneaAnalysisTool
   {
     #region Shared Properties and Functions
 
+    /// <summary>
+    /// The settings model view, contains the loaded EDF file structure and user settings
+    /// </summary>
     private SettingsModelView svm;
+    /// <summary>
+    /// Listens to property change events in the settings model view 
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private SettingsModel sm
     {
       get
@@ -76,6 +84,11 @@ namespace SleepApneaAnalysisTool
     }
 
     // Property Changed Listener
+    /// <summary>
+    /// Listens to property change events in the settings model view 
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void Exterior_PropertyChanged(object sender, PropertyChangedEventArgs e)
     {
       switch (e.PropertyName)
@@ -110,8 +123,11 @@ namespace SleepApneaAnalysisTool
           break;
       }
     }
-    
+
     // Shared Properties
+    /// <summary>
+    /// True if a EDF file is loaded
+    /// </summary>
     public bool IsEDFLoaded
     {
       get
@@ -119,6 +135,9 @@ namespace SleepApneaAnalysisTool
         return svm.IsEDFLoaded;
       }
     }
+    /// <summary>
+    /// The EDF file structure
+    /// </summary>
     public EDFFile LoadedEDFFile
     {
       get
@@ -126,6 +145,9 @@ namespace SleepApneaAnalysisTool
         return svm.LoadedEDFFile;
       }
     }
+    /// <summary>
+    /// The time stamp of the beginning of the signal recordings in the EDF file
+    /// </summary>
     public DateTime EDFStartTime
     {
       get
@@ -136,6 +158,9 @@ namespace SleepApneaAnalysisTool
           return new DateTime();
       }
     }
+    /// <summary>
+    /// The time stamp of the end of the signal recordings in the EDF file
+    /// </summary>
     public DateTime EDFEndTime
     {
       get
@@ -153,6 +178,9 @@ namespace SleepApneaAnalysisTool
       }
     }
 
+    /// <summary>
+    /// A list of all EDF signals 
+    /// </summary>
     public ReadOnlyCollection<string> EDFAllSignals
     {
       get
@@ -160,6 +188,9 @@ namespace SleepApneaAnalysisTool
         return svm.EDFAllSignals;
       }
     }
+    /// <summary>
+    /// A list of all signals including EDF signals, derivative signals, and filtered signals that were not hidden by the user
+    /// </summary>
     public ReadOnlyCollection<string> AllNonHiddenSignals
     {
       get
@@ -167,7 +198,9 @@ namespace SleepApneaAnalysisTool
         return svm.AllNonHiddenSignals;
       }
     }
-
+    /// <summary>
+    /// True if the UI should use a dark theme
+    /// </summary>
     public bool UseDarkTheme
     {
       get
@@ -177,6 +210,15 @@ namespace SleepApneaAnalysisTool
     }
 
     // Shared Functions
+    /// <summary>
+    /// From a signal, returns a series of X,Y values for use with a PlotModel
+    /// Also returns y axis information and the sample_period of the signal
+    /// </summary>
+    /// <param name="sample_period"> Variable to contain the sample period of the signal </param>
+    /// <param name="Signal"> The input signal name </param>
+    /// <param name="StartTime">  The input start time to be contained in the series </param>
+    /// <param name="EndTime"> The input end time to be contained in the series </param>
+    /// <returns> The series of X,Y values to draw on the plot </returns>
     public LineSeries GetSeriesFromSignalName(out float sample_period, string Signal, DateTime StartTime, DateTime EndTime)
     {
       return svm.GetSeriesFromSignalName(out sample_period, Signal, StartTime, EndTime);
@@ -191,10 +233,16 @@ namespace SleepApneaAnalysisTool
 
     #region Properties
 
+    /// <summary>
+    /// Function called when the coherence plot changes
+    /// </summary>
     private void CoherencePlot_Changed()
     {
       CoherenceProgressRingEnabled = false;
     }
+    /// <summary>
+    /// Function called when the time interval to calculate coherence changes
+    /// </summary>
     private void CoherenceEDFView_Changed()
     {
       OnPropertyChanged(nameof(CoherenceEDFStartRecord));
@@ -207,6 +255,9 @@ namespace SleepApneaAnalysisTool
       OnPropertyChanged(nameof(CoherenceEDFDurationMin));
     }
 
+    /// <summary>
+    /// The first selected signal
+    /// </summary>
     public string CoherenceEDFSelectedSignal1
     {
       get
@@ -220,6 +271,9 @@ namespace SleepApneaAnalysisTool
         PerformCoherenceAnalysisEDF();
       }
     }
+    /// <summary>
+    /// The second selected signal
+    /// </summary>
     public string CoherenceEDFSelectedSignal2
     {
       get
@@ -233,6 +287,9 @@ namespace SleepApneaAnalysisTool
         PerformCoherenceAnalysisEDF();
       }
     }
+    /// <summary>
+    /// The start time in 30s epochs of the signals to perform coherence analysis on
+    /// </summary>
     public int? CoherenceEDFStartRecord
     {
       get
@@ -250,6 +307,9 @@ namespace SleepApneaAnalysisTool
         PerformCoherenceAnalysisEDF();
       }
     }
+    /// <summary>
+    /// The duration in 30s epochs of the signals to perform coherence analysis on
+    /// </summary>
     public int? CoherenceEDFDuration
     {
       get
@@ -267,6 +327,9 @@ namespace SleepApneaAnalysisTool
         PerformCoherenceAnalysisEDF();
       }
     }
+    /// <summary>
+    /// A time domain plot of the first signal to perform coherence analysis on
+    /// </summary>
     public PlotModel CoherenceSignalPlot1
     {
       get
@@ -280,6 +343,9 @@ namespace SleepApneaAnalysisTool
         OnPropertyChanged(nameof(CoherenceSignalPlot1));
       }
     }
+    /// <summary>
+    /// A time domain plot of the second signal to perform coherence analysis on
+    /// </summary>
     public PlotModel CoherenceSignalPlot2
     {
       get
@@ -293,6 +359,9 @@ namespace SleepApneaAnalysisTool
         OnPropertyChanged(nameof(CoherenceSignalPlot2));
       }
     }
+    /// <summary>
+    /// The plot of the coherence signal
+    /// </summary>
     public PlotModel CoherencePlot
     {
       get
@@ -307,6 +376,10 @@ namespace SleepApneaAnalysisTool
         CoherencePlot_Changed();
       }
     }
+    /// <summary>
+    /// If true, the progress ring should be shown
+    /// If false, the progress ring should not be shown
+    /// </summary>
     public bool CoherenceProgressRingEnabled
     {
       get
@@ -320,6 +393,9 @@ namespace SleepApneaAnalysisTool
         OnPropertyChanged(nameof(CoherenceEDFNavigationEnabled));
       }
     }
+    /// <summary>
+    /// If true, the user can interact with the time UI controls
+    /// </summary>
     public bool CoherenceEDFNavigationEnabled
     {
       get
@@ -331,6 +407,9 @@ namespace SleepApneaAnalysisTool
       }
     }
 
+    /// <summary>
+    /// The beginning of the time interval to calculate coherence
+    /// </summary>
     public DateTime CoherenceEDFStartTime
     {
       get
@@ -341,6 +420,9 @@ namespace SleepApneaAnalysisTool
           return new DateTime();
       }
     }
+    /// <summary>
+    /// The maximum beginning of the time interval to calculate coherence that a user can select
+    /// </summary>
     public DateTime CoherenceEDFStartTimeMax
     {
       get
@@ -355,6 +437,9 @@ namespace SleepApneaAnalysisTool
           return new DateTime();
       }
     }
+    /// <summary>
+    /// The minimum beginning of the time interval to calculate coherence that a user can select
+    /// </summary>
     public DateTime CoherenceEDFStartTimeMin
     {
       get
@@ -365,6 +450,9 @@ namespace SleepApneaAnalysisTool
           return new DateTime();
       }
     }
+    /// <summary>
+    /// The maximum beginning of the time interval to calculate coherence that a user can select
+    /// </summary>
     public int CoherenceEDFStartRecordMax
     {
       get
@@ -375,6 +463,9 @@ namespace SleepApneaAnalysisTool
           return 0;
       }
     }
+    /// <summary>
+    /// The minimum beginning of the time interval to calculate coherence that a user can select
+    /// </summary>
     public int CoherenceEDFStartRecordMin
     {
       get
@@ -385,6 +476,9 @@ namespace SleepApneaAnalysisTool
           return 0;
       }
     }
+    /// <summary>
+    /// The maximum length of the time interval to calculate coherence that a user can select
+    /// </summary>
     public int CoherenceEDFDurationMax
     {
       get
@@ -404,6 +498,9 @@ namespace SleepApneaAnalysisTool
           return 0;
       }
     }
+    /// <summary>
+    /// The minimum length of the time interval to calculate coherence that a user can select
+    /// </summary>
     public int CoherenceEDFDurationMin
     {
       get
@@ -415,6 +512,10 @@ namespace SleepApneaAnalysisTool
       }
     }
 
+    /// <summary>
+    /// If true, use a constant axis
+    /// If false, auto adjust to plot
+    /// </summary>
     public bool CoherenceUseConstantAxis
     {
       get
@@ -602,7 +703,14 @@ namespace SleepApneaAnalysisTool
     #region etc
 
     // INotify Interface
+    /// <summary>
+    /// Event raised when a property in this class changes value
+    /// </summary>
     public event PropertyChangedEventHandler PropertyChanged;
+    /// <summary>
+    /// Function to raise PropertyChanged event 
+    /// </summary>
+    /// <param name="propertyName"></param>
     private void OnPropertyChanged(string propertyName)
     {
       if (PropertyChanged != null)
@@ -611,6 +719,10 @@ namespace SleepApneaAnalysisTool
 
     #endregion
 
+    /// <summary>
+    /// Constructor for the CoherenceModelView
+    /// </summary>
+    /// <param name="i_svm"></param>
     public CoherenceModelView(SettingsModelView i_svm)
     {
       svm = i_svm;
