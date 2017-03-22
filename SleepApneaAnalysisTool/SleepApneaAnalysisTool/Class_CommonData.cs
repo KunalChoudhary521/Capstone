@@ -106,11 +106,11 @@ namespace SleepApneaAnalysisTool
     /// </summary>
     private MainWindow p_window;
     /// <summary>
-    /// The Loaded EDF File
+    /// The EDF file structure
     /// </summary>
     private EDFFile p_LoadedEDFFile;
     /// <summary>
-    /// The Loaded EDF Filename
+    /// The file path to the loaded EDF file
     /// </summary>
     private string p_LoadedEDFFileName = null;
     
@@ -119,6 +119,9 @@ namespace SleepApneaAnalysisTool
     #region Properties 
 
     // Update Actions
+    /// <summary>
+    /// Function called when the loaded EDF file changes
+    /// </summary>
     private void LoadedEDFFile_Changed()
     {
       // Preview Time Picker
@@ -133,8 +136,11 @@ namespace SleepApneaAnalysisTool
       // Misc
       OnPropertyChanged(nameof(IsEDFLoaded));
     }
-    
+
     // Loaded EDF Info
+    /// <summary>
+    /// The EDF file structure
+    /// </summary>
     public EDFFile LoadedEDFFile
     {
       get
@@ -147,6 +153,9 @@ namespace SleepApneaAnalysisTool
         LoadedEDFFile_Changed();
       }
     }
+    /// <summary>
+    /// The file path to the loaded EDF file
+    /// </summary>
     public string LoadedEDFFileName
     {
       get
@@ -159,6 +168,9 @@ namespace SleepApneaAnalysisTool
         OnPropertyChanged(nameof(LoadedEDFFileName));
       }
     }
+    /// <summary>
+    /// True if a EDF file is loaded
+    /// </summary>
     public bool IsEDFLoaded
     {
       get
@@ -166,6 +178,9 @@ namespace SleepApneaAnalysisTool
         return LoadedEDFFile != null;
       }
     }
+    /// <summary>
+    /// The time stamp of the beginning of the signal recordings in the EDF file
+    /// </summary>
     public DateTime EDFStartTime
     {
       get
@@ -176,6 +191,9 @@ namespace SleepApneaAnalysisTool
           return new DateTime();
       }
     }
+    /// <summary>
+    /// The time stamp of the end of the signal recordings in the EDF file
+    /// </summary>
     public DateTime EDFEndTime
     {
       get
@@ -192,13 +210,20 @@ namespace SleepApneaAnalysisTool
           return new DateTime();
       }
     }
-    
+
     #endregion
 
     #region etc
 
     // INotify Interface
+    /// <summary>
+    /// Event raised when a property in this class changes value
+    /// </summary>
     public event PropertyChangedEventHandler PropertyChanged;
+    /// <summary>
+    /// Function to raise PropertyChanged event 
+    /// </summary>
+    /// <param name="propertyName"></param>
     public void OnPropertyChanged(string propertyName)
     {
       PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
@@ -206,6 +231,12 @@ namespace SleepApneaAnalysisTool
 
     #endregion
 
+    /// <summary>
+    /// Constructor for the CommonModelView
+    /// </summary>
+    /// <param name="i_window"></param>
+    /// <param name="i_common_data"></param>
+    /// <param name="i_sm"></param>
     public CommonModelView(MainWindow i_window)
     {
       p_window = i_window;
