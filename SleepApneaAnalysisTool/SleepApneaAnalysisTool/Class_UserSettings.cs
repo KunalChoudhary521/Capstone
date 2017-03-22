@@ -84,19 +84,53 @@ namespace SleepApneaAnalysisTool
   public class SettingsModel
   {
     #region Members
-
+    /// <summary>
+    /// True when the menu containing user settings is visible to the user
+    /// </summary>
     public bool FlyoutOpen = false;
+    /// <summary>
+    /// True when the menu containing user settings is at the 'Main Menu' 
+    /// </summary>
     public bool SettingsMainMenuVisible = true;
+    /// <summary>
+    /// True when the menu containing user settings is at the 'Personalization' sub-menu 
+    /// </summary>
     public bool SettingsPersonalizationVisible = false;
+    /// <summary>
+    /// True when the menu containing user settings is at the 'Respiratory' sub-menu 
+    /// </summary>
     public bool SettingsRespiratoryVisible = false;
+    /// <summary>
+    /// A list of all signal categories specified by the user
+    /// </summary>
     public List<SignalCategory> SignalCategories = new List<SignalCategory>();
+    /// <summary>
+    /// A list of all derived signals specified by the user
+    /// </summary>
     public List<DerivativeSignal> DerivedSignals = new List<DerivativeSignal>();
+    /// <summary>
+    /// A list of all hidden signals specified by the user
+    /// </summary>
     public List<string> HiddenSignals = new List<string>();
+    /// <summary>
+    /// A list of y axis bounds cached by the program
+    /// </summary>
     public List<SignalYAxisExtremes> SignalsYAxisExtremes = new List<SignalYAxisExtremes>();
+    /// <summary>
+    /// A list of all filtered signals specified by the user
+    /// </summary>
     public List<FilteredSignal> FilteredSignals = new List<FilteredSignal>();
-
-    public System.Windows.Media.Color ThemeColor = System.Windows.Media.Colors.Blue;
+    /// <summary>
+    /// The current user selected theme color of the UI
+    /// </summary>
+    public Color ThemeColor = Colors.Blue;
+    /// <summary>
+    /// False if the UI should just use Window's theme color
+    /// </summary>
     public bool UseCustomColor = false;
+    /// <summary>
+    /// True if the UI should use a dark theme
+    /// </summary>
     public bool UseDarkTheme = false;
 
     #endregion 
@@ -106,9 +140,16 @@ namespace SleepApneaAnalysisTool
   {
     #region Shared Properties and Functions
 
+    /// <summary>
+    /// The common_data model view, contains the loaded EDF file structure 
+    /// </summary>
     private CommonModelView common_data;
 
-    // Property Changed Listener
+    /// <summary>
+    /// Listens to property change events in the common_data model view 
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void Exterior_PropertyChanged(object sender, PropertyChangedEventArgs e)
     {
       switch (e.PropertyName)
@@ -125,6 +166,9 @@ namespace SleepApneaAnalysisTool
     }
 
     // Shared Properties
+    /// <summary>
+    /// True if a EDF file is loaded
+    /// </summary>
     public bool IsEDFLoaded
     {
       get
@@ -132,6 +176,9 @@ namespace SleepApneaAnalysisTool
         return common_data.IsEDFLoaded;
       }
     }
+    /// <summary>
+    /// The EDF file structure
+    /// </summary>
     public EDFFile LoadedEDFFile
     {
       get
@@ -139,6 +186,9 @@ namespace SleepApneaAnalysisTool
         return common_data.LoadedEDFFile;
       }
     }
+    /// <summary>
+    /// The time stamp of the beginning of the signal recordings in the EDF file
+    /// </summary>
     public DateTime EDFStartTime
     {
       get
@@ -149,6 +199,9 @@ namespace SleepApneaAnalysisTool
           return new DateTime();
       }
     }
+    /// <summary>
+    /// The time stamp of the end of the signal recordings in the EDF file
+    /// </summary>
     public DateTime EDFEndTime
     {
       get
@@ -165,6 +218,9 @@ namespace SleepApneaAnalysisTool
           return new DateTime();
       }
     }
+    /// <summary>
+    /// The file path to the loaded EDF file
+    /// </summary>
     public string LoadedEDFFileName
     {
       get
@@ -190,6 +246,9 @@ namespace SleepApneaAnalysisTool
 
     #region Properties
 
+    /// <summary>
+    /// Function called when the user changes the UI theme color
+    /// </summary>
     private void AppliedThemeColor_Changed()
     {
       OnPropertyChanged(nameof(AppliedThemeColor));
@@ -221,6 +280,9 @@ namespace SleepApneaAnalysisTool
     }
 
     // Personalization
+    /// <summary>
+    /// The current user selected theme color of the UI
+    /// </summary>
     public Color ThemeColor
     {
       get
@@ -234,6 +296,9 @@ namespace SleepApneaAnalysisTool
         AppliedThemeColor_Changed();
       }
     }
+    /// <summary>
+    /// False if the UI should just use Window's theme color
+    /// </summary>
     public bool UseCustomColor
     {
       get
@@ -247,6 +312,9 @@ namespace SleepApneaAnalysisTool
         AppliedThemeColor_Changed();
       }
     }
+    /// <summary>
+    /// The UI theme color currently applied, either the Windows theme color or the user selected theme color
+    /// </summary>
     public Color AppliedThemeColor
     {
       get
@@ -257,6 +325,9 @@ namespace SleepApneaAnalysisTool
           return ((Color)SystemParameters.WindowGlassBrush.GetValue(SolidColorBrush.ColorProperty));
       }
     }
+    /// <summary>
+    /// True if the UI should use a dark theme
+    /// </summary>
     public bool UseDarkTheme
     {
       get
@@ -272,6 +343,9 @@ namespace SleepApneaAnalysisTool
     }
 
     // Settings Flyout
+    /// <summary>
+    /// True when the menu containing user settings is visible to the user
+    /// </summary>
     public bool FlyoutOpen
     {
       get
@@ -284,6 +358,9 @@ namespace SleepApneaAnalysisTool
         OnPropertyChanged(nameof(FlyoutOpen));
       }
     }
+    /// <summary>
+    /// True when the menu containing user settings is at the 'Main Menu' 
+    /// </summary>
     public bool SettingsMainMenuVisible
     {
       get
@@ -296,6 +373,10 @@ namespace SleepApneaAnalysisTool
         OnPropertyChanged(nameof(SettingsMainMenuVisible));
       }
     }
+
+    /// <summary>
+    /// True when the menu containing user settings is at the 'Personalization' sub-menu 
+    /// </summary>
     public bool SettingsPersonalizationVisible
     {
       get
@@ -310,6 +391,9 @@ namespace SleepApneaAnalysisTool
     }
 
     // Recent File List and Functions. 
+    /// <summary>
+    /// A list of all EDF files recently opened by the User, stored in a text file
+    /// </summary>
     public ReadOnlyCollection<string> RecentFiles
     {
       get
@@ -340,6 +424,10 @@ namespace SleepApneaAnalysisTool
       }
     }
 
+    /// <summary>
+    /// Adds a new file path the RecentFiles text file
+    /// </summary>
+    /// <param name="path"></param>
     public void RecentFiles_Add(string path)
     {
       if (!Directory.Exists(Utils.settings_folder))
@@ -358,6 +446,10 @@ namespace SleepApneaAnalysisTool
 
       p_window.Invoke(new Action(() => p_window.LoadRecent()));
     }
+    /// <summary>
+    /// Removes a file path from the RecentFiles text file
+    /// </summary>
+    /// <param name="path"></param>
     public void RecentFiles_Remove(string path)
     {
       if (!Directory.Exists(Utils.settings_folder))
@@ -378,6 +470,9 @@ namespace SleepApneaAnalysisTool
     }
 
     // Signals
+    /// <summary>
+    /// A list of all signals including EDF signals, derivative signals, and filtered signals 
+    /// </summary>
     public ReadOnlyCollection<string> AllSignals
     {
       get
@@ -396,6 +491,9 @@ namespace SleepApneaAnalysisTool
         }
       }
     }
+    /// <summary>
+    /// A list of all EDF signals 
+    /// </summary>
     public ReadOnlyCollection<string> EDFAllSignals
     {
       get
@@ -406,6 +504,9 @@ namespace SleepApneaAnalysisTool
           return Array.AsReadOnly(new string[0]);
       }
     }
+    /// <summary>
+    /// A list of all signals including EDF signals, derivative signals, and filtered signals that were not hidden by the user
+    /// </summary>
     public ReadOnlyCollection<string> AllNonHiddenSignals
     {
       get
@@ -736,17 +837,26 @@ namespace SleepApneaAnalysisTool
       OnPropertyChanged(nameof(AllNonHiddenSignals));
     }
 
+    /// <summary>
+    /// Saves user specified derivatives, filtered signals, and signal categories to the settings files
+    /// </summary>
     public void WriteEDFSettings()
     {
       Utils.WriteToDerivativesFile(sm.DerivedSignals.ToArray(), AllSignals.ToArray());
       Utils.WriteToFilteredSignalsFile(sm.FilteredSignals.ToArray(), AllSignals.ToArray());
       Utils.WriteToCategoriesFile(sm.SignalCategories.ToArray(), AllSignals.ToArray());
     }
+    /// <summary>
+    /// Saves user specified hidden signals and personalization information to the settings files
+    /// </summary>
     public void WriteAppSettings()
     {
       Utils.WriteToHiddenSignalsFile(sm.HiddenSignals.ToArray());
       Utils.WriteToPersonalization(UseCustomColor, ThemeColor, UseDarkTheme);
     }
+    /// <summary>
+    /// Loads user specified derivatives, filtered signals, and signal categories from the settings files
+    /// </summary>
     public void LoadEDFSettings()
     {
       sm.SignalsYAxisExtremes.Clear();
@@ -757,6 +867,9 @@ namespace SleepApneaAnalysisTool
       PreviewList_Updated();
       OnPropertyChanged(nameof(AllNonHiddenSignals));   
     }
+    /// <summary>
+    /// Loads user specified hidden signals and personalization information from the settings files
+    /// </summary>
     public void LoadAppSettings()
     {
       sm.HiddenSignals = Utils.LoadHiddenSignalsFile().ToList();
@@ -774,10 +887,20 @@ namespace SleepApneaAnalysisTool
 
     #region etc
 
+    /// <summary>
+    /// Event raised when a user specified derivative or filtered signal is added or removed and when a signal is hidden or a signal category changes
+    /// </summary>
     public event Action PreviewList_Updated;
 
     // INotify Interface
+    /// <summary>
+    /// Event raised when a property in this class changes value
+    /// </summary>
     public event PropertyChangedEventHandler PropertyChanged;
+    /// <summary>
+    /// Function to raise PropertyChanged event 
+    /// </summary>
+    /// <param name="propertyName"></param>
     private void OnPropertyChanged(string propertyName)
     {
       if (PropertyChanged != null)
@@ -786,6 +909,12 @@ namespace SleepApneaAnalysisTool
 
     #endregion
 
+    /// <summary>
+    /// Constructor for the SettingsModelView
+    /// </summary>
+    /// <param name="i_window"></param>
+    /// <param name="i_common_data"></param>
+    /// <param name="i_sm"></param>
     public SettingsModelView(MainWindow i_window, CommonModelView i_common_data, SettingsModel i_sm)
     {
       p_window = i_window;
