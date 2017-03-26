@@ -61,7 +61,7 @@ namespace SleepApneaAnalysisTool
 
           Excel.Worksheet ws = (Excel.Worksheet)wb.Sheets.Add();
           ws.Name = series.YAxis.Title;
-          Utils.AddSignalToWorksheet(ws, ws.Name, signal_points, ROWS, COLUMNS);
+          Utils.AddSignalToWorksheet(ws, ws.Name, signal_points, ROWS, COLUMNS, series.Color);
 
           System.Runtime.InteropServices.Marshal.ReleaseComObject(ws);
         }

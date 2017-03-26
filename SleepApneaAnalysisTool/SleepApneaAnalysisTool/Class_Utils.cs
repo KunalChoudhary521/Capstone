@@ -785,7 +785,7 @@ namespace SleepApneaAnalysisTool
       System.Runtime.InteropServices.Marshal.ReleaseComObject(range);
       System.Runtime.InteropServices.Marshal.ReleaseComObject(range2);
     }
-    public static void AddSignalToWorksheet(Excel.Worksheet ws, string SignalName, object[,] table, int ROWS, int COLUMNS)
+    public static void AddSignalToWorksheet(Excel.Worksheet ws, string SignalName, object[,] table, int ROWS, int COLUMNS, OxyColor color)
     {
       Excel.Range range = ws.Range[ws.Cells[3, 2], ws.Cells[3 + ROWS - 1, 2 + COLUMNS - 1]];
       range.Value = table;
@@ -801,7 +801,7 @@ namespace SleepApneaAnalysisTool
       chart.ChartType = Microsoft.Office.Interop.Excel.XlChartType.xlXYScatterLines;
       chart.ChartWizard(Source: range.Columns["B:C"], Title: SignalName, CategoryTitle: "Time", ValueTitle: SignalName);
       ((Excel.Series)chart.SeriesCollection(1)).ChartType = Excel.XlChartType.xlXYScatterLinesNoMarkers;
-
+      ((Excel.Series)chart.SeriesCollection(1)).Format.Line.ForeColor.RGB = System.Drawing.ColorTranslator.ToOle(System.Drawing.Color.FromArgb(color.A, color.R, color.G, color.B));
       System.Runtime.InteropServices.Marshal.ReleaseComObject(chart);
       System.Runtime.InteropServices.Marshal.ReleaseComObject(range);
     }
