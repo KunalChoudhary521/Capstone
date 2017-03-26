@@ -486,6 +486,7 @@ namespace SleepApneaAnalysisTool
       temp_PlotModel.Axes.Add(y_axis[2]);
       temp_PlotModel.IsLegendVisible = false;
 
+      temp_PlotModel.IsLegendVisible = true;
       return temp_PlotModel;
     }
 
