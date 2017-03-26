@@ -115,6 +115,9 @@ namespace SleepApneaAnalysisTool
           OnPropertyChanged(nameof(IsEDFLoaded));
           OnPropertyChanged(nameof(EEGEDFNavigationEnabled));
           break;
+        case nameof(Utils.EPOCH_SEC):
+          OnPropertyChanged(nameof(Utils.EPOCH_SEC));
+          break;
         default:
           OnPropertyChanged(e.PropertyName);
           break;
@@ -264,18 +267,18 @@ namespace SleepApneaAnalysisTool
         if (IsEEGBinaryLoaded == true)
         {
           DateTime bin_start_time = DateTime.Parse(eeg_bin_date_time_from);
-          DateTime curr_date_time = bin_start_time.AddSeconds(30 * (eegm.EEGBinaryEpochForAnalysis - 1));
+          DateTime curr_date_time = bin_start_time.AddSeconds(Utils.EPOCH_SEC * (eegm.EEGBinaryEpochForAnalysis - 1));
 
           float sample_period = 1 / float.Parse(eeg_bin_sample_frequency_s);
 
           if (curr_date_time < DateTime.Parse(eeg_bin_date_time_to))
           {
-            BW_EEGAnalysisBin(eeg_bin_signal_name, eeg_bin_signal_values, bin_start_time, curr_date_time, curr_date_time.AddSeconds(30), sample_period);
+            BW_EEGAnalysisBin(eeg_bin_signal_name, eeg_bin_signal_values, bin_start_time, curr_date_time, curr_date_time.AddSeconds(Utils.EPOCH_SEC), sample_period);
           }
           else
           {
             int seconds_diff = (int)(DateTime.Parse(eeg_bin_date_time_to).Subtract(DateTime.Parse(eeg_bin_date_time_from)).TotalSeconds);
-            eegm.EEGBinaryEpochForAnalysis = seconds_diff / 30;
+            eegm.EEGBinaryEpochForAnalysis = seconds_diff / Utils.EPOCH_SEC;
           }
         }
         OnPropertyChanged(nameof(EEGEpochForAnalysisBinary));
@@ -498,7 +501,7 @@ namespace SleepApneaAnalysisTool
       LineSeries series = new LineSeries();
 
       float startIndex = (epochs_from - binary_start).Seconds * (1 / sample_period);
-      float endIndex = startIndex + 30 * (1 / sample_period);
+      float endIndex = startIndex + Utils.EPOCH_SEC * (1 / sample_period);
 
       //  // Add Points to Series
       for (var y = startIndex; y < endIndex; y++)
@@ -626,7 +629,7 @@ namespace SleepApneaAnalysisTool
         eeg_bin_date_time_to = file_reader.ReadLine();
         eeg_bin_sample_frequency_s = file_reader.ReadLine();
 
-        eeg_bin_max_epochs = (int)(DateTime.Parse(eeg_bin_date_time_to).Subtract(DateTime.Parse(eeg_bin_date_time_from)).TotalSeconds) / 30;
+        eeg_bin_max_epochs = (int)(DateTime.Parse(eeg_bin_date_time_to).Subtract(DateTime.Parse(eeg_bin_date_time_from)).TotalSeconds) / Utils.EPOCH_SEC;
         OnPropertyChanged(nameof(EEGBinaryMaxEpoch));
 
         bin_file.Close();
@@ -637,7 +640,7 @@ namespace SleepApneaAnalysisTool
         DateTime epochs_to_datetime = DateTime.Parse(eeg_bin_date_time_to);
 
         // perform all of the eeg analysis
-        BW_EEGAnalysisBin(eeg_bin_signal_name, eeg_bin_signal_values, epochs_from_datetime, epochs_from_datetime, epochs_from_datetime.AddSeconds(30), sample_period);
+        BW_EEGAnalysisBin(eeg_bin_signal_name, eeg_bin_signal_values, epochs_from_datetime, epochs_from_datetime, epochs_from_datetime.AddSeconds(Utils.EPOCH_SEC), sample_period);
         BW_FinishEEGAnalysisBin(null, null);
       }
       else
@@ -998,7 +1001,7 @@ namespace SleepApneaAnalysisTool
 
       for (int i = 0; i < (eeg_bin_max_epochs); i++) {
         float startIndex = i * (1 / sample_period);
-        float endIndex = startIndex + 30 * (1 / sample_period);
+        float endIndex = startIndex + Utils.EPOCH_SEC * (1 / sample_period);
         signalToAnalyze = new double[(int)(endIndex - startIndex)];
         for (int j = 0; j < signalToAnalyze.Length; j++)
         {

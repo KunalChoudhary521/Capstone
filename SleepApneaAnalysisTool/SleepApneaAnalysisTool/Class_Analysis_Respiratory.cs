@@ -297,8 +297,8 @@ namespace SleepApneaAnalysisTool
     }
     public static double[] GetRespAnalysisInfo(LineSeries series_in, int start_epoch, int curr_epoch, float sample_period, float MinimumPeakWidth)
     {
-      int start_index = (int) ((curr_epoch - start_epoch) * 30 / sample_period);
-      int count = (int)(30 / sample_period);
+      int start_index = (int) ((curr_epoch - start_epoch) * Utils.EPOCH_SEC / sample_period);
+      int count = (int)(Utils.EPOCH_SEC / sample_period);
 
       List<Series> series = new List<Series>();
       series.Add(new LineSeries());
@@ -514,7 +514,7 @@ namespace SleepApneaAnalysisTool
             epoch = Utils.DateTimetoEpoch(DateTimeAxis.ToDateTime(series[x].X), StartTime);
             index = signal_points.Count;
             row = 0;
-            signal_points.Add(new object[(int)(30 / sample_period) + 1, COLUMNS]);
+            signal_points.Add(new object[(int)(Utils.EPOCH_SEC / sample_period) + 1, COLUMNS]);
 
             // Table Header
             signal_points[index][row, 0] = "Epoch";
@@ -830,6 +830,28 @@ namespace SleepApneaAnalysisTool
           OnPropertyChanged(nameof(RespiratoryEDFNavigationEnabled));
           OnPropertyChanged(nameof(IsEDFLoaded));
           break;
+        case nameof(Utils.EPOCH_SEC):
+          OnPropertyChanged(nameof(RespiratoryBinaryMaxEpochs));
+          if (IsAnalysisFromBinary)
+          {
+            if (IsBinaryLoaded)
+            {
+              rm.RespiratoryBinaryStartRecord = 1;
+              rm.RespiratoryBinaryDuration = 1;
+              RespiratoryBinaryView_Changed();
+            }
+          }
+          else
+          {
+            if (IsEDFLoaded)
+            {
+              rm.RespiratoryEDFStartRecord = 1;
+              rm.RespiratoryEDFDuration = 1;
+              RespiratoryEDFView_Changed();
+            }
+          }
+          OnPropertyChanged(nameof(Utils.EPOCH_SEC));
+          break;
         default:
           OnPropertyChanged(e.PropertyName);
           break;
@@ -973,10 +995,7 @@ namespace SleepApneaAnalysisTool
       get
       {
         if (IsBinaryLoaded)
-        {
-          DateTime EndTime = BinaryStartTime + Utils.EpochPeriodtoTimeSpan(LoadedBinaryFile.max_epoch);
-          return EndTime;
-        }
+          return DateTime.Parse(LoadedBinaryFile.date_time_to);
         else
           return new DateTime();
       }
@@ -986,7 +1005,7 @@ namespace SleepApneaAnalysisTool
       get
       {
         if (IsBinaryLoaded)
-          return LoadedBinaryFile.max_epoch;
+          return Utils.DateTimetoEpoch(BinaryEndTime, BinaryStartTime) - 1;
         else
           return 0;
       }
@@ -1202,7 +1221,7 @@ namespace SleepApneaAnalysisTool
       get
       {
         if (IsBinaryLoaded)
-          return 1 + LoadedBinaryFile.max_epoch - RespiratoryBinaryDuration ?? 1;
+          return 1 + RespiratoryBinaryMaxEpochs - RespiratoryBinaryDuration ?? 1;
         else
           return 0;
       }
@@ -1212,7 +1231,7 @@ namespace SleepApneaAnalysisTool
       get
       {
         if (IsBinaryLoaded)
-          return 1 + LoadedBinaryFile.max_epoch - RespiratoryBinaryStartRecord ?? 1;
+          return 1 + RespiratoryBinaryMaxEpochs - RespiratoryBinaryStartRecord ?? 1;
         else
           return 0;
       }
@@ -1605,12 +1624,12 @@ namespace SleepApneaAnalysisTool
       // Finding From 
       int modelStartRecord = RespiratoryBinaryStartRecord.Value;
       DateTime newFrom = BinaryStartTime;
-      newFrom = newFrom.AddSeconds(30 * (modelStartRecord - 1));
+      newFrom = newFrom.AddSeconds(Utils.EPOCH_SEC * (modelStartRecord - 1));
 
       // Finding To 
       int modelLength = RespiratoryBinaryDuration.Value;
       DateTime newTo = newFrom;
-      newTo = newTo.AddSeconds(30 * (modelLength));
+      newTo = newTo.AddSeconds(Utils.EPOCH_SEC * (modelLength));
 
       if (newFrom < BinaryStartTime)
         newFrom = BinaryStartTime;

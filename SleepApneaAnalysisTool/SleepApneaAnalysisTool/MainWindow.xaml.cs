@@ -193,6 +193,10 @@ namespace SleepApneaAnalysisTool
       settings_modelview.SettingsPersonalizationVisible = false;
       resp_modelview.SettingsRespiratoryVisible = true;
     }
+    private void button_EpochDefinition_Click(object sender, RoutedEventArgs e)
+    {
+      settings_modelview.ModifyEpochDefinition();
+    }
     private void button_HideSignals_Click(object sender, RoutedEventArgs e)
     {
       settings_modelview.OpenCloseSettings();

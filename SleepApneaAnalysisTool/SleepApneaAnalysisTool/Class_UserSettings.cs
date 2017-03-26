@@ -636,6 +636,21 @@ namespace SleepApneaAnalysisTool
       FlyoutOpen = !FlyoutOpen;
     }
 
+    public async void ModifyEpochDefinition()
+    {
+      string x = await p_window.ShowInputAsync("New Epoch Definition", "Please enter an integer epoch definition in seconds (default = 30)");
+      int new_def;
+      if (Int32.TryParse(x, out new_def))
+      {
+        Utils.EPOCH_SEC = new_def;
+        OnPropertyChanged(nameof(Utils.EPOCH_SEC));
+      }
+      else
+      {
+        await p_window.ShowMessageAsync("Error", "Input value must be an integer. No changes made");
+      }
+    }
+
     /// <summary>
     /// Opens the Signal Category Management Wizard
     /// </summary>

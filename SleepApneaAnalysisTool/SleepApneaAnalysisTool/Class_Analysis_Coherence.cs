@@ -118,6 +118,15 @@ namespace SleepApneaAnalysisTool
           OnPropertyChanged(nameof(CoherenceEDFNavigationEnabled));
           OnPropertyChanged(nameof(IsEDFLoaded));
           break;
+        case nameof(Utils.EPOCH_SEC):
+          if (IsEDFLoaded)
+          {
+            cm.CoherenceEDFStartRecord = 1;
+            cm.CoherenceEDFDuration = 1;
+            CoherenceEDFView_Changed();
+          }
+          OnPropertyChanged(nameof(Utils.EPOCH_SEC));
+          break;
         default:
           OnPropertyChanged(e.PropertyName);
           break;

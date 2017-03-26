@@ -162,6 +162,7 @@ namespace SleepApneaAnalysisTool
       switch (e.PropertyName)
       {
         case nameof(IsEDFLoaded):
+        case nameof(Utils.EPOCH_SEC):
           PreviewCurrentCategory = -1;
           if (!IsEDFLoaded)
           {
@@ -196,6 +197,7 @@ namespace SleepApneaAnalysisTool
           OnPropertyChanged(nameof(AllNonHiddenSignals));
 
           OnPropertyChanged(nameof(IsEDFLoaded));
+          OnPropertyChanged(nameof(Utils.EPOCH_SEC));
           break;
         default:
           OnPropertyChanged(e.PropertyName);
@@ -1173,7 +1175,7 @@ namespace SleepApneaAnalysisTool
 
           StringBuilder sb_hdr = new StringBuilder(); // string builder used for writing into the file
 
-          int end_index = (int)(((signals_data.Epochs_From + signals_data.Epochs_Length) * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * edfsignal.NumberOfSamplesPerDataRecord;
+          int end_index = (int)(((signals_data.Epochs_From + signals_data.Epochs_Length) * Utils.EPOCH_SEC) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * edfsignal.NumberOfSamplesPerDataRecord;
 
           var edfSignal = LoadedEDFFile.Header.Signals.Find(s => s.Label.Trim() == signal.Trim());
           var signalValues = LoadedEDFFile.retrieveSignalSampleValues(edfSignal).ToArray();
@@ -1181,7 +1183,7 @@ namespace SleepApneaAnalysisTool
           {
             end_index = signalValues.Count();
           }
-          int endEpochs = (int)((end_index * LoadedEDFFile.Header.DurationOfDataRecordInSeconds) / (30 * edfsignal.NumberOfSamplesPerDataRecord)) + 1;
+          int endEpochs = (int)((end_index * LoadedEDFFile.Header.DurationOfDataRecordInSeconds) / (Utils.EPOCH_SEC * edfsignal.NumberOfSamplesPerDataRecord)) + 1;
 
 
           sb_hdr.AppendLine(edfsignal.Label) // name
@@ -1204,7 +1206,7 @@ namespace SleepApneaAnalysisTool
           bin_file = new FileStream(location + "/" + signals_data.Subject_ID + "-" + signal + ".bin", FileMode.OpenOrCreate); //reload
           BinaryWriter bin_writer = new BinaryWriter(bin_file);
 
-          int start_index = (int)(((signals_data.Epochs_From - 1) * 30) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * edfsignal.NumberOfSamplesPerDataRecord; // from epoch number * 30 seconds per epoch * sample rate = start time
+          int start_index = (int)(((signals_data.Epochs_From - 1) * Utils.EPOCH_SEC) / LoadedEDFFile.Header.DurationOfDataRecordInSeconds) * edfsignal.NumberOfSamplesPerDataRecord; // from epoch number * 30 seconds per epoch * sample rate = start time
 
           if (start_index < 0) { start_index = 0; }
 

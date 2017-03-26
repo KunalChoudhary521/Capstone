@@ -11,13 +11,12 @@ namespace SleepApneaAnalysisTool
   public class BinaryFile
   {
     public string sample_frequency_s;
-    public string date_time_length;
+    public string date_time_to;
     public string date_time_from;
     public string subject_id;
     public string signal_name;
     public float sample_period;
     public List<float> signal_values;
-    public int max_epoch;
 
     public BinaryFile(string fileName)
     {
@@ -53,17 +52,12 @@ namespace SleepApneaAnalysisTool
       this.signal_name = file_reader.ReadLine();
       this.subject_id = file_reader.ReadLine();
       this.date_time_from = file_reader.ReadLine();
-      this.date_time_length = file_reader.ReadLine();
+      this.date_time_to = file_reader.ReadLine();
       this.sample_frequency_s = file_reader.ReadLine();
 
       bin_file.Close();
 
       this.sample_period = 1 / float.Parse(this.sample_frequency_s);
-
-      DateTime epochs_from_datetime = DateTime.Parse(date_time_from);
-      DateTime epochs_to_datetime = DateTime.Parse(date_time_length);
-
-      this.max_epoch = (int)epochs_to_datetime.Subtract(epochs_from_datetime).TotalSeconds / 30;
     }
   }
 }
