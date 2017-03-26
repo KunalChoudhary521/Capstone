@@ -115,6 +115,20 @@ namespace SleepApneaAnalysisTool
       // epoch = (DateTime - StartTime) / EPOCH_SEC
       return (int)((time - start).TotalSeconds / (double)EPOCH_SEC) + 1;
     }
+    /// <summary>
+    /// Converts an epoch point in time to a DateTime structure
+    /// </summary>
+    /// <param name="epoch"> The epoch point in time to convert </param>
+    /// <param name="file"> 
+    /// The EDFFile class used to determine the start 
+    /// DateTime corresponding to epoch 0 
+    /// </param>
+    /// <returns> A DateTime structure corresponding the input epoch point in time </returns>
+    public static DateTime EpochtoDateTime(int epoch, DateTime start)
+    {
+      // DateTime = StartTime + (epoch - 1) * EPOCH_SEC
+      return start + new TimeSpan(0, 0, (epoch - 1) * EPOCH_SEC);
+    }
 
     // Determining Signal Y Axis Extremes
 

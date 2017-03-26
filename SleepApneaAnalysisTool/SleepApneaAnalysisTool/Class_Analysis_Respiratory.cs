@@ -585,10 +585,11 @@ namespace SleepApneaAnalysisTool
 
         ws.Name = "Analysis";
 
-        ws.Cells[1, 2].Value = "Signal";
-        ws.Cells[1, 3].Value = SignalName;
-        ws.Cells[1, 2].Font.Bold = true;
+        ws.Cells[1, 1].Value = "Signal";
+        ws.Cells[1, 2].Value = SignalName;
+        ws.Cells[1, 1].Font.Bold = true;
 
+        ws.Cells[3, 1].Value = "Date Time";
         ws.Cells[3, 2].Value = "Epoch";
         ws.Cells[3, 3].Value = "Breathing Period";
         ws.Cells[3, 4].Value = "Expiration Period";
@@ -600,6 +601,7 @@ namespace SleepApneaAnalysisTool
 
         for (int x = 0; x < signalProperties.Count; x++)
         {
+          ws.Cells[4 + x, 1].Value = Utils.EpochtoDateTime(Int32.Parse(signalProperties[x][0]), StartTime);
           ws.Cells[4 + x, 2].Value = signalProperties[x][0];
           ws.Cells[4 + x, 3].Value = signalProperties[x][1];
           ws.Cells[4 + x, 4].Value = signalProperties[x][2];
@@ -610,7 +612,8 @@ namespace SleepApneaAnalysisTool
           ws.Cells[4 + x, 9].Value = signalProperties[x][7];
         }
 
-        ws.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, ws.Range[ws.Cells[3, 2], ws.Cells[3 + signalProperties.Count, 9]], System.Reflection.Missing.Value, Excel.XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = "SignalProperties";
+        ws.Range[ws.Cells[3, 1], ws.Cells[3 + signalProperties.Count, 9]].Columns[1].NumberFormat = "m/d/yyyy h:mm:ss";
+        ws.ListObjects.Add(Excel.XlListObjectSourceType.xlSrcRange, ws.Range[ws.Cells[3, 1], ws.Cells[3 + signalProperties.Count, 9]], System.Reflection.Missing.Value, Excel.XlYesNoGuess.xlGuess, System.Reflection.Missing.Value).Name = "SignalProperties";
         ws.ListObjects["SignalProperties"].TableStyle = "TableStyleLight9";
         ws.Columns["A:J"].ColumnWidth = 20;
         ws.Columns["B:I"].HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
