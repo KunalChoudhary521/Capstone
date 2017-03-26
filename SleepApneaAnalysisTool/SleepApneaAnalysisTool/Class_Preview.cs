@@ -12,6 +12,7 @@ using OxyPlot.Axes;
 using System.Windows.Forms;
 using Excel = Microsoft.Office.Interop.Excel;
 using MahApps.Metro.Controls.Dialogs;
+using System.Drawing;
 
 namespace SleepApneaAnalysisTool
 {
@@ -240,6 +241,13 @@ namespace SleepApneaAnalysisTool
       get
       {
         return svm.EDFAllSignals;
+      }
+    }
+    public ReadOnlyCollection<string> AllSignals
+    {
+      get
+      {
+        return svm.AllSignals;
       }
     }
     public ReadOnlyCollection<string> AllNonHiddenSignals
@@ -934,6 +942,14 @@ namespace SleepApneaAnalysisTool
                                                           PreviewViewEndTime
                                                           );
 
+              // Get A Constant Color for the Series
+              int num = AllSignals.IndexOf(pm.PreviewSelectedSignals[y]);
+              List<KnownColor> colors = ((KnownColor[]) Enum.GetValues(typeof(KnownColor))).ToList();
+              colors.RemoveAll(temp => Color.FromKnownColor(temp).GetBrightness() > 0.5);
+              var selected_color = Color.FromKnownColor(colors[num%colors.Count]);
+              series.Color = OxyColor.FromArgb(selected_color.A, selected_color.R, selected_color.G, selected_color.B);
+
+              // Axes Labels
               series.YAxisKey = pm.PreviewSelectedSignals[y];
               series.XAxisKey = "DateTime";
 
