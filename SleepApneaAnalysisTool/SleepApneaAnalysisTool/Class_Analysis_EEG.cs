@@ -72,7 +72,9 @@ namespace SleepApneaAnalysisTool
     /// </summary>
     public bool EEGProgressRingEnabled = false;
 
-    #endregion 
+    public bool IsAnalysisFromBinary = false;
+
+    #endregion
   }
 
   /// <summary>
@@ -116,6 +118,21 @@ namespace SleepApneaAnalysisTool
           OnPropertyChanged(nameof(EEGEDFNavigationEnabled));
           break;
         case nameof(Utils.EPOCH_SEC):
+          OnPropertyChanged(nameof(EEGBinaryMaxEpoch));
+          if (IsAnalysisFromBinary)
+          {
+            if (IsEEGBinaryLoaded)
+            {
+              EEGEpochForAnalysisBinary = 1;
+            }
+          }
+          else
+          {
+            if (IsEDFLoaded)
+            {
+              EpochForAnalysis = 1;
+            }
+          }
           OnPropertyChanged(nameof(Utils.EPOCH_SEC));
           break;
         default:
@@ -284,6 +301,17 @@ namespace SleepApneaAnalysisTool
         OnPropertyChanged(nameof(EEGEpochForAnalysisBinary));
       }
     }
+    public bool IsAnalysisFromBinary
+    {
+      get
+      {
+        return eegm.IsAnalysisFromBinary;
+      }
+      set
+      {
+        eegm.IsAnalysisFromBinary = value;
+      }
+    }
 
     public int? ExportEpochStart
     {
@@ -448,7 +476,15 @@ namespace SleepApneaAnalysisTool
     {
       get
       {
-        return eeg_bin_max_epochs.ToString();
+        if (IsEEGBinaryLoaded)
+        {
+          eeg_bin_max_epochs = (int)(DateTime.Parse(eeg_bin_date_time_to).Subtract(DateTime.Parse(eeg_bin_date_time_from)).TotalSeconds) / Utils.EPOCH_SEC;
+          return eeg_bin_max_epochs.ToString();
+        }
+        else
+        {
+          return null;
+        }
       }
       set
       {
@@ -582,6 +618,7 @@ namespace SleepApneaAnalysisTool
     }
     public void PerformEEGAnalysisBinary()
     {
+      IsAnalysisFromBinary = true;
       EEGProgressRingEnabled = true;
 
       this.EEGAnalysisBinaryFileLoaded = 1;
@@ -684,6 +721,7 @@ namespace SleepApneaAnalysisTool
     }
     public void PerformEEGAnalysisEDF()
     {
+      IsAnalysisFromBinary = false;
       EEGProgressRingEnabled = true;
 
       BackgroundWorker bw = new BackgroundWorker();
