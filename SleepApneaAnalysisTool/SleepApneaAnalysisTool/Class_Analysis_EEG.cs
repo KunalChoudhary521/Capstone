@@ -283,6 +283,8 @@ namespace SleepApneaAnalysisTool
 
         if (IsEEGBinaryLoaded == true)
         {
+          IsAnalysisFromBinary = true;
+
           DateTime bin_start_time = DateTime.Parse(eeg_bin_date_time_from);
           DateTime curr_date_time = bin_start_time.AddSeconds(Utils.EPOCH_SEC * (eegm.EEGBinaryEpochForAnalysis - 1));
 
