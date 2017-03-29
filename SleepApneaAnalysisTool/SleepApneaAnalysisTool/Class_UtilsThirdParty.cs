@@ -9,6 +9,10 @@ using Excel = Microsoft.Office.Interop.Excel;
 
 namespace SleepApneaAnalysisTool
 {
+  /// <summary>
+  /// Helper functions used in the business logic
+  /// Large segments of this code was obtained from third party sources and modified
+  /// </summary>
   partial class Utils
   {
     /// <summary>

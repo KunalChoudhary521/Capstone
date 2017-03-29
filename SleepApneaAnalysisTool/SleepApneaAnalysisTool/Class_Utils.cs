@@ -139,8 +139,6 @@ namespace SleepApneaAnalysisTool
     public static double? GetPercentileValueDeriv(float[] values_array_1, float[] values_array_2, double percentile)
     {
       // Subtract two input arrays from each other
-      List<float> values1 = values_array_1.ToList();
-      List<float> values2 = values_array_2.ToList();
       List<float> values = new List<float>();
       for (int x = 0; x < Math.Min(values_array_1.Length, values_array_2.Length); x++)
         values.Add(values_array_1[x] - values_array_2[x]);
@@ -156,9 +154,13 @@ namespace SleepApneaAnalysisTool
     /// <param name="sm"> The settings model that bounds are stored in </param>
     public static void SetYBounds(string Signal, EDFFile LoadedEDFFile, SettingsModel sm)
     {
+      // Save Signal Name
       string OrigName = Signal;
+
+      // Check to see if the Signal Y Bounds have already been calculated 
       SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
 
+      // If the Signal Y Bounds have not been calculated
       if (find == null)
       {
         List<float> values = new List<float>();
@@ -167,12 +169,14 @@ namespace SleepApneaAnalysisTool
         FilteredSignal filteredSignal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal);
         if (filteredSignal != null)
           Signal = sm.FilteredSignals.Find(temp => temp.SignalName == Signal).OriginalName;
+
         if (LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal) != null) // Regular Signal
         {
+          // Get the EDF Signal Values
           EDFSignal edfsignal = LoadedEDFFile.Header.Signals.Find(temp => temp.Label.Trim() == Signal);
           values = LoadedEDFFile.retrieveSignalSampleValues(edfsignal);
         }
-        else // EDF Signal 
+        else // Derivative Signal 
         {
           // Get Signals
           DerivativeSignal deriv_info = sm.DerivedSignals.Find(temp => temp.DerivativeName == Signal);
@@ -205,6 +209,8 @@ namespace SleepApneaAnalysisTool
             values.Add(values1[x] - values2[x]);
           }
         }
+
+        // Remove repeated values 
         int last_unique = 0;
         for (int x = 0; x < values.Count; x++)
         {
@@ -214,6 +220,8 @@ namespace SleepApneaAnalysisTool
             last_unique = x;
         }
         values.RemoveAll(temp => float.IsNaN(temp));
+
+        // Find the high and low percentiles of the signal and the average value of the signal
         values.Sort();
         int high_index = (int)(percent_high / 100 * (values.Count - 1));
         int low_index = (int)(percent_low / 100 * (values.Count - 1));
@@ -221,6 +229,8 @@ namespace SleepApneaAnalysisTool
         float high_value = values[high_index] + range * (100 - (float)percent_high) / 100;
         float low_value = values[low_index] - range * ((float)percent_low) / 100;
         float av_value = values.Average();
+
+        // Save the values so that they do not have to be recalculated 
         sm.SignalsYAxisExtremes.Add(new SignalYAxisExtremes(OrigName) { yMax = high_value, yMin = low_value, yAvr = av_value });
       }
     }
@@ -234,24 +244,25 @@ namespace SleepApneaAnalysisTool
     /// <returns> The max y axis bounds of a signal</returns>
     public static double GetMaxSignalValue(string Signal, bool woBias, EDFFile LoadedEDFFile, SettingsModel sm)
     {
+      // Check if the Y Bounds have already been calculated 
       SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
-
-      if (find != null)
+      if (find != null) // If the Y Bounds have been calculated 
       {
-        if (!Double.IsNaN(find.yMax) && !Double.IsNaN(find.yAvr))
+        if (!Double.IsNaN(find.yMax) && !Double.IsNaN(find.yAvr)) // Double checking if the Y Bounds have been calculated
         {
-          if (woBias)
-            return find.yMax - find.yAvr;
-          else
+          // Remove DC bias?
+          if (woBias) // Yes
+            return find.yMax - find.yAvr; 
+          else // No
             return find.yMax;
         }
-        else
+        else // Calculate Y Bounds 
         {
           SetYBounds(Signal, LoadedEDFFile, sm);
           return GetMaxSignalValue(Signal, woBias, LoadedEDFFile, sm);
         }
       }
-      else
+      else  // Calculate Y Bounds 
       {
         SetYBounds(Signal, LoadedEDFFile, sm);
         return GetMaxSignalValue(Signal, woBias, LoadedEDFFile, sm);
@@ -267,24 +278,25 @@ namespace SleepApneaAnalysisTool
     /// <returns> The min y axis bounds of a signal</returns>
     public static double GetMinSignalValue(string Signal, bool woBias, EDFFile LoadedEDFFile, SettingsModel sm)
     {
+      // Check if the Y Bounds have already been calculated
       SignalYAxisExtremes find = sm.SignalsYAxisExtremes.Find(temp => temp.SignalName.Trim() == Signal.Trim());
-
-      if (find != null)
+      if (find != null) // If the Y Bounds have been calculated
       {
-        if (!Double.IsNaN(find.yMin) && !Double.IsNaN(find.yAvr))
+        if (!Double.IsNaN(find.yMin) && !Double.IsNaN(find.yAvr)) // Double check if the Y Bounds have been calculated
         {
-          if (woBias)
+          // Remove DC bias?
+          if (woBias) // Yes
             return find.yMin - find.yAvr;
-          else
+          else // No
             return find.yMin;
         }
-        else
+        else // Calculate Y Bounds 
         {
           SetYBounds(Signal, LoadedEDFFile, sm);
           return GetMinSignalValue(Signal, woBias, LoadedEDFFile, sm);
         }
       }
-      else
+      else // Calculate Y Bounds 
       {
         SetYBounds(Signal, LoadedEDFFile, sm);
         return GetMinSignalValue(Signal, woBias, LoadedEDFFile, sm);
@@ -447,6 +459,7 @@ namespace SleepApneaAnalysisTool
         }
       }
 
+      // Write merged list to settings file
       StreamWriter sw = new StreamWriter(settings_folder + "\\signal_categories.txt");
       for (int x = 0; x < current_SignalCategories.Count; x++)
       {
@@ -667,7 +680,7 @@ namespace SleepApneaAnalysisTool
     /// Applies a Moving Average Filter to the input signal
     /// </summary>
     /// <param name="series"> The series of X and Y values to be filtered </param>
-    /// <param name="LENGTH"> The length of the discrete-time filter's impulse response </param>
+    /// <param name="LENGTH"> The half length of the discrete-time filter's impulse response </param>
     /// <returns> The filtered signal values </returns>
     public static LineSeries ApplyAverageFilter(LineSeries series, int LENGTH)
     {
