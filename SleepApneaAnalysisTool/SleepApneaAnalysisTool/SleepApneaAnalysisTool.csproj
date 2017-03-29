@@ -195,6 +195,7 @@
     <Compile Include="Class_CommonData.cs" />
     <Compile Include="Class_Preview.cs" />
     <Compile Include="Class_Analysis_Respiratory.cs" />
+    <Compile Include="Class_UtilsThirdPartyUI.cs" />
     <Compile Include="Class_UtilsThirdParty.cs" />
     <Compile Include="Class_UserSettings.cs" />
     <Compile Include="Class_Utils.cs" />

@@ -11,7 +11,6 @@ using OxyPlot.Series;
 using OxyPlot.Axes;
 using System.Windows.Forms;
 using Excel = Microsoft.Office.Interop.Excel;
-using MahApps.Metro.Controls.Dialogs;
 using System.Drawing;
 
 namespace SleepApneaAnalysisTool

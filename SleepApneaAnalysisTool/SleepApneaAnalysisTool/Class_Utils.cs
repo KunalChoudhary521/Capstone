@@ -7,7 +7,6 @@ using EDF;
 using MathWorks.MATLAB.NET.Arrays;
 using MATLAB_496;
 using System.IO;
-using MahApps.Metro;
 using System.Windows.Media;
 using System.Windows;
 using Excel = Microsoft.Office.Interop.Excel;
