@@ -291,13 +291,16 @@ namespace SleepApneaAnalysisTool
     {
       string x = await this.ShowInputAsync("New Epoch Definition", "Please enter an integer epoch definition in seconds (default = 30)");
       int new_def;
-      if (Int32.TryParse(x, out new_def))
+      if (x != null)
       {
-        settings_modelview.ModifyEpochDefinition(new_def);
-      }
-      else
-      {
-        await this.ShowMessageAsync("Error", "Input value must be an integer. No changes made");
+        if (Int32.TryParse(x, out new_def))
+        {
+          settings_modelview.ModifyEpochDefinition(new_def);
+        }
+        else
+        {
+          await this.ShowMessageAsync("Error", "Input value must be an integer. No changes made");
+        }
       }
     }
     private void button_HideSignals_Click(object sender, RoutedEventArgs e)

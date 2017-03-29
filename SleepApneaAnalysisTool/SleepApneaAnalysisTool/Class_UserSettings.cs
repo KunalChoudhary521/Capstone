@@ -229,11 +229,7 @@ namespace SleepApneaAnalysisTool
     }
     
     #endregion
-
-    /// <summary>
-    /// Preview Model
-    /// </summary>
-    private PreviewModel pm = new PreviewModel();
+    
     /// <summary>
     /// Settings Model
     /// </summary>
