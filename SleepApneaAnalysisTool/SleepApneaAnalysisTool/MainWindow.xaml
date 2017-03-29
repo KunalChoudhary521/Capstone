@@ -108,10 +108,10 @@
                     <!-- Signal Selection -->
                     <Label x:Name="label" Content="Signals" FontSize="18" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="42" Width="71"/>
                     <Label x:Name="label_CurrentCategory" Content="{Binding PreviewCurrentCategoryName}" HorizontalContentAlignment="Center" Margin="47,52,47,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="33" FontSize="14"/>
-                    <Button x:Name="button_Prev" Content="&lt;" HorizontalAlignment="Left" Margin="10,52,0,0" VerticalAlignment="Top" Width="32" Height="23" IsEnabled="{Binding IsEDFLoaded}" Click="button_Prev_Click"/>
-                    <Button x:Name="button_Next" Content="&gt;" HorizontalAlignment="Right" Margin="0,52,10,0" VerticalAlignment="Top" Width="32" Height="23" IsEnabled="{Binding IsEDFLoaded}" Click="button_Next_Click"/>
-                    <ListBox x:Name="listBox_SignalSelect" Margin="10,90,10,47.333" SelectionMode="Multiple" SelectionChanged="listBox_SignalSelect_SelectionChanged" ItemsSource="{Binding PreviewSignals}" FontSize="14" IsEnabled="{Binding PreviewNavigationEnabled}"/>
-                    <Button x:Name="export_button" Margin="10,0,0,10.333" Content="Export to Binary" IsEnabled="{Binding IsEDFLoaded}" Click="button_ExportBinary_Click" HorizontalAlignment="Left" Width="122" Height="32" VerticalAlignment="Bottom"/>
+                    <Button x:Name="button_Prev" Content="&lt;" HorizontalAlignment="Left" Margin="10,52,0,0" VerticalAlignment="Top" Width="32" Height="23" IsEnabled="{Binding IsEDFLoaded}" Click="button_PreviewCategoryPrev_Click"/>
+                    <Button x:Name="button_Next" Content="&gt;" HorizontalAlignment="Right" Margin="0,52,10,0" VerticalAlignment="Top" Width="32" Height="23" IsEnabled="{Binding IsEDFLoaded}" Click="button_PreviewCategoryNext_Click"/>
+                    <ListBox x:Name="listBox_SignalSelect" Margin="10,90,10,47.333" SelectionMode="Multiple" SelectionChanged="listBox_PreviewSignalSelect_SelectionChanged" ItemsSource="{Binding PreviewSignals}" FontSize="14" IsEnabled="{Binding PreviewNavigationEnabled}"/>
+                    <Button x:Name="export_button" Margin="10,0,0,10.333" Content="Export to Binary" IsEnabled="{Binding IsEDFLoaded}" Click="button_PreviewExportBinary_Click" HorizontalAlignment="Left" Width="122" Height="32" VerticalAlignment="Bottom"/>
                     <Button x:Name="button_ExportImage" Margin="140,0,0,10.333" Content="Export to Excel" IsEnabled="{Binding IsEDFLoaded}" Click="button_PreviewExportExcel_Click" HorizontalAlignment="Left" Width="122" Height="32" VerticalAlignment="Bottom"/>
 
                     <!-- Navigation and Plot -->
@@ -127,7 +127,7 @@
                             <mtr:NumericUpDown x:Name="timePicker_From_Eph" Margin="70,0,10,50" TextAlignment="Center" Value="{Binding PreviewViewStartRecord, Delay=700}" Maximum="{Binding PreviewViewStartRecordMax}" Minimum="{Binding PreviewViewStartRecordMin}" IsEnabled="{Binding PreviewNavigationEnabled}" FontSize="14"/>
                             <Label Content="Duration" Margin="0,42,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="28" Width="67" HorizontalContentAlignment="Left" FontSize="14" HorizontalAlignment="Left"/>
                             <mtr:NumericUpDown x:Name="timePicker_Period" Margin="70,40,10,10" TextAlignment="Center" Value="{Binding PreviewViewDuration, Delay=700}" Maximum="{Binding PreviewViewDurationMax}" Minimum="{Binding PreviewViewDurationMin}" IsEnabled="{Binding PreviewNavigationEnabled}" FontSize="14"/>
-                            <ToggleButton x:Name="toggleButton_UseAbsoluteTime" Content="ABSOLUTE TIME" IsChecked="{Binding PreviewUseAbsoluteTime}" IsEnabled="{Binding PreviewNavigationEnabled}" Checked="toggleButton_UseAbsoluteTime_Checked" Unchecked="toggleButton_UseAbsoluteTime_Unchecked" Grid.Column="1" Margin="10,0,2,0" Height="32" VerticalAlignment="Top" />
+                            <ToggleButton x:Name="toggleButton_UseAbsoluteTime" Content="ABSOLUTE TIME" IsChecked="{Binding PreviewUseAbsoluteTime}" IsEnabled="{Binding PreviewNavigationEnabled}" Checked="toggleButton_PreviewUseAbsoluteTime_Checked" Unchecked="toggleButton_PreviewUseAbsoluteTime_Unchecked" Grid.Column="1" Margin="10,0,2,0" Height="32" VerticalAlignment="Top" />
                             <ToggleButton x:Name="toggleButton_UseConstantAxis" Content="CONSTANT AXIS" IsChecked="{Binding PreviewUseConstantAxis}" IsEnabled="{Binding PreviewNavigationEnabled}" Grid.Column="1" Margin="10,38,2,0" Height="32" VerticalAlignment="Top" />
                         </Grid>
                         <oxy:PlotView Foreground="Black" Background="Transparent" x:Name="PlotView_signalPlot" Margin="10,137,10,10" Model="{Binding PreviewSignalPlot}" IsEnabled="{Binding PreviewNavigationEnabled}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True" Grid.Column="1"/>
@@ -168,7 +168,7 @@
                                 <TextBox x:Name="textBox_RI_Technician" Height="23" Margin="90,76,10,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True" Text="{Binding EDFRecordTechnician, Mode=OneWay}" FontSize="14"/>
                             </Grid>
                             <Label Content="Signal Properties" HorizontalAlignment="Left" Margin="10,446,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="29" Width="127" FontSize="14"/>
-                            <ComboBox Height="23" VerticalAlignment="Top" Margin="142,446,26,0" SelectionChanged="comboBox_SignalSelect_SelectionChanged" ItemsSource="{Binding AllNonHiddenSignals, Mode=OneWay}" SelectedItem="{Binding PreviewPropertiesSelectedSignal}" FontSize="14"/>
+                            <ComboBox Height="23" VerticalAlignment="Top" Margin="142,446,26,0" SelectionChanged="comboBox_PreviewSignalSelect_SelectionChanged" ItemsSource="{Binding AllNonHiddenSignals, Mode=OneWay}" SelectedItem="{Binding PreviewPropertiesSelectedSignal}" FontSize="14"/>
                             <Label Content="Sample Rate" HorizontalAlignment="Left" Margin="10,480,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="29" Width="97" FontSize="14"/>
                             <TextBox Height="23" Margin="112,483,26,0" TextWrapping="Wrap" VerticalAlignment="Top" IsReadOnly="True" FontSize="14" Text="{Binding PreviewPropertiesSampleRate, Mode=OneWay}"/>
                             <Label Content="Orig. Signal(s)" HorizontalAlignment="Left" Margin="10,511,0,0" VerticalAlignment="Top" RenderTransformOrigin="-5.432,0.857" Height="29" Width="97" FontSize="14"/>
@@ -208,7 +208,7 @@
                                 <Label Content="Plot Options" FontSize="18" Width="200" Height="34" VerticalAlignment="Top" HorizontalAlignment="Left" Grid.Column="2"/>
                                 <!-- From Binary -->
                                 <Label Content="Binary" FontSize="14" Margin="0,5,19,5" Grid.Row="1"/>
-                                <Button Content="Open" Width="100" HorizontalAlignment="Left" Margin="10,8,0,8" Grid.Column="1" Grid.Row="1" Click="button_BINRespiratoryAnalysis_Click" />
+                                <Button Content="Open" Width="100" HorizontalAlignment="Left" Margin="10,8,0,8" Grid.Column="1" Grid.Row="1" Click="button_RespiratoryImportBinary_Click" />
                                 <Label Content="From" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="0,5" HorizontalContentAlignment="Left" Grid.Column="2" Grid.Row="1"/>
                                 <mtr:NumericUpDown FontSize="14"  Margin="55,5,10,5" TextAlignment="Center" IsEnabled="{Binding RespiratoryBinaryNavigationEnabled}" Value="{Binding RespiratoryBinaryStartRecord, Delay=700}" Minimum="1" Maximum="{Binding RespiratoryBinaryStartRecordMax}" Grid.Column="2" Grid.Row="1"/>
                                 <Label Content="Duration" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="0,5" HorizontalContentAlignment="Left" Grid.Column="3" Grid.Row="1"/>
@@ -226,14 +226,14 @@
 
                                 <!-- Export -->
                                 <Label Content="Export" FontSize="18" Height="35" VerticalAlignment="Top" HorizontalAlignment="Left" Width="112" Grid.Column="4" Margin="9,2,0,0" Grid.RowSpan="2"/>
-                                <Button Content="Export" IsEnabled="{Binding RespiratoryAnalysisEnabled}" Click="button_ExportRespiratoryPlotClick" Grid.Column="4" Margin="10,6" Grid.Row="1"/>
+                                <Button Content="Export" IsEnabled="{Binding RespiratoryAnalysisEnabled}" Click="button_RespiratoryExportExcel_Click" Grid.Column="4" Margin="10,6" Grid.Row="1"/>
                             </Grid>
 
                             <Label Content="Plot" FontSize="18" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="10,130,0,0"/>
                             <oxy:PlotView Foreground="Black" Name="RespSignalPlot" Background="Transparent" Margin="10,175,10,10" Model="{Binding RespiratorySignalPlot}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
                             <oxy:PlotView Foreground="Black" Name="RespAnalyticsPlot" Visibility="Hidden" Background="Transparent" Margin="10,175,10,10" Model="{Binding RespiratoryAnalyticsPlot}" ControlzEx:KeyboardNavigationEx.AlwaysShowFocusVisual="True"/>
                             <ToggleButton Content="CONSTANT AXIS" Margin="0,135,10,0" IsEnabled="{Binding RespiratoryAnalysisEnabled}" IsChecked="{Binding RespiratoryUseConstantAxis}" VerticalAlignment="Top" HorizontalAlignment="Right" Width="100" Height="34"/>
-                            <ToggleButton Content="SHOW ANALYTICS" Margin="0,135,115,0" IsEnabled="{Binding RespiratoryAnalysisEnabled}" IsChecked="{Binding RespiratoryDisplayAnalytics}" VerticalAlignment="Top" HorizontalAlignment="Right" Width="100" Height="34"  Checked="button_DisplayAnalytics_Checked" Unchecked="button_DisplayAnalytics_Checked"/>
+                            <ToggleButton Content="SHOW ANALYTICS" Margin="0,135,115,0" IsEnabled="{Binding RespiratoryAnalysisEnabled}" IsChecked="{Binding RespiratoryDisplayAnalytics}" VerticalAlignment="Top" HorizontalAlignment="Right" Width="100" Height="34"  Checked="button_RespiratoryDisplayAnalytics_Checked" Unchecked="button_RespiratoryDisplayAnalytics_Checked"/>
 
                             <Grid Margin="10,130,10,10" Grid.Column="1">
                                 <Grid.RowDefinitions>
@@ -314,7 +314,7 @@
                                 <Label Content="Export" FontSize="18" Width="80" Height="34" VerticalAlignment="Top" HorizontalAlignment="Left" Grid.Column="3" Margin="0,0,0,0"/>
                                 <!-- From Binary -->
                                 <Label Content="Binary" FontSize="14" Margin="0,5,20,5" Grid.Row="1"/>
-                                <Button Content="Open" Width="100" HorizontalAlignment="Left" Margin="10,8,0,8" Grid.Column="1" Grid.Row="1" Click="button_BINEEGAnalysis_Click" />
+                                <Button Content="Open" Width="100" HorizontalAlignment="Left" Margin="10,8,0,8" Grid.Column="1" Grid.Row="1" Click="button_EEGImportBinary_Click" />
                                 <TextBox x:Name="textBox" Grid.Column="1" HorizontalContentAlignment="Left" VerticalContentAlignment="Center" Margin="155,5,10,5" Grid.Row="1" TextWrapping="Wrap" Text="{Binding EEGBinaryMaxEpoch}" IsReadOnly="true"/>
                                 <Label Content="Max" FontSize="14" Margin="115,5,0,5" HorizontalContentAlignment="Left" Grid.Column="1" Grid.Row="1" HorizontalAlignment="Left" Width="39"/>
                                 <Label Content="Epoch" FontSize="14" Width="70" HorizontalAlignment="Left" Margin="0,5,0,5" HorizontalContentAlignment="Left" Grid.Column="2" Grid.Row="1"/>
@@ -330,10 +330,10 @@
                                 <mtr:NumericUpDown FontSize="14" Margin="65,5,10,5" TextAlignment="Center" IsEnabled="{Binding EEGEDFNavigationEnabled}" Value="{Binding ExportEpochStart}" Minimum="{Binding EEGEDFStartRecordMin}" Maximum="{Binding EEGEDFStartRecordMax}" Grid.Column="3" Grid.Row="1"/>
                                 <Label Content="To" FontSize="14" Margin="0,6,0,4" HorizontalContentAlignment="Left" Grid.Column="3" Grid.Row="2" HorizontalAlignment="Left" Width="70" RenderTransformOrigin="0.057,0.414"/>
                                 <mtr:NumericUpDown FontSize="14" Margin="65,5,10,5" TextAlignment="Center" IsEnabled="{Binding EEGEDFNavigationEnabled}" Value="{Binding ExportEpochEnd}" Minimum="{Binding ExportEpochStart}" Maximum="{Binding EEGEDFStartRecordMax}" Grid.Column="3" Grid.Row="2"/>
-                                <Button Content="Export Analysis (EDF)" IsEnabled="{Binding IsEDFLoaded}" Click="button_ExportEEGCalculations_Click" Grid.Column="4" Margin="10,6" Grid.Row="2"/>
-                                <Button Content="Export Plots (EDF)" IsEnabled="{Binding IsEDFLoaded}" Click="button_ExportEEGPlots_Click" Grid.Column="5" Margin="10,6" Grid.Row="2"/>
-                                <Button Content="Export Analysis (BIN)" IsEnabled="{Binding IsEEGBinaryLoaded}"  Grid.Column="4" Margin="10,6" Grid.Row="1" Click="button_ExportEEGAnalysisBin_Click"/>
-                                <Button Content="Export Plots (BIN)" IsEnabled="{Binding IsEEGBinaryLoaded}"  Grid.Column="5" Margin="10,6" Click="button_ExportEEGPlotsBin_Click" Grid.Row="1"/>
+                                <Button Content="Export Analysis (EDF)" IsEnabled="{Binding IsEDFLoaded}" Click="button_EEGExportCalculations_Click" Grid.Column="4" Margin="10,6" Grid.Row="2"/>
+                                <Button Content="Export Plots (EDF)" IsEnabled="{Binding IsEDFLoaded}" Click="button_EEGExportPlots_Click" Grid.Column="5" Margin="10,6" Grid.Row="2"/>
+                                <Button Content="Export Analysis (BIN)" IsEnabled="{Binding IsEEGBinaryLoaded}"  Grid.Column="4" Margin="10,6" Grid.Row="1" Click="button_EEGExportCalculationsBin_Click"/>
+                                <Button Content="Export Plots (BIN)" IsEnabled="{Binding IsEEGBinaryLoaded}"  Grid.Column="5" Margin="10,6" Click="button_EEGExportPlotsBin_Click" Grid.Row="1"/>
                             </Grid>
 
                             <Label Content="Plot" FontSize="18" Height="30" VerticalAlignment="Top" HorizontalAlignment="Left" Width="200" Margin="10,130,0,0"/>

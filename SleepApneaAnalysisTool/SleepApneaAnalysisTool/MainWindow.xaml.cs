@@ -347,35 +347,35 @@ namespace SleepApneaAnalysisTool
     }
 
     // Preview Tab Events   
-    private void listBox_SignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void listBox_PreviewSignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
       preview_modelview.SetSelectedSignals(listBox_SignalSelect.SelectedItems);
     }
-    private void comboBox_SignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void comboBox_PreviewSignalSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
     }
 
-    private void toggleButton_UseAbsoluteTime_Checked(object sender, RoutedEventArgs e)
+    private void toggleButton_PreviewUseAbsoluteTime_Checked(object sender, RoutedEventArgs e)
     {
       timePicker_From_Abs.Visibility = Visibility.Visible;
       timePicker_From_Eph.Visibility = Visibility.Hidden;
     }
-    private void toggleButton_UseAbsoluteTime_Unchecked(object sender, RoutedEventArgs e)
+    private void toggleButton_PreviewUseAbsoluteTime_Unchecked(object sender, RoutedEventArgs e)
     {
       timePicker_From_Abs.Visibility = Visibility.Hidden;
       timePicker_From_Eph.Visibility = Visibility.Visible;
     }
     
-    private void button_Next_Click(object sender, RoutedEventArgs e)
+    private void button_PreviewCategoryNext_Click(object sender, RoutedEventArgs e)
     {
       preview_modelview.NextCategory();
     }
-    private void button_Prev_Click(object sender, RoutedEventArgs e)
+    private void button_PreviewCategoryPrev_Click(object sender, RoutedEventArgs e)
     {
       preview_modelview.PreviousCategory();
     }
 
-    private void button_ExportBinary_Click(object sender, RoutedEventArgs e)
+    private void button_PreviewExportBinary_Click(object sender, RoutedEventArgs e)
     {
       Dialog_Export_Previewed_Signals dlg = new Dialog_Export_Previewed_Signals(this, preview_modelview);
       this.ShowMetroDialogAsync(dlg);
@@ -416,7 +416,7 @@ namespace SleepApneaAnalysisTool
     }
 
     // Analysis Tab Events 
-    private void button_ExportRespiratoryPlotClick(object sender, RoutedEventArgs e)
+    private void button_RespiratoryExportExcel_Click(object sender, RoutedEventArgs e)
     {
       // Check if Excel is installed
       Microsoft.Office.Interop.Excel.Application app = new Microsoft.Office.Interop.Excel.Application();
@@ -450,35 +450,35 @@ namespace SleepApneaAnalysisTool
         resp_modelview.ExportRespiratoryPlot(dialog.FileName);
       }
     }
-    private void button_ExportEEGCalculations_Click(object sender, RoutedEventArgs e)
-    {
-      eeg_modelview.ExportEEGCalculations();
-    }
-    private void button_ExportEEGPlots_Click(object sender, RoutedEventArgs e)
-    {
-      eeg_modelview.ExportEEGPlots();
-    }
-    private void button_BINRespiratoryAnalysis_Click(object sender, RoutedEventArgs e)
+    private void button_RespiratoryImportBinary_Click(object sender, RoutedEventArgs e)
     {
       resp_modelview.LoadRespiratoryAnalysisBinary();
     }
-    private void button_BINEEGAnalysis_Click(object sender, RoutedEventArgs e)
-    {
-      eeg_modelview.PerformEEGAnalysisBinary();
-    }
-    private void button_ExportEEGPlotsBin_Click(object sender, RoutedEventArgs e)
-    {
-      eeg_modelview.ExportEEGPlotsBin();
-    }
-    private void button_ExportEEGAnalysisBin_Click(object sender, RoutedEventArgs e)
-    {
-      eeg_modelview.ExportEEGCalculationsBin();
-    }
-
-    private void button_DisplayAnalytics_Checked(object sender, RoutedEventArgs e)
+    private void button_RespiratoryDisplayAnalytics_Checked(object sender, RoutedEventArgs e)
     {
       RespSignalPlot.Visibility = resp_modelview.RespiratoryDisplayAnalytics ? Visibility.Hidden : Visibility.Visible;
       RespAnalyticsPlot.Visibility = !resp_modelview.RespiratoryDisplayAnalytics ? Visibility.Hidden : Visibility.Visible;
+    }
+
+    private void button_EEGExportCalculationsBin_Click(object sender, RoutedEventArgs e)
+    {
+      eeg_modelview.ExportEEGCalculationsBin();
+    }
+    private void button_EEGExportCalculations_Click(object sender, RoutedEventArgs e)
+    {
+      eeg_modelview.ExportEEGCalculations();
+    }
+    private void button_EEGExportPlotsBin_Click(object sender, RoutedEventArgs e)
+    {
+      eeg_modelview.ExportEEGPlotsBin();
+    }
+    private void button_EEGExportPlots_Click(object sender, RoutedEventArgs e)
+    {
+      eeg_modelview.ExportEEGPlots();
+    }
+    private void button_EEGImportBinary_Click(object sender, RoutedEventArgs e)
+    {
+      eeg_modelview.PerformEEGAnalysisBinary();
     }
   }
 }
