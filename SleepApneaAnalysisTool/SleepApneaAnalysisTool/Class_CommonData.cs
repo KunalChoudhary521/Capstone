@@ -5,11 +5,6 @@ using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.IO;
 using EDF;
-using OxyPlot;
-using OxyPlot.Series;
-using OxyPlot.Axes;
-using MahApps.Metro.Controls.Dialogs;
-using System.Diagnostics;
 
 namespace SleepApneaAnalysisTool
 {
@@ -18,31 +13,7 @@ namespace SleepApneaAnalysisTool
     #region Actions
 
     // Load EDF File
-    /// <summary>
-    /// Used to control progress bar shown when edf file is being loaded
-    /// </summary>
-    private ProgressDialogController controller;
-    /// <summary>
-    /// The background worker that runs the task that updates the progress bar value
-    /// </summary>
-    private BackgroundWorker bw_progressbar = new BackgroundWorker();
-    /// <summary>
-    /// Background task that updates the progress bar
-    /// </summary>
-    private void BW_LoadEDFFileUpDateProgress(object sender, DoWorkEventArgs e)
-    {
-      long process_start = Process.GetCurrentProcess().PagedMemorySize64;
-      long file_size = (long)(new FileInfo(e.Argument.ToString()).Length * 2.2);
-      long current_progress = 0;
-
-      while (!bw_progressbar.CancellationPending)
-      {
-        current_progress = Math.Max(current_progress, Process.GetCurrentProcess().PagedMemorySize64 - process_start);
-        double progress = Math.Min(99, (current_progress * 100 / (double)file_size));
-
-        controller.SetProgress(progress);
-      }
-    }
+    public Action EDF_Loading_Finished;
     /// <summary>
     /// Background process for loading edf file
     /// </summary>
@@ -50,45 +21,26 @@ namespace SleepApneaAnalysisTool
     /// <param name="e"></param>
     private void BW_LoadEDFFile(object sender, DoWorkEventArgs e)
     {
-      // Progress Bar should not be cancelable
-      controller.SetCancelable(false);
-      controller.Maximum = 100;
-
-      // 'Update Progress Bar' Task 
-      bw_progressbar = new BackgroundWorker();
-      bw_progressbar.WorkerSupportsCancellation = true;
-      bw_progressbar.DoWork += BW_LoadEDFFileUpDateProgress;
-      bw_progressbar.RunWorkerAsync(e.Argument.ToString());
-
       // Read EDF File
       EDFFile temp = new EDFFile();
       temp.readFile(e.Argument.ToString());
       LoadedEDFFile = temp;
-
-      // End 'Update Progress Bar' Task 
-      bw_progressbar.CancelAsync();
-      while (bw_progressbar.IsBusy)
-      { }
     }
     /// <summary>
     /// Function called after background process for loading edf file finishes
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
-    private async void BW_FinishLoad(object sender, RunWorkerCompletedEventArgs e)
+    private void BW_FinishLoad(object sender, RunWorkerCompletedEventArgs e)
     {
-      // Close progress bar and display message
-      await controller.CloseAsync();
-      await p_window.ShowMessageAsync("Success!", "EDF file loaded");
+      EDF_Loading_Finished();
     }
     /// <summary>
     /// Loads an EDF File into memory
     /// </summary>
     /// <param name="fileNameIn"> Path to the EDF file to load </param>
-    public async void LoadEDFFile(string fileNameIn)
+    public void LoadEDFFile(string fileNameIn)
     {
-      controller = await p_window.ShowProgressAsync("Please wait...", "Loading EDF File: " + fileNameIn);
-
       LoadedEDFFile = null;
       LoadedEDFFileName = fileNameIn;
       BackgroundWorker bw = new BackgroundWorker();

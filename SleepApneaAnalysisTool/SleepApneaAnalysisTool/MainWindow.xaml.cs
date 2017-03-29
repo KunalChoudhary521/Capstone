@@ -10,6 +10,7 @@ using System.IO;
 
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
+using System.Diagnostics;
 
 namespace SleepApneaAnalysisTool
 {
@@ -24,6 +25,58 @@ namespace SleepApneaAnalysisTool
     EEGModelView eeg_modelview;
     CoherenceModelView cohere_modelview;
     SettingsModelView settings_modelview;
+
+    #region UI Helper Functions
+
+    // Loading EDF File UI
+    private ProgressDialogController controller;
+    private BackgroundWorker bw_progressbar = new BackgroundWorker();
+    private void BW_LoadEDFFileUpDateProgress(object sender, DoWorkEventArgs e)
+    {
+      long process_start = Process.GetCurrentProcess().PagedMemorySize64;
+      long file_size = (long)(new FileInfo(e.Argument.ToString()).Length * 2.2);
+      long current_progress = 0;
+
+      while (!bw_progressbar.CancellationPending)
+      {
+        current_progress = Math.Max(current_progress, Process.GetCurrentProcess().PagedMemorySize64 - process_start);
+        double progress = Math.Min(99, (current_progress * 100 / (double)file_size));
+
+        try { controller.SetProgress(progress); }
+        catch { break; }
+      }
+    }
+    private void EDFFinishedLoading()
+    {
+      controller.CloseAsync();
+      controller = null;
+      this.ShowMessageAsync("Success", "EDF File Loaded.");
+    }
+    private async void OpenEDF(string fileName)
+    {
+      // Create Progress Bar
+      controller = await this.ShowProgressAsync("Please wait...", "Loading EDF File: " + fileName);
+
+      // Progress Bar should not be cancelable
+      controller.SetCancelable(false);
+      controller.Maximum = 100;
+
+      // 'Update Progress Bar' Task 
+      bw_progressbar = new BackgroundWorker();
+      bw_progressbar.WorkerSupportsCancellation = true;
+      bw_progressbar.DoWork += BW_LoadEDFFileUpDateProgress;
+      bw_progressbar.RunWorkerAsync(fileName);
+
+      // Close Progress Bar Event
+      if (common_modelview.EDF_Loading_Finished == null)
+        common_modelview.EDF_Loading_Finished += EDFFinishedLoading;
+
+      // Load File
+      settings_modelview.WriteEDFSettings();
+      common_modelview.LoadEDFFile(fileName);
+    }
+
+    #endregion
 
     /// <summary>
     /// Function called to populate recent files list. Called when application is first loaded and if the recent files list changes.
@@ -128,8 +181,7 @@ namespace SleepApneaAnalysisTool
 
       if (dialog.ShowDialog() == true)
       {
-        settings_modelview.WriteEDFSettings();
-        common_modelview.LoadEDFFile(dialog.FileName);
+        OpenEDF(dialog.FileName);
       }       
     }
     private void TextBlock_Recent_Click(object sender, RoutedEventArgs e)
@@ -148,8 +200,7 @@ namespace SleepApneaAnalysisTool
         {
           if (File.Exists(selected[x]))
           {
-            settings_modelview.WriteEDFSettings();
-            common_modelview.LoadEDFFile(selected[x]);
+            OpenEDF(selected[x]);
             break;
           }
           else

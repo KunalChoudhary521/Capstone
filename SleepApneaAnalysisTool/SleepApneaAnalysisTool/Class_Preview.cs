@@ -994,6 +994,7 @@ namespace SleepApneaAnalysisTool
               int num = AllSignals.IndexOf(pm.PreviewSelectedSignals[y]);
               List<KnownColor> colors = ((KnownColor[]) Enum.GetValues(typeof(KnownColor))).ToList();
               colors.RemoveAll(temp => Color.FromKnownColor(temp).GetBrightness() > 0.5);
+              colors.RemoveAll(temp => Color.FromKnownColor(temp).Name.Contains("Gray") || Color.FromKnownColor(temp).Name.Contains("Grey") || Color.FromKnownColor(temp).Name.Contains("Black") || Color.FromKnownColor(temp).Name.Contains("Control") || Color.FromKnownColor(temp).Name.Contains("Info") || Color.FromKnownColor(temp).Name.Contains("Menu") || Color.FromKnownColor(temp).Name.Contains("Window") || Color.FromKnownColor(temp).Name.Contains("Text") || Color.FromKnownColor(temp).Name.Contains("Desktop"));
               var selected_color = Color.FromKnownColor(colors[num%colors.Count]);
               series.Color = OxyColor.FromArgb(selected_color.A, selected_color.R, selected_color.G, selected_color.B);
 
