@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
 using System.Windows;
 using System.Windows.Media;
 using System.ComponentModel;
@@ -17,6 +20,9 @@ namespace SleepApneaAnalysisTool
 {
   #region Sub Classes
 
+  /// <summary>
+  /// Structure for defining a Category of Signals 
+  /// </summary>
   public class SignalCategory
   {
     public string CategoryName = "";
@@ -41,6 +47,9 @@ namespace SleepApneaAnalysisTool
       CategoryName = name;
     }
   }
+  /// <summary>
+  /// Structure for defining a Derivative Signal
+  /// </summary>
   public class DerivativeSignal
   {
     public string DerivativeName;
@@ -54,6 +63,9 @@ namespace SleepApneaAnalysisTool
       Signal2Name = signal2;
     }
   }
+  /// <summary>
+  /// Structure for saving the calculated Y axis bounds of a signal
+  /// </summary>
   public class SignalYAxisExtremes
   {
     public string SignalName = "";
@@ -66,6 +78,9 @@ namespace SleepApneaAnalysisTool
       SignalName = name;
     }
   }
+  /// <summary>
+  /// Structure for defining a Filtered Signal
+  /// </summary>
   public class FilteredSignal
   {
     public string SignalName = "";
@@ -80,9 +95,13 @@ namespace SleepApneaAnalysisTool
 
   #endregion
 
+  /// <summary>
+  /// Model for variables used to store user settings
+  /// </summary>
   public class SettingsModel
   {
     #region Members
+
     /// <summary>
     /// True when the menu containing user settings is visible to the user
     /// </summary>
@@ -135,6 +154,9 @@ namespace SleepApneaAnalysisTool
     #endregion 
   }
 
+  /// <summary>
+  /// Model view for variables used to store user settings
+  /// </summary>
   public class SettingsModelView : INotifyPropertyChanged
   {
     #region Shared Properties and Functions
@@ -237,7 +259,13 @@ namespace SleepApneaAnalysisTool
 
     #region Properties
 
-    public Action Load_Recent;
+    /// <summary>
+    /// Event raised when the list of recent files change
+    /// </summary>
+    public Action RecentFiles_Changed;
+    /// <summary>
+    /// Event raised when the UI theme changes
+    /// </summary>
     public Action Theme_Changed;
 
     // Personalization
@@ -407,7 +435,7 @@ namespace SleepApneaAnalysisTool
       }
       sw.Close();
 
-      Load_Recent();
+      RecentFiles_Changed();
     }
     /// <summary>
     /// Removes a file path from the RecentFiles text file
@@ -429,7 +457,7 @@ namespace SleepApneaAnalysisTool
       }
       sw.Close();
 
-      Load_Recent();
+      RecentFiles_Changed();
     }
 
     // Signals
@@ -599,12 +627,15 @@ namespace SleepApneaAnalysisTool
       FlyoutOpen = !FlyoutOpen;
     }
 
-    public void ModifyEpochDefinition(int x)
+    /// <summary>
+    /// The Epoch Definition dialog calls this function to return user input
+    /// </summary>
+    /// <param name="x"></param>
+    public void ModifyEpochDefinitionOutput(int x)
     {
       Utils.EPOCH_SEC = x;
       OnPropertyChanged(nameof(Utils.EPOCH_SEC));
-    }
-    
+    }   
     /// <summary>
     /// The Signal Category Management Wizard calls this function to return user input
     /// </summary>

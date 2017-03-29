@@ -23,6 +23,7 @@ namespace SleepApneaAnalysisTool
   /// </summary>
   partial class Utils
   {
+    // Epoch <-> DateTime Conversions
     /// <summary>
     /// The definition of epochs in seconds
     /// </summary>
@@ -103,6 +104,7 @@ namespace SleepApneaAnalysisTool
       return (int)(period.TotalSeconds / (double)EPOCH_SEC);
     }
     
+    // Finding Constant Y Axis Bounds of Signals
     /// <summary>
     /// this percentile of a signal's values is used as the maximum Y axes value
     /// </summary>
@@ -303,6 +305,7 @@ namespace SleepApneaAnalysisTool
       }
     }
     
+    // MATLAB Functions
     /// <summary>
     /// Performs upsampling and downsampling on an array of values
     /// </summary>
@@ -350,6 +353,7 @@ namespace SleepApneaAnalysisTool
       return series;
     }
 
+    // Writing and Reading User Settings from Text Files
     /// <summary>
     /// The directory path of where the application saves all settings files
     /// </summary>
@@ -676,6 +680,7 @@ namespace SleepApneaAnalysisTool
       sw.Close();
     }
     
+    // Implemented Filters
     /// <summary>
     /// Applies a Moving Average Filter to the input signal
     /// </summary>
@@ -733,6 +738,7 @@ namespace SleepApneaAnalysisTool
       return new_series;
     }
     
+    // Exporting to Excel/Image Files
     /// <summary>
     /// Exports an OxyPlot PlotModel to a PNG image file
     /// </summary>
@@ -753,7 +759,6 @@ namespace SleepApneaAnalysisTool
       file.Close();
       stream.Close();
     }
- 
     /// <summary>
     /// Writes an Excel worksheet containing a Respiratory Signal's values and Plot
     /// </summary>

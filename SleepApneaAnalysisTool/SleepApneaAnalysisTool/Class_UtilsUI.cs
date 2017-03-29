@@ -16,6 +16,7 @@ namespace SleepApneaAnalysisTool
   /// </summary>
   partial class Utils
   {
+    // Theming
     /// <summary>
     /// Given a PlotModel, makes the axes and text of the PlotModel black or gray depending on whether the user selected a Dark theme or not
     /// </summary>
@@ -47,6 +48,7 @@ namespace SleepApneaAnalysisTool
       }
     }
 
+    // Writing and Reading User Settings from Text Files
     /// <summary>
     /// Loads user personalization preferences into memory 
     /// </summary>

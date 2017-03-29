@@ -93,11 +93,7 @@ namespace SleepApneaAnalysisTool
     }
 
     // Personalization
-
-    /// <summary>
-    /// Function called when the user changes the UI theme color
-    /// </summary>
-    private void AppliedThemeColor_Changed()
+    private void UpdateThemeColor()
     {
       Color AppliedThemeColor = settings_modelview.AppliedThemeColor;
       bool UseDarkTheme = settings_modelview.UseDarkTheme;
@@ -164,8 +160,8 @@ namespace SleepApneaAnalysisTool
       this.grid_SettingsMainMenu.DataContext = settings_modelview;
       this.grid_SettingsPersonalization.DataContext = settings_modelview;
 
-      settings_modelview.Load_Recent += LoadRecent;
-      settings_modelview.Theme_Changed += AppliedThemeColor_Changed;
+      settings_modelview.RecentFiles_Changed += LoadRecent;
+      settings_modelview.Theme_Changed += UpdateThemeColor;
       common_modelview.EDF_Loading_Finished += EDFFinishedLoading;
 
       LoadRecent();
@@ -295,7 +291,7 @@ namespace SleepApneaAnalysisTool
       {
         if (Int32.TryParse(x, out new_def))
         {
-          settings_modelview.ModifyEpochDefinition(new_def);
+          settings_modelview.ModifyEpochDefinitionOutput(new_def);
         }
         else
         {

@@ -15,6 +15,7 @@ namespace SleepApneaAnalysisTool
   /// </summary>
   partial class Utils
   {
+    // EDF File Parsing
     /// <summary>
     /// Modified From EDF library function https://edf.codeplex.com/SourceControl/latest#trunk/EDFFile.cs
     /// Gets the signal samples from one period of time to another
@@ -76,7 +77,8 @@ namespace SleepApneaAnalysisTool
       }
       return signalSampleValues;
     }
-    
+
+    // Exporting to Excel/Image Files
     /// <summary>
     /// Obtained from https://www.codeproject.com/Articles/9992/Faster-MS-Excel-Reading-using-Office-Interop-Assem
     /// Used to make the Excel Interop operations more performant 

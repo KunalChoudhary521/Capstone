@@ -17,6 +17,7 @@ namespace SleepApneaAnalysisTool
   /// </summary>
   partial class Utils
   {
+    // Theming 
     /// <summary>
     /// Modified From Sample MahApps.Metro Project
     /// https://github.com/punker76/code-samples/blob/master/MahAppsMetroThemesSample/MahAppsMetroThemesSample/ThemeManagerHelper.cs

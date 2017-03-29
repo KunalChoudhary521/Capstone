@@ -1,18 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
 using System.ComponentModel;
-using System.Collections.ObjectModel;
-using System.IO;
+
 using EDF;
 
 namespace SleepApneaAnalysisTool
 {
+  /// <summary>
+  /// Contains the Loaded EDF File Structure and Functions/Event Related to Parsing the EDF File
+  /// </summary>
   public class CommonModelView : INotifyPropertyChanged
   {
     #region Actions
 
     // Load EDF File
+    /// <summary>
+    /// Event raised when the EDF file is finished loading 
+    /// </summary>
     public Action EDF_Loading_Finished;
     /// <summary>
     /// Background process for loading edf file
@@ -33,6 +41,7 @@ namespace SleepApneaAnalysisTool
     /// <param name="e"></param>
     private void BW_FinishLoad(object sender, RunWorkerCompletedEventArgs e)
     {
+      // Raise event
       EDF_Loading_Finished();
     }
     /// <summary>
@@ -41,6 +50,7 @@ namespace SleepApneaAnalysisTool
     /// <param name="fileNameIn"> Path to the EDF file to load </param>
     public void LoadEDFFile(string fileNameIn)
     {
+      // Run the EDF file parsing function in a background process
       LoadedEDFFile = null;
       LoadedEDFFileName = fileNameIn;
       BackgroundWorker bw = new BackgroundWorker();
@@ -65,26 +75,7 @@ namespace SleepApneaAnalysisTool
     #endregion
 
     #region Properties 
-
-    // Update Actions
-    /// <summary>
-    /// Function called when the loaded EDF file changes
-    /// </summary>
-    private void LoadedEDFFile_Changed()
-    {
-      // Preview Time Picker
-      if (p_LoadedEDFFile == null)
-      {
-        LoadedEDFFileName = null;
-      }
-      else
-      {
-      }
-
-      // Misc
-      OnPropertyChanged(nameof(IsEDFLoaded));
-    }
-
+    
     // Loaded EDF Info
     /// <summary>
     /// The EDF file structure
@@ -98,7 +89,7 @@ namespace SleepApneaAnalysisTool
       set
       {
         p_LoadedEDFFile = value;
-        LoadedEDFFile_Changed();
+        OnPropertyChanged(nameof(IsEDFLoaded));
       }
     }
     /// <summary>
