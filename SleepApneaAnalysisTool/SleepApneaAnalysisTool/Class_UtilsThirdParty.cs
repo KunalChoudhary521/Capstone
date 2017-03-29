@@ -1,5 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
 using EDF;
 using Excel = Microsoft.Office.Interop.Excel;
 
@@ -7,8 +11,6 @@ namespace SleepApneaAnalysisTool
 {
   partial class Utils
   {
-    // EDF
-
     /// <summary>
     /// Modified From EDF library function https://edf.codeplex.com/SourceControl/latest#trunk/EDFFile.cs
     /// Gets the signal samples from one period of time to another
@@ -70,19 +72,17 @@ namespace SleepApneaAnalysisTool
       }
       return signalSampleValues;
     }
-
-    // Excel Interop 
-
+    
     /// <summary>
     /// Obtained from https://www.codeproject.com/Articles/9992/Faster-MS-Excel-Reading-using-Office-Interop-Assem
+    /// Used to make the Excel Interop operations more performant 
     /// </summary>
-    /// <param name="app"></param>
+    /// <param name="app"> The Excel Application structure </param>
     public static void MakeExcelInteropPerformant(Excel.Application app, bool makeperformant)
     {
       app.Visible = !makeperformant;
       app.ScreenUpdating = !makeperformant;
       app.DisplayAlerts = !makeperformant;
     }
-
   }
 }

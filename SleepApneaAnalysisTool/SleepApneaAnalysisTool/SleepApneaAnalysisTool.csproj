@@ -195,11 +195,12 @@
     <Compile Include="Class_CommonData.cs" />
     <Compile Include="Class_Preview.cs" />
     <Compile Include="Class_Analysis_Respiratory.cs" />
-    <Compile Include="Class_UtilsThirdPartyUI.cs" />
+    <Compile Include="Class_UtilsUIThirdParty.cs" />
     <Compile Include="Class_UtilsThirdParty.cs" />
     <Compile Include="Class_UserSettings.cs" />
     <Compile Include="Class_Utils.cs" />
     <Compile Include="Class_Analysis_EEG.cs" />
+    <Compile Include="Class_UtilsUI.cs" />
     <Compile Include="Dialog_Export_Previewed_Signals.xaml.cs">
       <DependentUpon>Dialog_Export_Previewed_Signals.xaml</DependentUpon>
     </Compile>

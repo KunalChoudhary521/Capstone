@@ -1,28 +1,37 @@
 ﻿using System;
-using MahApps.Metro;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
 using System.Windows.Media;
 using System.Windows;
 
+using MahApps.Metro;
+
 namespace SleepApneaAnalysisTool
 {
+  /// <summary>
+  /// Helper functions used for UI purposes
+  /// Large segments of this code was obtained from third party sources and modified
+  /// </summary>
   partial class Utils
   {
-
-    // Personalization
-
     /// <summary>
     /// Modified From Sample MahApps.Metro Project
     /// https://github.com/punker76/code-samples/blob/master/MahAppsMetroThemesSample/MahAppsMetroThemesSample/ThemeManagerHelper.cs
+    /// The purpose of this function is to convert a standard Color class into an Accent 
+    /// structure that can be used to the theme the MahApps.Metro Window 
     /// </summary>
     public static Accent ThemeColorToAccent(Color color)
     {
+      // Obtain the ARGB values of the Color
       byte a = color.A;
       byte g = color.G;
       byte r = color.R;
       byte b = color.B;
 
-      // create a runtime accent resource dictionary
-
+      // Create the Resource Dictionary for the MahApps.Metro theme
       var resourceDictionary = new ResourceDictionary();
 
       resourceDictionary.Add("HighlightColor", Color.FromArgb(a, r, g, b));
@@ -52,8 +61,7 @@ namespace SleepApneaAnalysisTool
       resourceDictionary.Add("IdealForegroundColor", Colors.White);
       resourceDictionary.Add("IdealForegroundColorBrush", new SolidColorBrush((Color)resourceDictionary["IdealForegroundColor"]));
       resourceDictionary.Add("AccentSelectedColorBrush", new SolidColorBrush((Color)resourceDictionary["IdealForegroundColor"]));
-
-      // DataGrid brushes since latest alpha after 1.1.2
+      
       resourceDictionary.Add("MetroDataGrid.HighlightBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor"]));
       resourceDictionary.Add("MetroDataGrid.HighlightTextBrush", new SolidColorBrush((Color)resourceDictionary["IdealForegroundColor"]));
       resourceDictionary.Add("MetroDataGrid.MouseOverHighlightBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor3"]));
@@ -61,8 +69,7 @@ namespace SleepApneaAnalysisTool
       resourceDictionary.Add("MetroDataGrid.InactiveSelectionHighlightBrush", new SolidColorBrush((Color)resourceDictionary["AccentColor2"]));
       resourceDictionary.Add("MetroDataGrid.InactiveSelectionHighlightTextBrush", new SolidColorBrush((Color)resourceDictionary["IdealForegroundColor"]));
 
-      // applying theme to MahApps
-
+      // Save the Resource Dictionary into the Windows Temp Folder
       var resDictName = string.Format("ApplicationAccent_{0}.xaml", Color.FromArgb(a, r, g, b).ToString().Replace("#", string.Empty));
       var fileName = System.IO.Path.Combine(System.IO.Path.GetTempPath(), resDictName);
       using (var writer = System.Xml.XmlWriter.Create(fileName, new System.Xml.XmlWriterSettings { Indent = true }))
@@ -70,9 +77,9 @@ namespace SleepApneaAnalysisTool
         System.Windows.Markup.XamlWriter.Save(resourceDictionary, writer);
         writer.Close();
       }
-
       resourceDictionary = new ResourceDictionary() { Source = new Uri(fileName, UriKind.Absolute) };
 
+      // Return the Accent based on the created Resource Dictionary 
       return new Accent { Name = string.Format("ApplicationAccent_{0}.xaml", Color.FromArgb(a, r, g, b).ToString().Replace("#", string.Empty)), Resources = resourceDictionary };
     }
   }

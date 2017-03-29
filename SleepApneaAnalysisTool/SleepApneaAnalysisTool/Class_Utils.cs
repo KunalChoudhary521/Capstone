@@ -1,52 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+using System.IO;
+
 using OxyPlot;
 using OxyPlot.Series;
+
 using EDF;
+
 using MathWorks.MATLAB.NET.Arrays;
 using MATLAB_496;
-using System.IO;
-using System.Windows.Media;
+
 using Excel = Microsoft.Office.Interop.Excel;
 
 namespace SleepApneaAnalysisTool
 {
+  /// <summary>
+  /// Helper functions used in the business logic
+  /// </summary>
   partial class Utils
   {
-    #region Static Functions 
-
-    // Personalization
-    /// <summary>
-    /// Given a PlotModel, makes the axes and text of the PlotModel black or gray depending on whether the user selected a Dark theme or not
-    /// </summary>
-    /// <param name="plot"> The PlotModel to theme </param>
-    /// <param name="UseDarkTheme"> True if the user is using a Dark theme </param>
-    public static void ApplyThemeToPlot(PlotModel plot, bool UseDarkTheme)
-    {
-      if (plot != null)
-      {
-        var color = UseDarkTheme ? OxyColors.LightGray : OxyColors.Black;
-
-        plot.LegendTextColor = color;
-        plot.TitleColor = color;
-        plot.PlotAreaBorderColor = color;
-        for (int x = 0; x < plot.Axes.Count; x++)
-        {
-          plot.Axes[x].AxislineColor = color;
-          plot.Axes[x].ExtraGridlineColor = color;
-          plot.Axes[x].MajorGridlineColor = color;
-          plot.Axes[x].MinorGridlineColor = color;
-          plot.Axes[x].MinorTicklineColor = color;
-          plot.Axes[x].TextColor = color;
-          plot.Axes[x].TicklineColor = color;
-          plot.Axes[x].TitleColor = color;
-        }
-      }
-    }
-
-    // Epoch <-> DateTime
-
     /// <summary>
     /// The definition of epochs in seconds
     /// </summary>
@@ -64,6 +40,20 @@ namespace SleepApneaAnalysisTool
     {
       // DateTime = StartTime + (epoch - 1) * EPOCH_SEC
       return file.Header.StartDateTime + new TimeSpan(0, 0, (epoch - 1) * EPOCH_SEC);
+    }
+    /// <summary>
+    /// Converts an epoch point in time to a DateTime structure
+    /// </summary>
+    /// <param name="epoch"> The epoch point in time to convert </param>
+    /// <param name="file"> 
+    /// The EDFFile class used to determine the start 
+    /// DateTime corresponding to epoch 0 
+    /// </param>
+    /// <returns> A DateTime structure corresponding the input epoch point in time </returns>
+    public static DateTime EpochtoDateTime(int epoch, DateTime start)
+    {
+      // DateTime = StartTime + (epoch - 1) * EPOCH_SEC
+      return start + new TimeSpan(0, 0, (epoch - 1) * EPOCH_SEC);
     }
     /// <summary>
     /// Converts an epoch duration into a TimeSpan structure
@@ -90,17 +80,6 @@ namespace SleepApneaAnalysisTool
       return (int)((time - file.Header.StartDateTime).TotalSeconds / (double)EPOCH_SEC) + 1;
     }
     /// <summary>
-    /// Converts a TimeSpan structure into an epoch duration
-    /// </summary>
-    /// <param name="period"> The TimeSpan structure to convert </param>
-    /// <returns> The epoch duration corresponding to the input TimeSpan </returns>
-    public static int TimeSpantoEpochPeriod(TimeSpan period)
-    {
-      // epoch = TimeSpan / EPOCH_SEC
-      return (int)(period.TotalSeconds / (double)EPOCH_SEC);
-    }
-
-    /// <summary>
     /// Converts a DateTime structure into an epoch point in time
     /// </summary>
     /// <param name="time"> The DateTime structure to convert </param>
@@ -114,22 +93,16 @@ namespace SleepApneaAnalysisTool
       return (int)((time - start).TotalSeconds / (double)EPOCH_SEC) + 1;
     }
     /// <summary>
-    /// Converts an epoch point in time to a DateTime structure
+    /// Converts a TimeSpan structure into an epoch duration
     /// </summary>
-    /// <param name="epoch"> The epoch point in time to convert </param>
-    /// <param name="file"> 
-    /// The EDFFile class used to determine the start 
-    /// DateTime corresponding to epoch 0 
-    /// </param>
-    /// <returns> A DateTime structure corresponding the input epoch point in time </returns>
-    public static DateTime EpochtoDateTime(int epoch, DateTime start)
+    /// <param name="period"> The TimeSpan structure to convert </param>
+    /// <returns> The epoch duration corresponding to the input TimeSpan </returns>
+    public static int TimeSpantoEpochPeriod(TimeSpan period)
     {
-      // DateTime = StartTime + (epoch - 1) * EPOCH_SEC
-      return start + new TimeSpan(0, 0, (epoch - 1) * EPOCH_SEC);
+      // epoch = TimeSpan / EPOCH_SEC
+      return (int)(period.TotalSeconds / (double)EPOCH_SEC);
     }
-
-    // Determining Signal Y Axis Extremes
-
+    
     /// <summary>
     /// this percentile of a signal's values is used as the maximum Y axes value
     /// </summary>
@@ -365,9 +338,15 @@ namespace SleepApneaAnalysisTool
       return series;
     }
 
-    // Settings Persistence
+    /// <summary>
+    /// The directory path of where the application saves all settings files
+    /// </summary>
     public static string settings_folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\SleepApneaAnalysisTool\\Settings";
-
+    /// <summary>
+    /// Loads the signal category definitions into memory
+    /// </summary>
+    /// <param name="AllSignals"> All signals loaded from the EDF file or specified as derivatives or filtered signals </param>
+    /// <returns> The signal category definitions </returns>
     public static SignalCategory[] LoadCategoriesFile(string[] AllSignals)
     {
       // Check if Settings directory exists
@@ -420,6 +399,11 @@ namespace SleepApneaAnalysisTool
       // Return values
       return temp.ToArray();
     }
+    /// <summary>
+    /// Writes the signal category definitions to the settings text file
+    /// </summary>
+    /// <param name="SignalCategories"> The signal category definitions </param>
+    /// <param name="AllSignals"> All signals loaded from the EDF file or specified as derivatives or filtered signals </param>
     public static void WriteToCategoriesFile(SignalCategory[] SignalCategories, string[] AllSignals)
     {
       List<SignalCategory> current_SignalCategories = LoadCategoriesFile(null).ToList();
@@ -480,6 +464,11 @@ namespace SleepApneaAnalysisTool
       }
       sw.Close();
     }
+    /// <summary>
+    /// Loads the derivative definitions into memory
+    /// </summary>
+    /// <param name="LoadedEDFFile"> The loaded EDF structure </param>
+    /// <returns> The derivative definitions </returns>
     public static DerivativeSignal[] LoadDerivativesFile(EDFFile LoadedEDFFile)
     {
       if (!Directory.Exists(settings_folder))
@@ -519,6 +508,11 @@ namespace SleepApneaAnalysisTool
 
       return output.ToArray();
     }
+    /// <summary>
+    /// Writes the derivative definitions to the settings text file
+    /// </summary>
+    /// <param name="DerivativeSignals"> The derivative definitions </param>
+    /// <param name="AllSignals"> All signals loaded from the EDF file or specified as derivatives or filtered signals </param>
     public static void WriteToDerivativesFile(DerivativeSignal[] DerivativeSignals, string[] AllSignals)
     {
       List<DerivativeSignal> current_DerivativeSignals = LoadDerivativesFile(null).ToList();
@@ -561,6 +555,11 @@ namespace SleepApneaAnalysisTool
       }
       sw.Close();
     }
+    /// <summary>
+    /// Loads the filtered signal definitions into memory
+    /// </summary>
+    /// <param name="AllSignals"> All signals loaded from the EDF file or specified as derivatives or filtered signals </param>
+    /// <returns> The filtered signal definitions </returns>
     public static FilteredSignal[] LoadFilteredSignalsFile(string[] AllSignals)
     {
       if (!Directory.Exists(settings_folder))
@@ -599,6 +598,11 @@ namespace SleepApneaAnalysisTool
 
       return filteredSignals.ToArray();
     }
+    /// <summary>
+    /// Writes the filtered signal definitions to the settings text file
+    /// </summary>
+    /// <param name="FilteredSignals"> The filtered signal definitions </param>
+    /// <param name="AllSignals"> All signals loaded from the EDF file or specified as derivatives or filtered signals </param>
     public static void WriteToFilteredSignalsFile(FilteredSignal[] FilteredSignals, string[] AllSignals)
     {
       if (!Directory.Exists(settings_folder))
@@ -621,6 +625,10 @@ namespace SleepApneaAnalysisTool
       }
       sw.Close();
     }
+    /// <summary>
+    /// Loads the list of names of hidden signals into memory
+    /// </summary>
+    /// <returns> A list of hidden signal names </returns>
     public static string[] LoadHiddenSignalsFile()
     {
       if (!Directory.Exists(settings_folder))
@@ -638,6 +646,10 @@ namespace SleepApneaAnalysisTool
 
       return output.ToArray();
     }
+    /// <summary>
+    /// Writes the list of names of hidden signals to a settings text file
+    /// </summary>
+    /// <param name="hidden_signals"> A list of hidden signal names </param>
     public static void WriteToHiddenSignalsFile(string[] hidden_signals)
     {
       if (!Directory.Exists(settings_folder))
@@ -650,40 +662,13 @@ namespace SleepApneaAnalysisTool
       }
       sw.Close();
     }
-    public static void LoadPersonalization(out bool UseCustomColor, out Color ThemeColor, out bool UseDarkTheme)
-    {
-      if (!Directory.Exists(settings_folder))
-        Directory.CreateDirectory(settings_folder);
-
-      if (File.Exists(settings_folder + "\\personalization.txt"))
-      {
-        StreamReader sr = new StreamReader(settings_folder + "\\personalization.txt");
-        UseCustomColor = bool.Parse(sr.ReadLine());
-        string temp = sr.ReadLine();
-        ThemeColor = Color.FromArgb(byte.Parse(temp.Split(',')[0]), byte.Parse(temp.Split(',')[1]), byte.Parse(temp.Split(',')[2]), byte.Parse(temp.Split(',')[3]));
-        UseDarkTheme = bool.Parse(sr.ReadLine());
-        sr.Close();
-      }
-      else
-      {
-        UseCustomColor = false;
-        ThemeColor = Colors.AliceBlue;
-        UseDarkTheme = false;
-      }
-    }
-    public static void WriteToPersonalization(bool UseCustomColor, Color ThemeColor, bool UseDarkTheme)
-    {
-      if (!Directory.Exists(settings_folder))
-        Directory.CreateDirectory(settings_folder);
-
-      StreamWriter sw = new StreamWriter(settings_folder + "\\personalization.txt");
-      sw.WriteLine(UseCustomColor.ToString());
-      sw.WriteLine(ThemeColor.A.ToString() + "," + ThemeColor.R.ToString() + "," + ThemeColor.G.ToString() + "," + ThemeColor.B.ToString());
-      sw.WriteLine(UseDarkTheme.ToString());
-      sw.Close();
-    }
     
-    // Filters
+    /// <summary>
+    /// Applies a Moving Average Filter to the input signal
+    /// </summary>
+    /// <param name="series"> The series of X and Y values to be filtered </param>
+    /// <param name="LENGTH"> The length of the discrete-time filter's impulse response </param>
+    /// <returns> The filtered signal values </returns>
     public static LineSeries ApplyAverageFilter(LineSeries series, int LENGTH)
     {
       double[] input = series.Points.Select(temp => temp.Y).ToArray();
@@ -706,6 +691,13 @@ namespace SleepApneaAnalysisTool
 
       return series_new;
     }
+    /// <summary>
+    /// Applies a discretized Low Pass Single Pole Filter to the input signal
+    /// </summary>
+    /// <param name="series"> The series of X and Y values to be filtered </param>
+    /// <param name="cutoff"> The desired cutoff frequence (Hz) </param>
+    /// <param name="sample_period"> The sample period of the signal </param>
+    /// <returns> The filtered signal values </returns>
     public static LineSeries ApplyLowPassFilter(LineSeries series, float cutoff, float sample_period)
     {
       double RC = 1 / (2 * Math.PI * cutoff);
@@ -727,8 +719,12 @@ namespace SleepApneaAnalysisTool
 
       return new_series;
     }
-
-    // Export
+    
+    /// <summary>
+    /// Exports an OxyPlot PlotModel to a PNG image file
+    /// </summary>
+    /// <param name="plot"> The PlotModel to export </param>
+    /// <param name="fileName"> The path to the image file to be created </param>
     public static void ExportImage(PlotModel plot, string fileName)
     {
       var export = new OxyPlot.Wpf.PngExporter();
@@ -744,8 +740,15 @@ namespace SleepApneaAnalysisTool
       file.Close();
       stream.Close();
     }
-
-    // Excel Interop 
+ 
+    /// <summary>
+    /// Writes an Excel worksheet containing a Respiratory Signal's values and Plot
+    /// </summary>
+    /// <param name="ws"> The Excel worksheet object </param>
+    /// <param name="SignalName"> The name of the respiratory signal </param>
+    /// <param name="table"> The respiratory signal values and peak/onset locations </param>
+    /// <param name="ROWS"> The number of rows in the table </param>
+    /// <param name="COLUMNS"> The number of columns in the table </param>
     public static void AddRespiratorySignalToWorksheet(Excel.Worksheet ws, string SignalName, object[,] table, int ROWS, int COLUMNS)
     {
       // Make Table with Values
@@ -797,6 +800,15 @@ namespace SleepApneaAnalysisTool
       System.Runtime.InteropServices.Marshal.ReleaseComObject(range);
       System.Runtime.InteropServices.Marshal.ReleaseComObject(range2);
     }
+    /// <summary>
+    /// Writes an Excel worksheet containing a signal's values and Plot
+    /// </summary>
+    /// <param name="ws"> The Excel worksheet object </param>
+    /// <param name="SignalName"> The name of the signal </param>
+    /// <param name="table"> The signal values </param>
+    /// <param name="ROWS"> The number of rows in the table </param>
+    /// <param name="COLUMNS"> The number of columns in the table </param>
+    /// <param name="color"> The color of the plot </param>
     public static void AddSignalToWorksheet(Excel.Worksheet ws, string SignalName, object[,] table, int ROWS, int COLUMNS, OxyColor color)
     {
       Excel.Range range = ws.Range[ws.Cells[3, 2], ws.Cells[3 + ROWS - 1, 2 + COLUMNS - 1]];
@@ -817,7 +829,5 @@ namespace SleepApneaAnalysisTool
       System.Runtime.InteropServices.Marshal.ReleaseComObject(chart);
       System.Runtime.InteropServices.Marshal.ReleaseComObject(range);
     }
-    
-    #endregion 
   }
 }
