@@ -6,12 +6,11 @@ using System.Windows.Media;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.IO;
+
 using EDF;
+
 using OxyPlot;
 using OxyPlot.Series;
-using MahApps.Metro.Controls;
-using MahApps.Metro.Controls.Dialogs;
-using MahApps.Metro;
 using OxyPlot.Axes;
 
 namespace SleepApneaAnalysisTool
@@ -239,45 +238,11 @@ namespace SleepApneaAnalysisTool
     /// Settings Model
     /// </summary>
     public SettingsModel sm;
-    /// <summary>
-    /// The Main Window
-    /// </summary>
-    public MainWindow p_window;
 
     #region Properties
 
-    /// <summary>
-    /// Function called when the user changes the UI theme color
-    /// </summary>
-    private void AppliedThemeColor_Changed()
-    {
-      OnPropertyChanged(nameof(AppliedThemeColor));
-      
-      Accent new_accent = Utils.ThemeColorToAccent(AppliedThemeColor);
-
-      ThemeManager.AddAccent(new_accent.Name, new_accent.Resources.Source);
-      ThemeManager.ChangeAppStyle(Application.Current, new_accent, ThemeManager.GetAppTheme(UseDarkTheme ? "BaseDark" : "BaseLight"));
-
-      // Update all charts to dark or light theme
-      var all_plotmodels = p_window.FindChildren<OxyPlot.Wpf.PlotView>().ToList();   
-      for (int x = 0; x < all_plotmodels.Count; x++)
-      {
-        OxyPlot.Wpf.PlotView plot = all_plotmodels[x];
-
-        PlotModel model = plot.Model;
-        if (model != null)
-        {
-          Utils.ApplyThemeToPlot(model, UseDarkTheme);
-          plot.Model.InvalidatePlot(true); 
-        }
-      }
-
-      var all_datetimeupdown = p_window.FindChildren<Xceed.Wpf.Toolkit.DateTimeUpDown>().ToList();
-      for (int x = 0; x < all_datetimeupdown.Count; x++)
-      {
-        all_datetimeupdown[x].Foreground = UseDarkTheme ? Brushes.White : Brushes.Black;
-      }
-    }
+    public Action Load_Recent;
+    public Action Theme_Changed;
 
     // Personalization
     /// <summary>
@@ -293,7 +258,8 @@ namespace SleepApneaAnalysisTool
       {
         sm.ThemeColor = value;
         OnPropertyChanged(nameof(ThemeColor));
-        AppliedThemeColor_Changed();
+        OnPropertyChanged(nameof(AppliedThemeColor));
+        Theme_Changed();
       }
     }
     /// <summary>
@@ -309,7 +275,8 @@ namespace SleepApneaAnalysisTool
       {
         sm.UseCustomColor = value;
         OnPropertyChanged(nameof(UseCustomColor));
-        AppliedThemeColor_Changed();
+        OnPropertyChanged(nameof(AppliedThemeColor));
+        Theme_Changed();
       }
     }
     /// <summary>
@@ -338,7 +305,7 @@ namespace SleepApneaAnalysisTool
       {
         sm.UseDarkTheme = value;
         OnPropertyChanged(nameof(UseDarkTheme));
-        AppliedThemeColor_Changed();
+        Theme_Changed();
       }
     }
 
@@ -444,7 +411,7 @@ namespace SleepApneaAnalysisTool
       }
       sw.Close();
 
-      p_window.Invoke(new Action(() => p_window.LoadRecent()));
+      Load_Recent();
     }
     /// <summary>
     /// Removes a file path from the RecentFiles text file
@@ -466,7 +433,7 @@ namespace SleepApneaAnalysisTool
       }
       sw.Close();
 
-      p_window.Invoke(new Action(() => p_window.LoadRecent()));
+      Load_Recent();
     }
 
     // Signals
@@ -636,36 +603,12 @@ namespace SleepApneaAnalysisTool
       FlyoutOpen = !FlyoutOpen;
     }
 
-    public async void ModifyEpochDefinition()
+    public void ModifyEpochDefinition(int x)
     {
-      string x = await p_window.ShowInputAsync("New Epoch Definition", "Please enter an integer epoch definition in seconds (default = 30)");
-      int new_def;
-      if (x != null)
-      {
-        if (Int32.TryParse(x, out new_def))
-        {
-          Utils.EPOCH_SEC = new_def;
-          OnPropertyChanged(nameof(Utils.EPOCH_SEC));
-        }
-        else
-        {
-          await p_window.ShowMessageAsync("Error", "Input value must be an integer. No changes made");
-        }
-      }
+      Utils.EPOCH_SEC = x;
+      OnPropertyChanged(nameof(Utils.EPOCH_SEC));
     }
-
-    /// <summary>
-    /// Opens the Signal Category Management Wizard
-    /// </summary>
-    public void ManageCategories()
-    {
-      Dialog_Manage_Categories dlg = new Dialog_Manage_Categories(p_window,
-                                                                  this,
-                                                                  sm.SignalCategories.ToArray(),
-                                                                  AllSignals.ToArray()
-                                                                  );
-      p_window.ShowMetroDialogAsync(dlg);
-    }
+    
     /// <summary>
     /// The Signal Category Management Wizard calls this function to return user input
     /// </summary>
@@ -675,19 +618,6 @@ namespace SleepApneaAnalysisTool
     {
       PreviewList_Updated();
       sm.SignalCategories = categories.ToList();
-    }
-
-    /// <summary>
-    /// Opens the Add Derivative Signal Wizard
-    /// </summary>
-    public void AddDerivative()
-    {
-      Dialog_Add_Derivative dlg = new Dialog_Add_Derivative(p_window,
-                                                            this,
-                                                            EDFAllSignals.ToArray(),
-                                                            AllSignals.ToArray()
-                                                            );
-      p_window.ShowMetroDialogAsync(dlg);
     }
     /// <summary>
     /// The Add Derivative Signal Wizard call this function to return user input
@@ -701,16 +631,6 @@ namespace SleepApneaAnalysisTool
 
       PreviewList_Updated();
       OnPropertyChanged(nameof(AllNonHiddenSignals));
-    }
-    /// <summary>
-    /// Opens the Remove Derivative Signal Wizard
-    /// </summary>
-    public void RemoveDerivative()
-    {
-      Dialog_Remove_Derivative dlg = new Dialog_Remove_Derivative(p_window,
-                                                                  this,
-                                                                  sm.DerivedSignals.Select(temp => temp.DerivativeName).ToArray());
-      p_window.ShowMetroDialogAsync(dlg);
     }
     /// <summary>
     /// The Remove Derivative Signal Wizard call this function to return user input
@@ -742,27 +662,6 @@ namespace SleepApneaAnalysisTool
       PreviewList_Updated();
       OnPropertyChanged(nameof(AllNonHiddenSignals));
     }
-
-    /// <summary>
-    /// Calls the Hide/Unhide Signals Wizard
-    /// </summary>
-    public void HideSignals()
-    {
-      bool[] input = new bool[EDFAllSignals.Count];
-      for (int x = 0; x < EDFAllSignals.Count; x++)
-      {
-        if (sm.HiddenSignals.Contains(EDFAllSignals[x]))
-          input[x] = true;
-        else
-          input[x] = false;
-      }
-
-      Dialog_Hide_Signals dlg = new Dialog_Hide_Signals(p_window,
-                                                        this,
-                                                        EDFAllSignals.ToArray(),
-                                                        input);
-      p_window.ShowMetroDialogAsync(dlg);
-    }
     /// <summary>
     /// The Hide/Unhide Signals Wizard calls this function to return user inpout
     /// </summary>
@@ -790,21 +689,6 @@ namespace SleepApneaAnalysisTool
       PreviewList_Updated();
       OnPropertyChanged(nameof(AllNonHiddenSignals));
     }
-
-    /// <summary>
-    /// Call the Add Filtered Signal Wizard
-    /// </summary>
-    public void AddFilter()
-    {
-      Dialog_Add_Filter dlg = new Dialog_Add_Filter(p_window,
-                                                            this,
-                                                            EDFAllSignals.ToArray(),
-                                                            sm.DerivedSignals.Select(temp => temp.DerivativeName).ToArray(),
-                                                            AllSignals.ToArray()
-                                                            );
-      p_window.ShowMetroDialogAsync(dlg);
-
-    }
     /// <summary>
     /// The Add Filtered Signal Wizard calls this function to return user input
     /// </summary>
@@ -814,16 +698,6 @@ namespace SleepApneaAnalysisTool
 
       PreviewList_Updated();
       OnPropertyChanged(nameof(AllNonHiddenSignals));
-    }
-    /// <summary>
-    /// Calls the Remove Filtered Signal Wizard.
-    /// </summary>
-    public void RemoveFilter()
-    {
-      Dialog_Remove_Filter dlg = new Dialog_Remove_Filter(p_window,
-                                                          this,
-                                                          sm.FilteredSignals.Select(temp => temp.SignalName).ToArray());
-      p_window.ShowMetroDialogAsync(dlg);
     }
     /// <summary>
     /// The Remove Filtered Signal Wizard calls this function to return user input.
@@ -933,9 +807,8 @@ namespace SleepApneaAnalysisTool
     /// <param name="i_window"></param>
     /// <param name="i_common_data"></param>
     /// <param name="i_sm"></param>
-    public SettingsModelView(MainWindow i_window, CommonModelView i_common_data, SettingsModel i_sm)
+    public SettingsModelView(CommonModelView i_common_data, SettingsModel i_sm)
     {
-      p_window = i_window;
       common_data = i_common_data;
       sm = i_sm;
 

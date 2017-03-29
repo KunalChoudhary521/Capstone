@@ -51,16 +51,16 @@ namespace SleepApneaAnalysisTool
     MainWindow window;
     SettingsModelView model;
 
-    public Dialog_Add_Filter(MainWindow in_window, SettingsModelView in_model, string[] in_EDFSignals, string[] in_Derivatives, string[] in_AllSignals)
+    public Dialog_Add_Filter(MainWindow in_window, SettingsModelView in_model)
     {
       InitializeComponent();
 
       model = in_model;
       window = in_window;
-      AllSignals = in_AllSignals;
+      AllSignals = in_model.AllSignals.ToArray();
 
-      AllSignals_NoFiltered = in_EDFSignals.ToList();
-      AllSignals_NoFiltered.AddRange(in_Derivatives);
+      AllSignals_NoFiltered = in_model.EDFAllSignals.ToArray().ToList();
+      AllSignals_NoFiltered.AddRange(in_model.sm.DerivedSignals.Select(temp => temp.DerivativeName).ToArray());
 
       for (int x = 0; x < AllSignals_NoFiltered.Count; x++)
         comboBox_Signal.Items.Add(AllSignals_NoFiltered[x]);

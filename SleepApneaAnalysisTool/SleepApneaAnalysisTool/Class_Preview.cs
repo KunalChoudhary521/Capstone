@@ -325,7 +325,7 @@ namespace SleepApneaAnalysisTool
     /// <summary>
     /// Preview Model
     /// </summary>
-    private PreviewModel pm = new PreviewModel();
+    public PreviewModel pm = new PreviewModel();
 
     #region Properties
 
@@ -1227,17 +1227,6 @@ namespace SleepApneaAnalysisTool
     private void BW_ExportSignals_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
     {
       PreviewNavigationEnabled = true;
-    }
-    public void ExportSignals()
-    {
-      if (pm.PreviewSelectedSignals.Count > 0)
-      {
-        Dialog_Export_Previewed_Signals dlg = new Dialog_Export_Previewed_Signals(svm.p_window, this, pm.PreviewSelectedSignals);
-        svm.p_window.ShowMetroDialogAsync(dlg);
-      }
-      else
-      {
-      }
     }
     public void ExportSignalsOutput(bool result, ExportSignalModel signals_to_export)
     {

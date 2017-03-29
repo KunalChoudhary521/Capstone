@@ -28,11 +28,11 @@ namespace SleepApneaAnalysisTool
     private MetroWindow window;
     private PreviewModelView pmv;
 
-    public Dialog_Export_Previewed_Signals(MetroWindow i_window, PreviewModelView i_pmv, List<string> selected_signals)
+    public Dialog_Export_Previewed_Signals(MetroWindow i_window, PreviewModelView i_pmv)
     {
       InitializeComponent();
 
-      this.selected_signals = new List<string>(selected_signals);
+      this.selected_signals = i_pmv.pm.PreviewSelectedSignals;
       this.window = i_window;
       this.pmv = i_pmv;
 

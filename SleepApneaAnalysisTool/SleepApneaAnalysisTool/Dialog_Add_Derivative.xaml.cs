@@ -48,17 +48,17 @@ namespace SleepApneaAnalysisTool
     private MetroWindow window;
     private SettingsModelView model;
 
-    public Dialog_Add_Derivative(MetroWindow i_window, SettingsModelView i_model, string[] i_Signals, string[] i_AllSignals)
+    public Dialog_Add_Derivative(MetroWindow i_window, SettingsModelView i_model)
     {
       InitializeComponent();
 
-      Signals = i_Signals;
-      AllSignals = i_AllSignals;
+      Signals = i_model.EDFAllSignals.ToArray();
+      AllSignals = i_model.AllSignals.ToArray();
 
-      for (int x = 0; x < i_Signals.Length; x++)
+      for (int x = 0; x < Signals.Length; x++)
       {
-        comboBox_Signal1.Items.Add(i_Signals[x]);
-        comboBox_Signal2.Items.Add(i_Signals[x]);
+        comboBox_Signal1.Items.Add(Signals[x]);
+        comboBox_Signal2.Items.Add(Signals[x]);
       }
 
       window = i_window;

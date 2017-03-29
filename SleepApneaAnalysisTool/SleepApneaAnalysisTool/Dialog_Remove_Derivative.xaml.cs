@@ -37,9 +37,11 @@ namespace SleepApneaAnalysisTool
     private MetroWindow window;
     private SettingsModelView model;
 
-    public Dialog_Remove_Derivative(MetroWindow i_window, SettingsModelView i_model, string[] DerivedSignals)
+    public Dialog_Remove_Derivative(MetroWindow i_window, SettingsModelView i_model)
     {
       InitializeComponent();
+
+      string[] DerivedSignals = i_model.sm.DerivedSignals.Select(temp => temp.DerivativeName).ToArray();
 
       for (int x = 0; x < DerivedSignals.Length; x++)
         listBox_DerivedSignals.Items.Add(DerivedSignals[x]);

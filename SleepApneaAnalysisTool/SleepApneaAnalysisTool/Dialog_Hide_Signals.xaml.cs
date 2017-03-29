@@ -40,14 +40,25 @@ namespace SleepApneaAnalysisTool
     private MetroWindow window;
     private SettingsModelView model;
 
-    public Dialog_Hide_Signals(MetroWindow i_window, SettingsModelView i_model, string[] edf_signals, bool[] hide_signals)
+    public Dialog_Hide_Signals(MetroWindow i_window, SettingsModelView i_model)
     {
+      string[] edf_signals = i_model.EDFAllSignals.ToArray();
+
+      bool[] input = new bool[i_model.EDFAllSignals.Count];
+      for (int x = 0; x < i_model.EDFAllSignals.Count; x++)
+      {
+        if (i_model.sm.HiddenSignals.Contains(i_model.EDFAllSignals[x]))
+          input[x] = true;
+        else
+          input[x] = false;
+      }
+      
       InitializeComponent();
 
       for (int x = 0; x < edf_signals.Length; x++)
       {
         listBox_Signals.Items.Add(edf_signals[x]);
-        if (!hide_signals[x])
+        if (!input[x])
           listBox_Signals.SelectedItems.Add(listBox_Signals.Items[listBox_Signals.Items.Count - 1]);
       }
 

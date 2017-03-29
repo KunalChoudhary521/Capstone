@@ -7,10 +7,17 @@ using System.Windows.Documents;
 
 using System.ComponentModel;
 using System.IO;
+using System.Diagnostics;
+using System.Windows.Media;
 
+using MahApps.Metro;
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
-using System.Diagnostics;
+
+using OxyPlot;
+using OxyPlot.Wpf;
+
+using Xceed.Wpf.Toolkit;
 
 namespace SleepApneaAnalysisTool
 {
@@ -27,6 +34,19 @@ namespace SleepApneaAnalysisTool
     SettingsModelView settings_modelview;
 
     #region UI Helper Functions
+
+    // Updates the Recent Files List
+    public void LoadRecent()
+    {
+      this.Invoke(new Action(() => {
+        List<string> array = settings_modelview.RecentFiles.ToArray().ToList();
+
+        itemControl_RecentEDF.Items.Clear();
+        for (int x = 0; x < array.Count; x++)
+          if (!itemControl_RecentEDF.Items.Contains(array[x].Split('\\')[array[x].Split('\\').Length - 1]))
+            itemControl_RecentEDF.Items.Add(array[x].Split('\\')[array[x].Split('\\').Length - 1]);
+      }));
+    }
 
     // Loading EDF File UI
     private ProgressDialogController controller;
@@ -67,29 +87,48 @@ namespace SleepApneaAnalysisTool
       bw_progressbar.DoWork += BW_LoadEDFFileUpDateProgress;
       bw_progressbar.RunWorkerAsync(fileName);
 
-      // Close Progress Bar Event
-      if (common_modelview.EDF_Loading_Finished == null)
-        common_modelview.EDF_Loading_Finished += EDFFinishedLoading;
-
       // Load File
       settings_modelview.WriteEDFSettings();
       common_modelview.LoadEDFFile(fileName);
     }
 
-    #endregion
+    // Personalization
 
     /// <summary>
-    /// Function called to populate recent files list. Called when application is first loaded and if the recent files list changes.
+    /// Function called when the user changes the UI theme color
     /// </summary>
-    public void LoadRecent()
+    private void AppliedThemeColor_Changed()
     {
-      List<string> array = settings_modelview.RecentFiles.ToArray().ToList();
+      Color AppliedThemeColor = settings_modelview.AppliedThemeColor;
+      bool UseDarkTheme = settings_modelview.UseDarkTheme;
 
-      itemControl_RecentEDF.Items.Clear();
-      for (int x = 0; x < array.Count; x++)
-        if (!itemControl_RecentEDF.Items.Contains(array[x].Split('\\')[array[x].Split('\\').Length - 1]))
-          itemControl_RecentEDF.Items.Add(array[x].Split('\\')[array[x].Split('\\').Length - 1]);
+      Accent new_accent = Utils.ThemeColorToAccent(AppliedThemeColor);
+
+      ThemeManager.AddAccent(new_accent.Name, new_accent.Resources.Source);
+      ThemeManager.ChangeAppStyle(Application.Current, new_accent, ThemeManager.GetAppTheme(UseDarkTheme ? "BaseDark" : "BaseLight"));
+
+      // Update all charts to dark or light theme
+      var all_plotmodels = this.FindChildren<PlotView>().ToList();
+      for (int x = 0; x < all_plotmodels.Count; x++)
+      {
+        PlotView plot = all_plotmodels[x];
+
+        PlotModel model = plot.Model;
+        if (model != null)
+        {
+          Utils.ApplyThemeToPlot(model, UseDarkTheme);
+          plot.Model.InvalidatePlot(true);
+        }
+      }
+
+      var all_datetimeupdown = this.FindChildren<DateTimeUpDown>().ToList();
+      for (int x = 0; x < all_datetimeupdown.Count; x++)
+      {
+        all_datetimeupdown[x].Foreground = UseDarkTheme ? Brushes.White : Brushes.Black;
+      }
     }
+
+    #endregion
 
     /// <summary>
     /// Constructor for GUI class.
@@ -103,8 +142,8 @@ namespace SleepApneaAnalysisTool
     {
       SettingsModel settings_model = new SettingsModel();
 
-      common_modelview = new CommonModelView(this);
-      settings_modelview = new SettingsModelView(this, common_modelview, settings_model);
+      common_modelview = new CommonModelView();
+      settings_modelview = new SettingsModelView(common_modelview, settings_model);
       resp_modelview = new RespiratoryModelView(settings_modelview);
       eeg_modelview = new EEGModelView(settings_modelview);
       cohere_modelview = new CoherenceModelView(settings_modelview);
@@ -125,6 +164,10 @@ namespace SleepApneaAnalysisTool
       this.grid_SettingsMainMenu.DataContext = settings_modelview;
       this.grid_SettingsPersonalization.DataContext = settings_modelview;
 
+      settings_modelview.Load_Recent += LoadRecent;
+      settings_modelview.Theme_Changed += AppliedThemeColor_Changed;
+      common_modelview.EDF_Loading_Finished += EDFFinishedLoading;
+
       LoadRecent();
       settings_modelview.LoadAppSettings();
     }
@@ -135,7 +178,7 @@ namespace SleepApneaAnalysisTool
     }
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-      if (this.WindowState != WindowState.Maximized)
+      if (this.WindowState != System.Windows.WindowState.Maximized)
       {
         if (this.Width < 1300)
         {
@@ -161,7 +204,7 @@ namespace SleepApneaAnalysisTool
     {
       switch (this.WindowState)
       {
-        case WindowState.Maximized:
+        case System.Windows.WindowState.Maximized:
           column_EDFHeader.Width = new GridLength(300);
           column_EDFHeader.MaxWidth = 300;
           column_EDFHeader.MinWidth = 300;
@@ -244,39 +287,60 @@ namespace SleepApneaAnalysisTool
       settings_modelview.SettingsPersonalizationVisible = false;
       resp_modelview.SettingsRespiratoryVisible = true;
     }
-    private void button_EpochDefinition_Click(object sender, RoutedEventArgs e)
+    private async void button_EpochDefinition_Click(object sender, RoutedEventArgs e)
     {
-      settings_modelview.ModifyEpochDefinition();
+      string x = await this.ShowInputAsync("New Epoch Definition", "Please enter an integer epoch definition in seconds (default = 30)");
+      int new_def;
+      if (Int32.TryParse(x, out new_def))
+      {
+        settings_modelview.ModifyEpochDefinition(new_def);
+      }
+      else
+      {
+        await this.ShowMessageAsync("Error", "Input value must be an integer. No changes made");
+      }
     }
     private void button_HideSignals_Click(object sender, RoutedEventArgs e)
     {
       settings_modelview.OpenCloseSettings();
-      settings_modelview.HideSignals();
+
+      Dialog_Hide_Signals dlg = new Dialog_Hide_Signals(this, settings_modelview);                                                            
+      this.ShowMetroDialogAsync(dlg);
     }
     private void button_AddDerivative_Click(object sender, RoutedEventArgs e)
     {
       settings_modelview.OpenCloseSettings();
-      settings_modelview.AddDerivative();
+
+      Dialog_Add_Derivative dlg = new Dialog_Add_Derivative(this, settings_modelview);
+      this.ShowMetroDialogAsync(dlg);
     }
     private void button_RemoveDerivative_Click(object sender, RoutedEventArgs e)
     {
       settings_modelview.OpenCloseSettings();
-      settings_modelview.RemoveDerivative();
+
+      Dialog_Remove_Derivative dlg = new Dialog_Remove_Derivative(this, settings_modelview);
+      this.ShowMetroDialogAsync(dlg);
     }
     private void button_Categories_Click(object sender, RoutedEventArgs e)
     {
       settings_modelview.OpenCloseSettings();
-      settings_modelview.ManageCategories();
+
+      Dialog_Manage_Categories dlg = new Dialog_Manage_Categories(this, settings_modelview);
+      this.ShowMetroDialogAsync(dlg);
     }
     private void button_AddFilter_Click(object sender, RoutedEventArgs e)
     {
       settings_modelview.OpenCloseSettings();
-      settings_modelview.AddFilter();
+
+      Dialog_Add_Filter dlg = new Dialog_Add_Filter(this, settings_modelview);                                                  
+      this.ShowMetroDialogAsync(dlg);
     }
     private void button_RemoveFilter_Click(object sender, RoutedEventArgs e)
     {
       settings_modelview.OpenCloseSettings();
-      settings_modelview.RemoveFilter();
+
+      Dialog_Remove_Filter dlg = new Dialog_Remove_Filter(this, settings_modelview);
+      this.ShowMetroDialogAsync(dlg);
     }
 
     // Preview Tab Events   
@@ -310,7 +374,8 @@ namespace SleepApneaAnalysisTool
 
     private void button_ExportBinary_Click(object sender, RoutedEventArgs e)
     {
-      preview_modelview.ExportSignals();
+      Dialog_Export_Previewed_Signals dlg = new Dialog_Export_Previewed_Signals(this, preview_modelview);
+      this.ShowMetroDialogAsync(dlg);
     }
     private void button_PreviewExportExcel_Click(object sender, RoutedEventArgs e)
     {

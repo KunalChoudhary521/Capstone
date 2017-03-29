@@ -63,13 +63,13 @@ namespace SleepApneaAnalysisTool
     private MetroWindow window;
     private SettingsModelView model;
 
-    public Dialog_Manage_Categories(MainWindow i_window, SettingsModelView i_model, SignalCategory[] i_categories, string[] i_allsignals)
+    public Dialog_Manage_Categories(MainWindow i_window, SettingsModelView i_model)
     {
       InitializeComponent();
       VirtualizingStackPanel.SetIsVirtualizing(listBox_Categories, false);
 
-      categories = i_categories.ToList();
-      all_signals = i_allsignals;
+      categories = i_model.sm.SignalCategories.ToArray().ToList();
+      all_signals = i_model.AllSignals.ToArray();
 
       for (int x = 0; x < categories.Count; x++)
       {

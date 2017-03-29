@@ -37,9 +37,11 @@ namespace SleepApneaAnalysisTool
     private MetroWindow window;
     private SettingsModelView model;
 
-    public Dialog_Remove_Filter(MetroWindow i_window, SettingsModelView i_model, string[] FilteredSignals)
+    public Dialog_Remove_Filter(MetroWindow i_window, SettingsModelView i_model)
     {
       InitializeComponent();
+
+      string[] FilteredSignals = i_model.sm.FilteredSignals.Select(temp => temp.SignalName).ToArray();
 
       for (int x = 0; x < FilteredSignals.Length; x++)
         listBox_DerivedSignals.Items.Add(FilteredSignals[x]);

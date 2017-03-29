@@ -54,10 +54,6 @@ namespace SleepApneaAnalysisTool
     #region Members
     
     /// <summary>
-    /// The Window
-    /// </summary>
-    private MainWindow p_window;
-    /// <summary>
     /// The EDF file structure
     /// </summary>
     private EDFFile p_LoadedEDFFile;
@@ -189,10 +185,8 @@ namespace SleepApneaAnalysisTool
     /// <param name="i_window"></param>
     /// <param name="i_common_data"></param>
     /// <param name="i_sm"></param>
-    public CommonModelView(MainWindow i_window)
+    public CommonModelView()
     {
-      p_window = i_window;
-
       #region Preload MATLAB functions into memory
       {
         BackgroundWorker bw = new BackgroundWorker();
