@@ -66,11 +66,11 @@ namespace SleepApneaAnalysisTool
         catch { break; }
       }
     }
-    private void EDFFinishedLoading()
+    private async void EDFFinishedLoading()
     {
-      controller.CloseAsync();
+      await controller.CloseAsync();
       controller = null;
-      this.ShowMessageAsync("Success", "EDF File Loaded.");
+      await this.ShowMessageAsync("Success", "EDF File Loaded.");
     }
     private async void OpenEDF(string fileName)
     {
