@@ -147,6 +147,9 @@ namespace SleepApneaAnalysisTool
     /// The settings model view, contains the loaded EDF file structure and user settings
     /// </summary>
     private SettingsModelView svm;
+    /// <summary>
+    /// The settings model, contains the loaded EDF file structure and user settings
+    /// </summary>
     private SettingsModel sm
     {
       get
@@ -275,6 +278,9 @@ namespace SleepApneaAnalysisTool
         return svm.EDFAllSignals;
       }
     }
+    /// <summary>
+    /// A list of all signals including EDF signals, derivative signals, and filtered signals
+    /// </summary>
     public ReadOnlyCollection<string> AllSignals
     {
       get
@@ -922,7 +928,6 @@ namespace SleepApneaAnalysisTool
       }
     }
 
-
     #endregion
 
     #region Actions
@@ -1054,6 +1059,11 @@ namespace SleepApneaAnalysisTool
     }
 
     // Export Previewed/Selected Signals Wizard
+    /// <summary>
+    /// Background process for exporting signals to binary
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void BW_ExportSignals_DoWork(object sender, DoWorkEventArgs e)
     {
       ExportSignalModel signals_data = ((List<dynamic>)e.Argument)[0];
@@ -1222,10 +1232,20 @@ namespace SleepApneaAnalysisTool
       }
 
     }
+    /// <summary>
+    /// Called when exporting signals to binary files finish
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     private void BW_ExportSignals_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
     {
       PreviewNavigationEnabled = true;
     }
+    /// <summary>
+    /// Exports signal values to binary files
+    /// </summary>
+    /// <param name="result"></param>
+    /// <param name="signals_to_export"></param>
     public void ExportSignalsOutput(bool result, ExportSignalModel signals_to_export)
     {
       if (result == true)
@@ -1291,7 +1311,7 @@ namespace SleepApneaAnalysisTool
       PreviewNavigationEnabled = true;
     }
     /// <summary>
-    /// Exports chart to image
+    /// Exports signal values to excel
     /// </summary>
     public void ExportExcel(string fileName)
     {
