@@ -164,19 +164,13 @@ namespace SleepApneaAnalysisTool
         case nameof(Utils.EPOCH_SEC):
           PreviewCurrentCategory = -1;
           if (!IsEDFLoaded)
-          {
-            PreviewUseAbsoluteTime = false;
-            PreviewViewStartTime = null;
-            PreviewViewStartRecord = null;
-            PreviewViewDuration = null;
-          }
+            pm.PreviewViewStartTime = new DateTime();
           else
-          {
-            PreviewUseAbsoluteTime = false;
-            PreviewViewStartTime = LoadedEDFFile.Header.StartDateTime;
-            PreviewViewStartRecord = 1;
-            PreviewViewDuration = 1;
-          }
+            pm.PreviewViewStartTime = LoadedEDFFile.Header.StartDateTime;
+          pm.PreviewUseAbsoluteTime = false;
+          OnPropertyChanged(nameof(PreviewUseAbsoluteTime));
+          pm.PreviewViewStartRecord = 1;
+          pm.PreviewViewDuration = Utils.EPOCH_SEC;
           PreviewView_Changed();
           OnPropertyChanged(nameof(PreviewNavigationEnabled));
 
