@@ -105,6 +105,7 @@ namespace SleepApneaAnalysisTool
       {
         p_LoadedEDFFileName = value;
         OnPropertyChanged(nameof(LoadedEDFFileName));
+        OnPropertyChanged(nameof(WindowTitle));
       }
     }
     /// <summary>
@@ -147,6 +148,13 @@ namespace SleepApneaAnalysisTool
         }
         else
           return new DateTime();
+      }
+    }
+    public string WindowTitle
+    {
+      get
+      {
+        return "Sleep Apnea Analysis Tool - " + LoadedEDFFileName;
       }
     }
 

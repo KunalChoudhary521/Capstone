@@ -333,27 +333,9 @@ namespace SleepApneaAnalysisTool
 
     #region Properties
 
-    private void PreviewCurrentCategory_Changed()
+    private void PreviewPlot_Changed()
     {
-      OnPropertyChanged(nameof(PreviewCurrentCategoryName));
-      OnPropertyChanged(nameof(PreviewSignals));
-    }
-    private void PreviewUseAbsoluteTime_Changed()
-    {
-      OnPropertyChanged(nameof(PreviewViewDuration));
-
-      OnPropertyChanged(nameof(PreviewViewStartTimeMax));
-      OnPropertyChanged(nameof(PreviewViewStartTimeMin));
-      OnPropertyChanged(nameof(PreviewViewStartRecordMax));
-      OnPropertyChanged(nameof(PreviewViewStartRecordMin));
-      OnPropertyChanged(nameof(PreviewViewDurationMax));
-      OnPropertyChanged(nameof(PreviewViewDurationMin));
-
-      DrawChart();
-    }
-    private void PreviewUseConstantAxis_Changed()
-    {
-      DrawChart();
+      PreviewNavigationEnabled = true;
     }
     private void PreviewView_Changed()
     {
@@ -370,20 +352,13 @@ namespace SleepApneaAnalysisTool
 
       DrawChart();
     }
-    private void PreviewSignalPlot_Changed()
-    {
-      PreviewNavigationEnabled = true;
-    }
-    private void PreviewPropertiesSelectedSignal_Changed()
-    {
-      OnPropertyChanged(nameof(PreviewPropertiesSelectedSignal));
-      OnPropertyChanged(nameof(PreviewPropertiesSampleRate));
-      OnPropertyChanged(nameof(PreviewPropertiesComponentSignal));
-      OnPropertyChanged(nameof(PreviewPropertiesLowPassFilter));
-      OnPropertyChanged(nameof(PreviewPropertiesSmoothFilter));
-    }
 
     // EDF Header
+    /// <summary>
+    /// The start time of the EDF signal recording
+    /// Bound to the textbox in the EDF Header section of the Preview Tab
+    /// Value updated on the UI when a new EDF is loaded or the user changes the Epoch definition
+    /// </summary>
     public string EDFStart
     {
       get
@@ -394,6 +369,11 @@ namespace SleepApneaAnalysisTool
           return null;
       }
     }
+    /// <summary>
+    /// The end time of the EDF signal recording
+    /// Bound to the textbox in the EDF Header section of the Preview Tab
+    /// Value updated on the UI when a new EDF is loaded or the user changes the Epoch definition
+    /// </summary>
     public string EDFEnd
     {
       get
@@ -404,6 +384,11 @@ namespace SleepApneaAnalysisTool
           return null;
       }
     }
+    /// <summary>
+    /// The end epoch of the EDF signal recording
+    /// Bound to the textbox in the EDF Header section of the Preview Tab
+    /// Value updated on the UI when a new EDF is loaded or the user changes the Epoch definition
+    /// </summary>
     public string EDFEndEpoch
     {
       get
@@ -414,6 +399,11 @@ namespace SleepApneaAnalysisTool
           return "";
       }
     }
+    /// <summary>
+    /// The patient name stored in the EDF header
+    /// Bound to the textbox in the EDF Header section of the Preview Tab
+    /// Value updated on the UI when a new EDF is loaded or the user changes the Epoch definition
+    /// </summary>
     public string EDFPatientName
     {
       get
@@ -424,6 +414,11 @@ namespace SleepApneaAnalysisTool
           return "";
       }
     }
+    /// <summary>
+    /// The sex of the patient stored in the EDF header
+    /// Bound to the textbox in the EDF Header section of the Preview Tab
+    /// Value updated on the UI when a new EDF is loaded or the user changes the Epoch definition
+    /// </summary>
     public string EDFPatientSex
     {
       get
@@ -434,6 +429,11 @@ namespace SleepApneaAnalysisTool
           return "";
       }
     }
+    /// <summary>
+    /// The code of the patient stored in the EDF header
+    /// Bound to the textbox in the EDF Header section of the Preview Tab
+    /// Value updated on the UI when a new EDF is loaded or the user changes the Epoch definition
+    /// </summary>
     public string EDFPatientCode
     {
       get
@@ -444,6 +444,11 @@ namespace SleepApneaAnalysisTool
           return "";
       }
     }
+    /// <summary>
+    /// The birth date of the patient stored in the EDF header
+    /// Bound to the textbox in the EDF Header section of the Preview Tab
+    /// Value updated on the UI when a new EDF is loaded or the user changes the Epoch definition
+    /// </summary>
     public string EDFPatientBirthDate
     {
       get
@@ -454,6 +459,11 @@ namespace SleepApneaAnalysisTool
           return "";
       }
     }
+    /// <summary>
+    /// Recording equipment identification stored in the EDF header
+    /// Bound to the textbox in the EDF Header section of the Preview Tab
+    /// Value updated on the UI when a new EDF is loaded or the user changes the Epoch definition
+    /// </summary>
     public string EDFRecordEquipment
     {
       get
@@ -464,6 +474,11 @@ namespace SleepApneaAnalysisTool
           return "";
       }
     }
+    /// <summary>
+    /// Recording equipment code
+    /// Bound to the textbox in the EDF Header section of the Preview Tab
+    /// Value updated on the UI when a new EDF is loaded or the user changes the Epoch definition
+    /// </summary>
     public string EDFRecordCode
     {
       get
@@ -474,6 +489,11 @@ namespace SleepApneaAnalysisTool
           return "";
       }
     }
+    /// <summary>
+    /// Name of the technician who recorded the signals stored in the EDF header
+    /// Bound to the textbox in the EDF Header section of the Preview Tab
+    /// Value updated on the UI when a new EDF is loaded or the user changes the Epoch definition
+    /// </summary>
     public string EDFRecordTechnician
     {
       get
@@ -486,6 +506,11 @@ namespace SleepApneaAnalysisTool
     }
 
     // Signal Properties
+    /// <summary>
+    /// Signal to show property info for
+    /// Bound to the drop down list in the EDF Header section of the Preview tab
+    /// Updated whenever the value changes
+    /// </summary>
     public string PreviewPropertiesSelectedSignal
     {
       get
@@ -495,9 +520,18 @@ namespace SleepApneaAnalysisTool
       set
       {
         pm.PreviewPropertiesSelectedSignal = value;
-        PreviewPropertiesSelectedSignal_Changed();
+        OnPropertyChanged(nameof(PreviewPropertiesSelectedSignal));
+        OnPropertyChanged(nameof(PreviewPropertiesSampleRate));
+        OnPropertyChanged(nameof(PreviewPropertiesComponentSignal));
+        OnPropertyChanged(nameof(PreviewPropertiesLowPassFilter));
+        OnPropertyChanged(nameof(PreviewPropertiesSmoothFilter));
       }
     }
+    /// <summary>
+    /// Sample rate of the selected signals
+    /// Bound to the textbox in the EDF Header section of the Preview Tab
+    /// UI updated whenever the value of 'PreviewPropertiesSelectedSignal changes
+    /// </summary>
     public string PreviewPropertiesSampleRate
     {
       get
@@ -536,6 +570,11 @@ namespace SleepApneaAnalysisTool
         }
       }
     }
+    /// <summary>
+    /// Components of a selected derivative signal
+    /// Bound to the textbox in the EDF Header section of the Preview Tab
+    /// UI updated whenever the value of PreviewPropertiesSelectedSignal changes
+    /// </summary>
     public string PreviewPropertiesComponentSignal
     {
       get
@@ -566,6 +605,11 @@ namespace SleepApneaAnalysisTool
         }
       }
     }
+    /// <summary>
+    /// Cutoff frequency of a low pass filtered signal
+    /// Bound to the textbox in the EDF Header section of the Preview Tab
+    /// UI updated whenever the value of PreviewPropertiesSelectedSignal changes
+    /// </summary>
     public string PreviewPropertiesLowPassFilter
     {
       get
@@ -587,6 +631,11 @@ namespace SleepApneaAnalysisTool
         }
       }
     }
+    /// <summary>
+    /// Impulse response length of a moving average filtered signal
+    /// Bound to the textbox in the EDF Header section of the Preview Tab
+    /// UI updated whenever the value of PreviewPropertiesSelectedSignal changes
+    /// </summary>
     public string PreviewPropertiesSmoothFilter
     {
       get
@@ -610,6 +659,11 @@ namespace SleepApneaAnalysisTool
     }
 
     // Preview Signal Selection
+    /// <summary>
+    /// The index of the current category to be displayed in the signal selection list
+    /// -1 denotes displaying the 'All' category
+    /// Not bound to UI
+    /// </summary>
     public int PreviewCurrentCategory
     {
       get
@@ -620,9 +674,15 @@ namespace SleepApneaAnalysisTool
       {
         pm.PreviewCurrentCategory = value;
         OnPropertyChanged(nameof(PreviewCurrentCategory));
-        PreviewCurrentCategory_Changed();
+        OnPropertyChanged(nameof(PreviewCurrentCategoryName));
+        OnPropertyChanged(nameof(PreviewSignals));
       }
     }
+    /// <summary>
+    /// The name of the current category to be displayed in the signal selection list
+    /// Bound to a label over the signal selection area of the Preview tab
+    /// UI updates whenever the value of PreviewCurrentCategory changes 
+    /// </summary>
     public string PreviewCurrentCategoryName
     {
       get
@@ -633,6 +693,12 @@ namespace SleepApneaAnalysisTool
           return sm.SignalCategories[PreviewCurrentCategory].CategoryName;
       }
     }
+    /// <summary>
+    /// A list of signals to be displayed in the signal selection list
+    /// Bound to the listbox in the signal selection portion of the Preview tab
+    /// UI updates when a new EDF file is loaded, when the user changes the epoch definition, 
+    /// when the selected signal category changes or when the Settings module signals that the list should be updated
+    /// </summary>
     public ReadOnlyCollection<string> PreviewSignals
     {
       get
@@ -654,6 +720,10 @@ namespace SleepApneaAnalysisTool
         }
       }
     }
+    /// <summary>
+    /// Updates the list of signals selected by the user in the signal selection list
+    /// </summary>
+    /// <param name="SelectedItems"> The new set of selected signals </param>
     public void SetSelectedSignals(System.Collections.IList SelectedItems)
     {
       pm.PreviewSelectedSignals.Clear();
@@ -664,6 +734,15 @@ namespace SleepApneaAnalysisTool
     }
 
     // Preview Plot Range
+    /// <summary>
+    /// If true, the user selection for the start time of the plot should be date and time
+    /// the user selection for the period of the plot should be in seconds
+    /// If false, the user selection for the start time of the plot should be 30s epochs
+    /// the user selection for the period of the plot should be in epochs
+    /// Bound to the toggle button in the Time interval specification portion of the Preview Tab
+    /// UI updates when the value changes or when the button is manually toggled off when an EDF is loaded
+    /// or when the user specifies a new epoch definition
+    /// </summary>
     public bool PreviewUseAbsoluteTime
     {
       get
@@ -674,9 +753,14 @@ namespace SleepApneaAnalysisTool
       {
         pm.PreviewUseAbsoluteTime = value;
         OnPropertyChanged(nameof(PreviewUseAbsoluteTime));
-        PreviewUseAbsoluteTime_Changed();
+        PreviewView_Changed();
       }
     }
+    /// <summary>
+    /// The user selected start time of the plot in Date and Time format
+    /// Bound to the date time picker in the Time interval specification portion of the Preview Tab
+    /// UI updates when the PreviewView_Changed function is called
+    /// </summary>
     public DateTime? PreviewViewStartTime
     {
       get
@@ -706,6 +790,11 @@ namespace SleepApneaAnalysisTool
         }
       }
     }
+    /// <summary>
+    /// The user selected start time of the plot in epochs
+    /// Bound to the integer picker in the Time interval specification portion of the Preview Tab
+    /// UI updates when the PreviewView_Changed function is called
+    /// </summary>
     public int? PreviewViewStartRecord
     {
       get
@@ -735,6 +824,11 @@ namespace SleepApneaAnalysisTool
         }
       }
     }
+    /// <summary>
+    /// The user selected period of the plot in seconds or epochs depending on PreviewUseAbsoluteTime
+    /// Bound to the integer picker in the Time interval specification portion of the Preview Tab
+    /// UI updates when the PreviewView_Changed function is called
+    /// </summary>
     public int? PreviewViewDuration
     {
       get
@@ -774,6 +868,9 @@ namespace SleepApneaAnalysisTool
         }
       }
     }
+    /// <summary>
+    /// The user selected end time of the plot in Date and Time format
+    /// </summary>
     public DateTime PreviewViewEndTime
     {
       get
@@ -792,6 +889,9 @@ namespace SleepApneaAnalysisTool
       }
     }
 
+    /// <summary>
+    /// The max possible user selected value for the Start Time
+    /// </summary>
     public DateTime PreviewViewStartTimeMax
     {
       get
@@ -806,6 +906,9 @@ namespace SleepApneaAnalysisTool
           return new DateTime();
       }
     }
+    /// <summary>
+    /// The min possible user selected value for the Start Time
+    /// </summary>
     public DateTime PreviewViewStartTimeMin
     {
       get
@@ -816,6 +919,9 @@ namespace SleepApneaAnalysisTool
           return new DateTime();
       }
     }
+    /// <summary>
+    /// The max possible user selected value for the Start Time
+    /// </summary>
     public int PreviewViewStartRecordMax
     {
       get
@@ -826,6 +932,9 @@ namespace SleepApneaAnalysisTool
           return 0;
       }
     }
+    /// <summary>
+    /// The min possible user selected value for the Start Time
+    /// </summary>
     public int PreviewViewStartRecordMin
     {
       get
@@ -836,6 +945,9 @@ namespace SleepApneaAnalysisTool
           return 0;
       }
     }
+    /// <summary>
+    /// The max possible user selected value for the Duration
+    /// </summary>
     public int PreviewViewDurationMax
     {
       get
@@ -861,6 +973,9 @@ namespace SleepApneaAnalysisTool
           return 0;
       }
     }
+    /// <summary>
+    /// The max possible user selected value for the Duration
+    /// </summary>
     public int PreviewViewDurationMin
     {
       get
@@ -871,6 +986,9 @@ namespace SleepApneaAnalysisTool
           return 0;
       }
     }
+    /// <summary>
+    /// The max possible user selected value for the Duration
+    /// </summary>
     public bool PreviewNavigationEnabled
     {
       get
@@ -887,6 +1005,9 @@ namespace SleepApneaAnalysisTool
         OnPropertyChanged(nameof(PreviewProgressRingEnabled));
       }
     }
+    /// <summary>
+    /// The max possible user selected value for the Duration
+    /// </summary>
     public bool PreviewProgressRingEnabled
     {
       get
@@ -898,7 +1019,12 @@ namespace SleepApneaAnalysisTool
       }
     }
 
-    // Preview Other
+    /// <summary>
+    /// If true, the user selection for the start time of the plot should be date and time
+    /// the user selection for the period of the plot should be in seconds
+    /// If false, the user selection for the start time of the plot should be 30s epochs
+    /// the user selection for the period of the plot should be in epochs
+    /// </summary>
     public bool PreviewUseConstantAxis
     {
       get
@@ -909,10 +1035,12 @@ namespace SleepApneaAnalysisTool
       {
         pm.PreviewUseConstantAxis = value;
         OnPropertyChanged(nameof(PreviewUseConstantAxis));
-        PreviewUseConstantAxis_Changed();
+        PreviewView_Changed();
       }
     }
-    // Preview Plot
+    /// <summary>
+    /// The currently displayed preview plot
+    /// </summary>
     public PlotModel PreviewSignalPlot
     {
       get
@@ -924,7 +1052,7 @@ namespace SleepApneaAnalysisTool
         Utils.ApplyThemeToPlot(value, UseDarkTheme);
         pm.PreviewSignalPlot = value;
         OnPropertyChanged(nameof(PreviewSignalPlot));
-        PreviewSignalPlot_Changed();
+        PreviewPlot_Changed();
       }
     }
 
