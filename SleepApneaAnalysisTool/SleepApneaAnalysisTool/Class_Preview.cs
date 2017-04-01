@@ -36,21 +36,27 @@ namespace SleepApneaAnalysisTool
     {
       if (PreviewPlot != null)
       {
+        // Instantiate a new Excel Instance 
         Excel.Application app = new Excel.Application();
         Utils.MakeExcelInteropPerformant(app, true);
 
+        // Create a new Workbook
         Excel.Workbook wb = app.Workbooks.Add(System.Reflection.Missing.Value);
 
+        // For each signal in the preview plot
         for (int x = 0; x < PreviewPlot.Series.Count; x++)
         {
+          // Get all the points of the series into a 2D array
           LineSeries series = (LineSeries)PreviewPlot.Series[x];
           object[,] signal_points = new object[series.Points.Count + 1, 3];
           #region Get Points
 
+          // Table Headers
           signal_points[0, 0] = "Epoch";
           signal_points[0, 1] = "Date Time";
           signal_points[0, 2] = "Value";
 
+          // Get every point in the series 
           for (int y = 1; y < series.Points.Count + 1; y++)
           {
             signal_points[y, 0] = Utils.DateTimetoEpoch(DateTimeAxis.ToDateTime(series.Points[y - 1].X), StartTime);
@@ -63,13 +69,18 @@ namespace SleepApneaAnalysisTool
           int COLUMNS = 3;
           int ROWS = signal_points.Length / COLUMNS;
 
+          // Create new Worksheet for each signal
           Excel.Worksheet ws = (Excel.Worksheet)wb.Sheets.Add();
           ws.Name = series.YAxis.Title;
+
+          // Add signal to worksheet
           Utils.AddSignalToWorksheet(ws, ws.Name, signal_points, ROWS, COLUMNS, series.Color);
 
+          // Release Interop Object
           System.Runtime.InteropServices.Marshal.ReleaseComObject(ws);
         }
 
+        // Save workbook and make the Excel window visible to the user
         wb.SaveAs(fileName);
         Utils.MakeExcelInteropPerformant(app, false);
       }
@@ -335,10 +346,12 @@ namespace SleepApneaAnalysisTool
 
     private void PreviewPlot_Changed()
     {
+      // After the plot is updates, reenable UI
       PreviewNavigationEnabled = true;
     }
     private void PreviewView_Changed()
     {
+      // Trigger UI refresh on all UI components related to time interval specification
       OnPropertyChanged(nameof(PreviewViewStartRecord));
       OnPropertyChanged(nameof(PreviewViewStartTime));
       OnPropertyChanged(nameof(PreviewViewDuration));
@@ -350,6 +363,7 @@ namespace SleepApneaAnalysisTool
       OnPropertyChanged(nameof(PreviewViewDurationMax));
       OnPropertyChanged(nameof(PreviewViewDurationMin));
 
+      // Redraw the signal plot
       DrawChart();
     }
 
