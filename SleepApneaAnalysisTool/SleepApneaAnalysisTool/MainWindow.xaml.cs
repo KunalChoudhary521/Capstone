@@ -252,6 +252,7 @@ namespace SleepApneaAnalysisTool
     }
     private void TextBlock_UnloadEDF_Click(object sender, RoutedEventArgs e)
     {
+      settings_modelview.WriteEDFSettings();
       common_modelview.LoadedEDFFile = null;
       common_modelview.LoadedEDFFileName = null;
       GC.Collect();
