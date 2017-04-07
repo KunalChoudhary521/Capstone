@@ -124,6 +124,7 @@ namespace SleepApneaAnalysisTool
             if (IsEEGBinaryLoaded)
             {
               EEGEpochForAnalysisBinary = 1;
+              EEGView_Changed();
             }
           }
           else
@@ -131,6 +132,7 @@ namespace SleepApneaAnalysisTool
             if (IsEDFLoaded)
             {
               EpochForAnalysis = 1;
+              EEGView_Changed();
             }
           }
           OnPropertyChanged(nameof(Utils.EPOCH_SEC));
