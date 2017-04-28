@@ -723,7 +723,8 @@ namespace SleepApneaAnalysisTool
 
       double[] result = new double[series.Points.Count];
 
-      result[0] = series.Points[0].Y;
+      if (series.Points.Count > 0)
+        result[0] = series.Points[0].Y;
       for (int x = 1; x < result.Length; x++)
       {
         result[x] = alpha * series.Points[x].Y + (1 - alpha) * result[x-1];
