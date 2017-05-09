@@ -64,9 +64,8 @@
     <SignManifests>false</SignManifests>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="EDF, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\References\EDF Parser - LGPL\bin\Debug\EDF.dll</HintPath>
+    <Reference Include="EDF">
+      <HintPath>..\..\References\EDF.dll</HintPath>
     </Reference>
     <Reference Include="EEGBandpower">
       <HintPath>..\..\References\EEGBandpower.dll</HintPath>
