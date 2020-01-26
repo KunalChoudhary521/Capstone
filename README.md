@@ -1,7 +1,7 @@
 # Capstone Project -- Sleep Apnea Diagnoser
 
 This software package was designed as a capstone project in ECE496. The goal of this project was
-to help the Sleep Science team at the Toronto Rehabilitation Institution to analyzes physiological 
+to help the Sleep Science team at the Toronto Rehabilitation Institution to analyze physiological 
 signals in order determine severity of Sleep Apnea. Sleep Apnea is a disorder that causes periods 
 of shallow or absent breathing while sleeping.
 
